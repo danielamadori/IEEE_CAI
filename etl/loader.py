@@ -171,7 +171,7 @@ def etl(zip_paths, results_dir):
 
 
 
-    return selected_zip_name, selected_manifest, selected_backups, selected_archive_data, selected_manifest_prefix
+    return selected_db0_values_by_key, selected_zip_name, selected_manifest, selected_backups, selected_archive_data, selected_manifest_prefix
 
 
 def summarise_db10_workers(selected_zip_name, selected_manifest, selected_backups, selected_archive_data, selected_manifest_prefix, *, show_summary=True):

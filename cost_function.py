@@ -67,6 +67,12 @@ def cost_function(sample: Dict[str, float] = None,  icf: Dict[str, Tuple[float, 
 			break
 		low_norm, _ = quad(lambda x: (1 / (sigma_neg * np.sqrt(2 * np.pi))) * np.exp(-0.5 * (x / sigma_neg) ** 2), -np.inf, 0)
 		above_norm, _ = quad(lambda x: (1 / (sigma_pos * np.sqrt(2 * np.pi))) * np.exp(-0.5 * (x / sigma_pos) ** 2), 0, np.inf)
+		interval_min = interval_min - sample[key]
+		interval_max = interval_max - sample[key]
+		if verbose:
+			print(f"  Interval repose: [{interval_min:.4f}, {interval_max:.4f}]")
+
+		# Integrate the Gaussian over the interval [interval_min, interval_max]
 
 
 		# Integrate the Gaussian over the interval [interval_min, interval_max]
