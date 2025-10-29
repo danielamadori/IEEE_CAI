@@ -5,38 +5,75 @@ import pandas as pd
 from scipy.integrate import quad
 import matplotlib.pyplot as plt
 
-def cal_sigmas(X_train, X_test, feature_names):
+def cal_sigmas(X_train, X_test, feature_names, test_ids=None):
 	"""
-	Calculate sigma_plus and sigma_minus for each feature in X_test based on X_train
+	Calculate sigma_plus and sigma_minus for each feature in X_test based on X_train.
+	If test_ids is provided, the outer dictionary will use those IDs instead of numeric indices.
+
+	Parameters
+	----------
+	X_train : array-like
+		Training samples (n_train, n_features)
+	X_test : array-like
+		Test samples (n_test, n_features)
+	feature_names : list of str
+		Names of the features (columns)
+	test_ids : list, optional
+		Custom identifiers for each row of X_test (e.g., keys of tests_sample).
+		If None, the function defaults to numeric indices 0..n_test-1.
+
+	Returns
+	-------
+	sigmas_all : dict
+		Dictionary keyed by either numeric indices or test_ids.
+		Each entry maps feature_name -> dict with:
+			sigma_plus, sigma_minus, ratio_above_mean, ratio_below_mean
 	"""
+	import numpy as np
+	import pandas as pd
+
 	sigmas_all = {}
-	X_train_df = pd.DataFrame(X_train, columns = feature_names)
-	X_test_df = pd.DataFrame(X_test, columns = feature_names)
-	for sample_idx, row in X_test_df.iterrows():
-		sigmas_all[sample_idx] = {}
+	X_train_df = pd.DataFrame(X_train, columns=feature_names)
+	X_test_df = pd.DataFrame(X_test, columns=feature_names)
+
+	# Default behaviour preserved if test_ids not given
+	if test_ids is None:
+		test_ids = list(range(len(X_test_df)))
+
+	# Sanity check
+	if len(test_ids) != len(X_test_df):
+		raise ValueError(
+			f"Length mismatch: len(test_ids)={len(test_ids)} vs len(X_test)={len(X_test_df)}"
+		)
+
+	# Main computation
+	for sample_id, (_, row) in zip(test_ids, X_test_df.iterrows()):
+		sigmas_all[sample_id] = {}
 		for feature in feature_names:
-			
-			tmp = np.array(X_train_df[feature])-row[feature] # difference between training samples and the test sample feature value pointwise
-			delta_pos = tmp[tmp >= 0] # positive differences
-			delta_neg = np.abs(tmp[tmp < 0]) # negative differences
-			n_above = np.float64(delta_pos.shape[0]) # count of positive differences
-			n_below = np.float64(delta_neg.shape[0]) # count of negative differences
-			n = n_above + n_below # total count 
+			tmp = np.array(X_train_df[feature]) - row[feature]
+			delta_pos = tmp[tmp >= 0]
+			delta_neg = np.abs(tmp[tmp < 0])
+
+			n_above = float(delta_pos.shape[0])
+			n_below = float(delta_neg.shape[0])
+			n = n_above + n_below
+
 			if n == 0:
 				continue
-			if n != tmp.shape[0]:
-				raise ValueError("Mismatch in counts of differences")
+
 			sum_pos = np.sum(delta_pos ** 2)
 			sum_neg = np.sum(delta_neg ** 2)
+
 			sigma_plus = float(np.sqrt(sum_pos / n_above)) if n_above > 0 else 0.0
 			sigma_minus = float(np.sqrt(sum_neg / n_below)) if n_below > 0 else 0.0
-			sigmas_all[sample_idx][feature] = {
+
+			sigmas_all[sample_id][feature] = {
 				"sigma_plus": sigma_plus,
 				"sigma_minus": sigma_minus,
-				"ratio_above_mean": float(n_above/n) if n > 0 else 0.0,
-				"ratio_below_mean": float(n_below/n) if n > 0 else 0.0,
+				"ratio_above_mean": float(n_above / n) if n > 0 else 0.0,
+				"ratio_below_mean": float(n_below / n) if n > 0 else 0.0,
 			}
-		
+
 	return sigmas_all
 
 def cost_function(sample: Dict[str, float] = None,  icf: Dict[str, Tuple[float, float]] = None, sigmas: Dict[str, Dict[str, dict]] = None, verbose: bool = False) -> float:
