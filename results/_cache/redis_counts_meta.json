@@ -1,7 +1,8 @@
 {
-  "cached_at": "2025-10-29T18:06:28.189991",
-  "source_mtime": 1761761188.1894853,
+  "cached_at": "2025-10-30T12:03:17.437896",
+  "source_mtime": 1761825797.4369364,
   "results_datasets": [
+    "Coffee",
     "ECG200",
     "HandOutlines",
     "MelbournePedestrian",
@@ -10,6 +11,7 @@
     "Wine"
   ],
   "zip_dataset_prefixes": [
+    "Coffee",
     "ECG200",
     "HandOutlines",
     "MelbournePedestrian",
@@ -19,6 +21,11 @@
   ],
   "missing_zip_manifests": [],
   "log_summary": {
+    "Coffee": {
+      "log_start_min": "2025-10-29T15:06:12.964068",
+      "log_end_max": "2025-10-30T11:26:23.016691",
+      "log_duration_seconds": 73210.052623
+    },
     "ECG200": {
       "log_start_min": "2025-10-21T15:42:45.930897",
       "log_end_max": "2025-10-23T01:24:31.312069",

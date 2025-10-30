@@ -23,415 +23,172 @@ from etl.zip_inspector import try_decode_value, decode_key, CANDIDATE_ANTI_REASO
 
 
 def summarise_db10_workers(selected_zip_name, selected_manifest, selected_backups, selected_archive_data, selected_manifest_prefix, *, show_summary=True):
-        global DB10_WORKER_CACHE
-        DB10_WORKER_CACHE = {}
-        if not selected_zip_name:
-            print("No archive selected.")
-            return
-        files_map = (selected_manifest or {}).get('files', {}) or {}
-        db10_file = files_map.get('10')
-        if not db10_file:
-            print("No DB 10 available for the current selection.")
-            return
-        backups = selected_backups if isinstance(selected_backups, dict) else {}
-        db10_data = backups.get(db10_file)
-        if not isinstance(db10_data, dict):
-            zip_path_str = selected_archive_data.get('zip_path') if selected_archive_data else None
-            if zip_path_str:
-                zip_path = Path(zip_path_str)
-                if zip_path.exists():
-                    try:
-                        with zipfile.ZipFile(zip_path) as archive:
-                            payload = archive.read(f"{selected_manifest_prefix}{db10_file}")
-                        db10_data = json.loads(payload.decode('utf-8', errors='replace'))
-                    except Exception:
-                        db10_data = None
-        if not isinstance(db10_data, dict):
-            print("Unable to load DB 10 data.")
-            return
-        entries = db10_data.get('entries') or []
-        if not entries:
-            print("No entries available in DB 10.")
-            DB10_WORKER_CACHE = {
-                'zip_name': selected_zip_name,
-                'db10_file': db10_file,
-                'entries': entries,
-                'db10_data': db10_data,
-                'worker_stats': {},
-                'worker_summaries': [],
-            }
-            return
-        worker_stats = {}
-        for entry in entries:
-            preview, details = try_decode_value(entry)
-            raw_bytes = details.get('decoded_bytes') if isinstance(details, dict) else None
-            if isinstance(raw_bytes, (bytes, bytearray)):
-                text = raw_bytes.decode('utf-8', errors='replace')
-            elif isinstance(preview, (bytes, bytearray)):
-                text = preview.decode('utf-8', errors='replace')
-            else:
-                text = str(preview)
-            try:
-                payload = json.loads(text)
-            except Exception:
-                continue
-            worker_id = payload.get('worker_id')
-            if not worker_id:
+    if not selected_zip_name:
+        raise ValueError("No archive selected.")
+
+    files_map = (selected_manifest or {}).get('files', {}) or {}
+    db10_file = files_map.get('10')
+    if not db10_file:
+        raise ValueError("No DB 10 available for the current selection.")
+
+    backups = selected_backups if isinstance(selected_backups, dict) else {}
+    db10_data = backups.get(db10_file)
+    if not isinstance(db10_data, dict):
+        zip_path_str = selected_archive_data.get('zip_path') if selected_archive_data else None
+        if zip_path_str:
+            zip_path = Path(zip_path_str)
+            if zip_path.exists():
                 try:
-                    key_text = decode_key(entry).decode('utf-8', errors='replace')
+                    with zipfile.ZipFile(zip_path) as archive:
+                        payload = archive.read(f"{selected_manifest_prefix}{db10_file}")
+                    db10_data = json.loads(payload.decode('utf-8', errors='replace'))
                 except Exception:
-                    key_text = entry.get('key')
-                if isinstance(key_text, str) and ':' in key_text:
-                    worker_id = key_text.rsplit(':', 1)[0]
-                else:
-                    worker_id = str(key_text)
-            stats = worker_stats.setdefault(worker_id, {
-                'records': 0,
-                'iterations': [],
-                'queue_sizes': [],
-                'car_queue_sizes': [],
-                'total_seconds': [],
-                'car_seconds': [],
-                'can_seconds': [],
-                'car_results': defaultdict(int),
-                'can_results': defaultdict(int),
-                'outcomes': defaultdict(int),
-                'events': [],
-                'raw_info_totals': defaultdict(float),
-                'extensions_totals': defaultdict(float),
-            })
-            stats['records'] += 1
-            iteration = payload.get('iteration')
-            if isinstance(iteration, (int, float)):
-                stats['iterations'].append(int(iteration))
-            queue_size = payload.get('queue_size')
-            if isinstance(queue_size, (int, float)):
-                stats['queue_sizes'].append(float(queue_size))
-            car_queue_size = payload.get('car_queue_size')
-            if isinstance(car_queue_size, (int, float)):
-                stats['car_queue_sizes'].append(float(car_queue_size))
-            timings = payload.get('timings') or {}
-            total_seconds = timings.get('total_seconds')
-            if isinstance(total_seconds, (int, float)):
-                stats['total_seconds'].append(float(total_seconds))
-            car_seconds = timings.get('car_seconds')
-            if isinstance(car_seconds, (int, float)):
-                stats['car_seconds'].append(float(car_seconds))
-            can_seconds = timings.get('can_seconds')
-            if isinstance(can_seconds, (int, float)):
-                stats['can_seconds'].append(float(can_seconds))
-            car_result = (payload.get('car_processing') or {}).get('result')
-            if car_result:
-                stats['car_results'][car_result] += 1
-            can_result = (payload.get('can_processing') or {}).get('result')
-            if can_result:
-                stats['can_results'][can_result] += 1
-            for outcome_key, outcome_value in (payload.get('outcomes') or {}).items():
-                if isinstance(outcome_value, bool):
-                    label = f"{outcome_key}={'T' if outcome_value else 'F'}"
-                    stats['outcomes'][label] += 1
-            for prefix, processing in (( 'car', payload.get('car_processing') or {}), ('can', payload.get('can_processing') or {})):
-                raw_info = processing.get('raw_info')
-                if isinstance(raw_info, dict):
-                    for key, value in raw_info.items():
-                        if isinstance(value, (int, float)):
-                            stats['raw_info_totals'][f'{prefix}_{key}'] += float(value)
-                extensions = processing.get('extensions')
-                if isinstance(extensions, dict):
-                    for key, value in extensions.items():
-                        if isinstance(value, (int, float)):
-                            stats['extensions_totals'][f'{prefix}_{key}'] += float(value)
-            stats['events'].append(payload)
-        def summarize(values):
-            if not values:
-                return (None, None, None)
-            return (min(values), statistics.mean(values), max(values))
-        def format_number(value, digits=1):
-            return f"{value:.{digits}f}" if isinstance(value, (int, float)) else '-'
-        def format_hours(values):
-            total = sum(values)
-            return total / 3600 if total else 0.0
-        def format_counter(mapping):
-            if not mapping:
-                return '-'
-            items = sorted(dict(mapping).items())
-            return ', '.join(f"{key}:{value}" for key, value in items)
-        workers = []
-        for worker_id, stats in worker_stats.items():
-            queue_min, queue_avg, queue_max = summarize(stats['queue_sizes'])
-            car_min, car_avg, car_max = summarize(stats['car_queue_sizes'])
-            workers.append({
-                'worker_id': worker_id,
-                'records': stats['records'],
-                'iter_min': min(stats['iterations']) if stats['iterations'] else None,
-                'iter_max': max(stats['iterations']) if stats['iterations'] else None,
-                'queue_avg': queue_avg,
-                'car_queue_avg': car_avg,
-                'queue_range': (queue_min, queue_max),
-                'car_queue_range': (car_min, car_max),
-                'total_hours': format_hours(stats['total_seconds']),
-                'car_hours': format_hours(stats['car_seconds']),
-                'can_hours': format_hours(stats['can_seconds']),
-                'car_results': dict(stats['car_results']),
-                'can_results': dict(stats['can_results']),
-                'outcomes': dict(stats['outcomes']),
-            })
-        workers.sort(key=lambda item: item['worker_id'])
-        DB10_WORKER_CACHE = {
+                    db10_data = None
+    if not isinstance(db10_data, dict):
+        raise ValueError("Unable to load DB 10 data.")
+
+    entries = db10_data.get('entries') or []
+    if not entries:
+        print("No entries available in DB 10.")
+        return {
             'zip_name': selected_zip_name,
             'db10_file': db10_file,
             'entries': entries,
             'db10_data': db10_data,
-            'worker_stats': worker_stats,
-            'worker_summaries': workers,
+            'worker_stats': {},
+            'worker_summaries': [],
         }
-        if show_summary:
-            print(f"DB 10: {len(entries)} events, {len(workers)} workers for {selected_zip_name}")
-        if not workers:
-            return
-        if not show_summary:
-            return
-        for index, worker in enumerate(workers, start=1):
-            label = f"W{index:02d}"
-            iter_range = f"{worker['iter_min']}–{worker['iter_max']}" if worker['iter_min'] is not None else '-'
-            queue_range = worker['queue_range']
-            car_queue_range = worker['car_queue_range']
-            queue_range_text = f"{format_number(queue_range[0])}-{format_number(queue_range[1])}" if queue_range[0] is not None else '-'
-            car_range_text = f"{format_number(car_queue_range[0])}-{format_number(car_queue_range[1])}" if car_queue_range[0] is not None else '-'
-            queue_avg_text = format_number(worker['queue_avg'])
-            car_queue_avg_text = format_number(worker['car_queue_avg'])
-            total_hours_text = format_number(worker['total_hours'], digits=2)
-            car_hours_text = format_number(worker['car_hours'], digits=2)
-            can_hours_text = format_number(worker['can_hours'], digits=2)
-            print(
-                f"- {label}: records={worker['records']}, iter={iter_range}, "
-                f"queue_avg={queue_avg_text}, car_queue_avg={car_queue_avg_text}, "
-                f"queue_range={queue_range_text}, car_queue_range={car_range_text}, "
-                f"h_tot={total_hours_text}, h_car={car_hours_text}, h_can={can_hours_text}"
-            )
-            print(
-                "  "
-                + " | ".join([
-                    f"car_results[{format_counter(worker['car_results'])}]",
-                    f"can_results[{format_counter(worker['can_results'])}]",
-                    f"outcomes[{format_counter(worker['outcomes'])}]",
-                ])
-            )
 
-
-def _select_worker_id(worker_stats):
-    if not worker_stats:
-        return None
-    workers = sorted(worker_stats)
-    label_map = _build_worker_label_map(workers)
-    selected = globals().get('SELECTED_DB10_WORKER')
-    env_selected = os.environ.get('RESULTS_SELECTED_WORKER')
-    if env_selected in worker_stats:
-        selected = env_selected
-    if selected not in worker_stats:
-        selected = workers[0]
-    print("Workers found in DB 10:")
-    for idx, wid in enumerate(workers):
-        marker = "*" if wid == selected else " "
-        print(f"{marker}[{idx}] {label_map[wid]}")
-    user_choice = input("Select worker by index or label (press Enter to keep the current selection): ").strip()
-    if user_choice:
-        resolved = None
-        if user_choice.isdigit():
-            index = int(user_choice)
-            if 0 <= index < len(workers):
-                resolved = workers[index]
-        elif user_choice.upper() in label_map.values():
-            label_to_id = {label: wid for wid, label in label_map.items()}
-            resolved = label_to_id.get(user_choice.upper())
-        if resolved is None and user_choice in worker_stats:
-            resolved = user_choice
-        if resolved is None:
-            print("Invalid selection, keeping the current worker.")
+    worker_stats = {}
+    for entry in entries:
+        preview, details = try_decode_value(entry)
+        raw_bytes = details.get('decoded_bytes') if isinstance(details, dict) else None
+        if isinstance(raw_bytes, (bytes, bytearray)):
+            text = raw_bytes.decode('utf-8', errors='replace')
+        elif isinstance(preview, (bytes, bytearray)):
+            text = preview.decode('utf-8', errors='replace')
         else:
-            selected = resolved
-    globals()['SELECTED_DB10_WORKER'] = selected
-    return selected
+            text = str(preview)
+        try:
+            payload = json.loads(text)
+        except Exception:
+            continue
+        worker_id = payload.get('worker_id')
+        if not worker_id:
+            try:
+                key_text = decode_key(entry).decode('utf-8', errors='replace')
+            except Exception:
+                key_text = entry.get('key')
+            if isinstance(key_text, str) and ':' in key_text:
+                worker_id = key_text.rsplit(':', 1)[0]
+            else:
+                worker_id = str(key_text)
+        stats = worker_stats.setdefault(worker_id, {
+            'records': 0,
+            'iterations': [],
+            'queue_sizes': [],
+            'car_queue_sizes': [],
+            'total_seconds': [],
+            'car_seconds': [],
+            'can_seconds': [],
+            'car_results': defaultdict(int),
+            'can_results': defaultdict(int),
+            'outcomes': defaultdict(int),
+            'events': [],
+            'raw_info_totals': defaultdict(float),
+            'extensions_totals': defaultdict(float),
+        })
+        stats['records'] += 1
+        iteration = payload.get('iteration')
+        if isinstance(iteration, (int, float)):
+            stats['iterations'].append(int(iteration))
+        queue_size = payload.get('queue_size')
+        if isinstance(queue_size, (int, float)):
+            stats['queue_sizes'].append(float(queue_size))
+        car_queue_size = payload.get('car_queue_size')
+        if isinstance(car_queue_size, (int, float)):
+            stats['car_queue_sizes'].append(float(car_queue_size))
+        timings = payload.get('timings') or {}
+        total_seconds = timings.get('total_seconds')
+        if isinstance(total_seconds, (int, float)):
+            stats['total_seconds'].append(float(total_seconds))
+        car_seconds = timings.get('car_seconds')
+        if isinstance(car_seconds, (int, float)):
+            stats['car_seconds'].append(float(car_seconds))
+        can_seconds = timings.get('can_seconds')
+        if isinstance(can_seconds, (int, float)):
+            stats['can_seconds'].append(float(can_seconds))
+        car_result = (payload.get('car_processing') or {}).get('result')
+        if car_result:
+            stats['car_results'][car_result] += 1
+        can_result = (payload.get('can_processing') or {}).get('result')
+        if can_result:
+            stats['can_results'][can_result] += 1
+        for outcome_key, outcome_value in (payload.get('outcomes') or {}).items():
+            if isinstance(outcome_value, bool):
+                label = f"{outcome_key}={'T' if outcome_value else 'F'}"
+                stats['outcomes'][label] += 1
+        for prefix, processing in (( 'car', payload.get('car_processing') or {}), ('can', payload.get('can_processing') or {})):
+            raw_info = processing.get('raw_info')
+            if isinstance(raw_info, dict):
+                for key, value in raw_info.items():
+                    if isinstance(value, (int, float)):
+                        stats['raw_info_totals'][f'{prefix}_{key}'] += float(value)
+            extensions = processing.get('extensions')
+            if isinstance(extensions, dict):
+                for key, value in extensions.items():
+                    if isinstance(value, (int, float)):
+                        stats['extensions_totals'][f'{prefix}_{key}'] += float(value)
+        stats['events'].append(payload)
 
 
-def inspect_db10_worker(selected_zip_name, selected_manifest, selected_backups, selected_archive_data, selected_manifest_prefix, worker_id=None, *, max_events=5, sort_by='iteration', interactive=False):
-    cache = globals().get('DB10_WORKER_CACHE')
-    if not cache or cache.get('zip_name') != selected_zip_name:
-        summarise_db10_workers(selected_zip_name, selected_manifest, selected_backups, selected_archive_data, selected_manifest_prefix, show_summary=False)
-        cache = globals().get('DB10_WORKER_CACHE')
-    if not cache:
-        print("DB 10 statistics are not available.")
-        return
-    worker_stats = cache.get('worker_stats') or {}
-    if not worker_stats:
-        print("No workers found in DB 10.")
-        return
-    label_map = _build_worker_label_map(worker_stats.keys())
-    if worker_id and worker_id in worker_stats:
-        globals()['SELECTED_DB10_WORKER'] = worker_id
-    selected_worker = worker_id or globals().get('SELECTED_DB10_WORKER')
-    if selected_worker not in worker_stats:
-        if interactive:
-            selected_worker = _select_worker_id(worker_stats)
-        else:
-            print('Specify a worker label (e.g., W01) or call the function with interactive=True to pick one interactively.')
-            print('Available workers:')
-            for wid in sorted(worker_stats):
-                print(f" - {label_map.get(wid, wid)}")
-            return
-    elif interactive:
-        change = input("Press Enter to keep the current worker or type 'c' to choose a different worker: ").strip().lower()
-        if change == 'c':
-            selected_worker = _select_worker_id(worker_stats)
-        else:
-            globals()['SELECTED_DB10_WORKER'] = selected_worker
-    else:
-        globals()['SELECTED_DB10_WORKER'] = selected_worker
-    if selected_worker not in worker_stats:
-        print('No worker selected.')
-        return
-    stats = worker_stats[selected_worker]
-    worker_label = label_map.get(selected_worker, selected_worker)
-    def fmt(value, digits=2):
+    def summarize(values):
+        if not values:
+            return (None, None, None)
+        return (min(values), statistics.mean(values), max(values))
+
+    def format_number(value, digits=1):
         return f"{value:.{digits}f}" if isinstance(value, (int, float)) else '-'
-    def safe_mean(values):
-        return statistics.mean(values) if values else None
-    def prettify_metric(name: str) -> str:
-        parts = name.replace('-', '_').split('_')
-        return ' '.join(part.upper() if len(part) <= 3 and part.isupper() else part.capitalize() for part in parts if part)
-    def metric_label(metric_key: str, category: str) -> str:
-        if metric_key.startswith('car_'):
-            return f"{CANDIDATE_ANTI_REASONS_NAME} {category.lower()} {prettify_metric(metric_key[4:])}"
-        if metric_key.startswith('can_'):
-            return f"{CANDIDATE_REASONS_NAME} {category.lower()} {prettify_metric(metric_key[4:])}"
-        return f"{category} {prettify_metric(metric_key)}"
-    iterations = stats.get('iterations', [])
-    queue_sizes = stats.get('queue_sizes', [])
-    car_queue_sizes = stats.get('car_queue_sizes', [])
-    total_seconds = stats.get('total_seconds', [])
-    car_seconds = stats.get('car_seconds', [])
-    can_seconds = stats.get('can_seconds', [])
-    print(f"Worker {worker_label} in DB 10 ({cache.get('zip_name')})")
-    print(f"- recorded events: {stats.get('records', 0)}")
-    if iterations:
-        print(f"- iteration range: {min(iterations)}–{max(iterations)}")
-    else:
-        print('- iteration range: -')
-    if queue_sizes:
-        print(
-            f"- queue size: avg {fmt(safe_mean(queue_sizes), 1)}, "
-            f"min {fmt(min(queue_sizes), 0)}, max {fmt(max(queue_sizes), 0)}"
-        )
-    else:
-        print('- queue size: no data')
-    if car_queue_sizes:
-        print(
-            f"- CAR queue size: avg {fmt(safe_mean(car_queue_sizes), 1)}, "
-            f"min {fmt(min(car_queue_sizes), 0)}, max {fmt(max(car_queue_sizes), 0)}"
-        )
-    else:
-        print('- CAR queue size: no data')
-    def sum_hours(values):
-        return fmt(sum(values) / 3600 if values else None, 2)
-    print(f"- total hours: {sum_hours(total_seconds)}")
-    print(f"  - CAR: {sum_hours(car_seconds)}")
-    print(f"  - CAN: {sum_hours(can_seconds)}")
+    def format_hours(values):
+        total = sum(values)
+        return total / 3600 if total else 0.0
     def format_counter(mapping):
         if not mapping:
             return '-'
         items = sorted(dict(mapping).items())
         return ', '.join(f"{key}:{value}" for key, value in items)
-    def format_metric_map(metric_map, category):
-        if not metric_map:
-            return '-'
-        pairs = []
-        for key, value in sorted(metric_map.items()):
-            label = metric_label(key, category)
-            if isinstance(value, float) and value.is_integer():
-                value_text = str(int(value))
-            else:
-                value_text = fmt(value, 1)
-            pairs.append(f"{label}:{value_text}")
-        return ', '.join(pairs)
-    print(f"- CAR outcomes: {format_counter(stats.get('car_results'))}")
-    print(f"- CAN outcomes: {format_counter(stats.get('can_results'))}")
-    print(f"- outcomes: {format_counter(stats.get('outcomes'))}")
-    print(f"- Raw info totals: {format_metric_map(stats.get('raw_info_totals') or {}, 'Raw info')}")
-    print(f"- Extensions totals: {format_metric_map(stats.get('extensions_totals') or {}, 'Extensions')}")
-    events = list(stats.get('events') or [])
-    if not events:
-        print('No event details stored.')
-        return
-    def event_key(event):
-        if sort_by == 'timestamp':
-            return (event.get('timestamp_start') or '', event.get('iteration') or float('inf'))
-        iteration = event.get('iteration')
-        return (iteration if iteration is not None else float('inf'), event.get('timestamp_start') or '')
-    events_sorted = sorted(events, key=event_key)
-    selected_events = events_sorted[-max_events:] if max_events and max_events > 0 else events_sorted
-    print(f"Showing {len(selected_events)} events out of {len(events_sorted)} (sorted by {sort_by}).")
-    for event in selected_events:
-        iteration = event.get('iteration')
-        timestamp_start = event.get('timestamp_start')
-        timestamp_end = event.get('timestamp_end')
-        queue_size = event.get('queue_size')
-        car_queue_size = event.get('car_queue_size')
-        timings = event.get('timings') or {}
-        car_processing = event.get('car_processing') or {}
-        can_processing = event.get('can_processing') or {}
-        outcomes = event.get('outcomes') or {}
-        line = (
-            f"- iter={iteration}, start={timestamp_start}, end={timestamp_end}, "
-            f"queue={queue_size}, car_queue={car_queue_size}, "
-            f"tot_s={fmt(timings.get('total_seconds'), 1)}, "
-            f"car={car_processing.get('result') or '-'} ({fmt(timings.get('car_seconds'), 1)}s), "
-            f"can={can_processing.get('result') or '-'} ({fmt(timings.get('can_seconds'), 1)}s)"
-        )
-        print(line)
-        extra_parts = []
-        if car_processing.get('time_seconds'):
-            extra_parts.append(f"car_step={fmt(car_processing.get('time_seconds'), 1)}s")
-        if can_processing.get('time_seconds'):
-            extra_parts.append(f"can_step={fmt(can_processing.get('time_seconds'), 1)}s")
-        for prefix, processing in (('car', car_processing), ('can', can_processing)):
-            proc_raw_info = processing.get('raw_info')
-            if isinstance(proc_raw_info, dict) and proc_raw_info:
-                summary = ', '.join(f"{key}:{value}" for key, value in sorted(proc_raw_info.items()))
-                extra_parts.append(f"{prefix}_raw_info[{summary}]")
-            proc_extensions = processing.get('extensions')
-            if isinstance(proc_extensions, dict) and proc_extensions:
-                summary = ', '.join(f"{key}:{value}" for key, value in sorted(proc_extensions.items()))
-                extra_parts.append(f"{prefix}_extensions[{summary}]")
-        extensions = event.get('extensions')
-        if isinstance(extensions, dict) and extensions:
-            ext_summary = ', '.join(f"{k}:{v}" for k, v in sorted(extensions.items()))
-            extra_parts.append(f"extensions[{ext_summary}]")
-        raw_info = event.get('raw_info')
-        if isinstance(raw_info, dict) and raw_info:
-            info_summary = ', '.join(f"{k}:{v}" for k, v in sorted(raw_info.items()))
-            extra_parts.append(f"raw_info[{info_summary}]")
-        if outcomes:
-            outcomes_summary = ', '.join(
-                f"{key}={'T' if bool(value) else 'F'}" for key, value in sorted(outcomes.items())
-            )
-            extra_parts.append(f"outcomes[{outcomes_summary}]")
-        if extra_parts:
-            print("  " + " | ".join(extra_parts))
+    workers = []
+    for worker_id, stats in worker_stats.items():
+        queue_min, queue_avg, queue_max = summarize(stats['queue_sizes'])
+        car_min, car_avg, car_max = summarize(stats['car_queue_sizes'])
+        workers.append({
+            'worker_id': worker_id,
+            'records': stats['records'],
+            'iter_min': min(stats['iterations']) if stats['iterations'] else None,
+            'iter_max': max(stats['iterations']) if stats['iterations'] else None,
+            'queue_avg': queue_avg,
+            'car_queue_avg': car_avg,
+            'queue_range': (queue_min, queue_max),
+            'car_queue_range': (car_min, car_max),
+            'total_hours': format_hours(stats['total_seconds']),
+            'car_hours': format_hours(stats['car_seconds']),
+            'can_hours': format_hours(stats['can_seconds']),
+            'car_results': dict(stats['car_results']),
+            'can_results': dict(stats['can_results']),
+            'outcomes': dict(stats['outcomes']),
+        })
+    workers.sort(key=lambda item: item['worker_id'])
+    return {
+        'zip_name': selected_zip_name,
+        'db10_file': db10_file,
+        'entries': entries,
+        'db10_data': db10_data,
+        'worker_stats': worker_stats,
+        'worker_summaries': workers,
+    }
 
 
-def build_db10_worker_report(selected_zip_name, selected_manifest, selected_backups, selected_archive_data, selected_manifest_prefix, *, max_events=None, sort_by='iteration'):
-    cache = globals().get('DB10_WORKER_CACHE')
-    if not cache or cache.get('zip_name') != selected_zip_name:
-        #summarise_db10_workers(selected_zip_name, selected_manifest, selected_backups, selected_archive_data, selected_manifest_prefix, show_summary=False)
-        cache = globals().get('DB10_WORKER_CACHE')
-    if not cache:
-        print('DB 10 statistics are not available.')
-        return {}
-    worker_stats = cache.get('worker_stats') or {}
-    if not worker_stats:
-        print('No workers found in DB 10.')
-        return {}
-
+def build_db10_worker_report(results, max_events=None, sort_by='iteration'):
     def safe_mean(values):
         return statistics.mean(values) if values else None
 
@@ -474,8 +231,9 @@ def build_db10_worker_report(selected_zip_name, selected_manifest, selected_back
             'outcomes': event.get('outcomes'),
         }
 
+    worker_stats = results.get("worker_stats")
     report = {
-        'zip_name': cache.get('zip_name'),
+        'zip_name': results.get('zip_name'),
         'worker_count': len(worker_stats),
         'workers': {}
     }
@@ -516,17 +274,8 @@ def build_db10_worker_report(selected_zip_name, selected_manifest, selected_back
         summary['events'] = [serialize_event(event) for event in events_sorted]
         report['workers'][worker_id] = summary
 
-    globals()['DB10_WORKER_REPORT'] = report
     print(f"Report built for {report['worker_count']} workers.")
     return report
-
-
-def _ensure_report(selected_zip_name, selected_manifest, selected_backups, selected_archive_data, selected_manifest_prefix):
-    report = globals().get('DB10_WORKER_REPORT')
-    if not report or report.get('zip_name') != selected_zip_name:
-        report = build_db10_worker_report(selected_zip_name, selected_manifest, selected_backups, selected_archive_data, selected_manifest_prefix, max_events=None)
-    return report
-
 
 def _build_worker_label_map(worker_ids):
     worker_ids = sorted(worker_ids)
@@ -726,24 +475,23 @@ def _plot_scatter(df: pd.DataFrame, config: dict):
     plt.ylabel(ylabel)
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
-    plt.show()
+    return plt
 
 
 def _plot_bar(df: pd.DataFrame, *, columns: Iterable[str], title: str, ylabel: str, stacked: bool = False, sort_by: str | None = None):
     available_columns = [col for col in columns if col in df.columns]
     if not available_columns:
-        print(f"Plot '{title}' skipped: columns not available.")
-        return
+        raise ValueError(f"Plot '{title}' skipped: columns not available.")
     subset = df[['worker_label'] + available_columns].copy()
     subset = subset.dropna(how='all', subset=available_columns)
     if subset.empty:
-        print(f"Plot '{title}' skipped: insufficient data.")
-        return
+        raise ValueError(f"Plot '{title}' skipped: insufficient data.")
+
     subset[available_columns] = subset[available_columns].apply(pd.to_numeric, errors='coerce')
     subset = subset.dropna()
     if subset.empty:
-        print(f"Plot '{title}' skipped: non-numeric data.")
-        return
+        raise ValueError(f"Plot '{title}' skipped: non-numeric data.")
+
     renamed_subset = _rename_columns(subset)
     plot_df = renamed_subset.set_index('Worker')
     value_columns = []
@@ -752,8 +500,8 @@ def _plot_bar(df: pd.DataFrame, *, columns: Iterable[str], title: str, ylabel: s
         if display_name in plot_df.columns:
             value_columns.append(display_name)
     if not value_columns:
-        print(f"Plot '{title}' skipped: no numeric columns available after renaming.")
-        return
+        raise ValueError(f"Plot '{title}' skipped: no numeric columns available after renaming.")
+
     sort_column = _column_display_name(sort_by) if sort_by else None
     if sort_column and sort_column in plot_df.columns:
         plot_df = plot_df.sort_values(sort_column, ascending=False)
@@ -765,7 +513,8 @@ def _plot_bar(df: pd.DataFrame, *, columns: Iterable[str], title: str, ylabel: s
     plt.xticks(rotation=45, ha='right')
     plt.grid(True, axis='y', alpha=0.3)
     plt.tight_layout()
-    plt.show()
+
+    return plt
 
 
 def _collect_heatmap_rows(entries):
@@ -824,10 +573,12 @@ def render_bitmap_heatmaps(selected_manifest, selected_backups):
         (9, DB_DISPLAY_NAMES.get('AP', 'Anti-reason profiles')),
     ]
     if not selected_manifest or not selected_backups:
-        print('Bitmap heatmaps unavailable: no backups loaded.')
-        return
+        raise ValueError('Bitmap heatmaps unavailable: no backups loaded.')
+
     files_map = selected_manifest.get('files') or {}
     generated_any = False
+
+    plots = []
     for db_index, label in heatmap_dbs:
         file_name = files_map.get(str(db_index))
         if not file_name:
@@ -850,21 +601,22 @@ def render_bitmap_heatmaps(selected_manifest, selected_backups):
         cbar = plt.colorbar(im, ax=ax)
         cbar.set_label('Bit value')
         plt.tight_layout()
-        plt.show()
+
+        plots.append(plt)
     if not generated_any:
-        print('No bitmap heatmaps generated (missing or empty data).')
+        raise ValueError('No bitmap heatmaps generated (missing or empty data).')
 
+    return plots
 
-def render_db0_eu_analysis():
-    entry_map = globals().get('selected_db0_values_by_key') or {}
+def render_db0_eu_analysis(entry_map):
     eu_entry = entry_map.get('EU') if isinstance(entry_map, dict) else None
     if not eu_entry:
-        print('DB 0 EU entry not available for the current selection.')
-        return
+        raise ValueError('DB 0 EU entry not available for the current selection.')
+
     series_map = eu_entry.get('value_json')
     if not isinstance(series_map, dict) or not series_map:
-        print('DB 0 EU entry does not contain a time series map.')
-        return
+        raise ValueError('DB 0 EU entry does not contain a time series map.')
+
     feature_names = sorted(series_map)
     cleaned_series = []
     lengths = []
@@ -921,8 +673,8 @@ def render_db0_eu_analysis():
             'max': max_val,
         })
     if max_len == 0:
-        print('DB 0 EU entry does not contain numeric time series.')
-        return
+        raise ValueError('DB 0 EU entry does not contain numeric time series.')
+
     matrix = np.full((len(cleaned_series), max_len), np.nan, dtype=float)
     for idx, series in enumerate(cleaned_series):
         if series:
@@ -992,8 +744,7 @@ def render_db0_eu_analysis():
 
 
 def _collect_worker_iteration_rows(report, df: pd.DataFrame):
-    cache = globals().get('DB10_WORKER_CACHE') or {}
-    worker_stats = cache.get('worker_stats') or {}
+    worker_stats = report.get('worker_stats') or {}
     workers = (report or {}).get('../workers') or {}
     union_worker_ids = set(workers.keys()) | set(worker_stats.keys())
     label_map = _build_worker_label_map(union_worker_ids)
@@ -1092,11 +843,14 @@ def _extract_numeric_value(*candidates):
 
 
 def render_worker_report(selected_zip_name, selected_manifest, selected_backups, selected_archive_data, selected_manifest_prefix):
-    report = _ensure_report(selected_zip_name, selected_manifest, selected_backups, selected_archive_data, selected_manifest_prefix)
+    results = summarise_db10_workers(selected_zip_name, selected_manifest, selected_backups, selected_archive_data, selected_manifest_prefix)
+
+    report = build_db10_worker_report(results, max_events=None)
+
     rows = _flatten_worker_summary(report)
     if not rows:
-        print('No data available for the worker report.')
-        return
+        raise ValueError('No data available for the worker report.')
+
     df = pd.DataFrame(rows)
     df = df.sort_values('worker_index')
     base_columns = [col for col in BASE_COLUMNS if col in df.columns]
@@ -1105,18 +859,22 @@ def render_worker_report(selected_zip_name, selected_manifest, selected_backups,
     )
     base_table_columns = ['worker_label'] + [col for col in BASE_COLUMNS if col not in {'worker_id'}]
     base_table_columns = [col for col in base_table_columns if col in df.columns]
-    display(_rename_columns(df[base_table_columns]))
+
+    workers_table = _rename_columns(df[base_table_columns])
+
     print('Detailed results per worker:')
     raw_info_columns = sorted(col for col in df.columns if col.startswith('raw_info_'))
     extensions_columns = sorted(col for col in df.columns if col.startswith('extensions_'))
     detail_columns = ['worker_label'] + extra_columns + raw_info_columns + extensions_columns
     detail_columns = [col for col in detail_columns if col in df.columns]
-    display(_rename_columns(df[detail_columns]))
+
+    workers_table2 = _rename_columns(df[detail_columns])
+    plots = []
     for config in SCATTER_PLOTS:
-        _plot_scatter(df, config)
+        plots.append(_plot_scatter(df, config))
     for x_key, y_key, title in ADDITIONAL_SCATTER_PREFIX_PAIRS:
         if x_key in df.columns and y_key in df.columns:
-            _plot_scatter(
+            plots.append(_plot_scatter(
                 df,
                 {
                     'title': title,
@@ -1125,43 +883,45 @@ def render_worker_report(selected_zip_name, selected_manifest, selected_backups,
                     'xlabel': _column_display_name(x_key),
                     'ylabel': _column_display_name(y_key),
                 },
-            )
+            ))
     for config in BAR_PLOTS:
-        _plot_bar(
+        plots.append(_plot_bar(
             df,
             columns=config['columns'],
             title=config['title'],
             ylabel=config['ylabel'],
             stacked=False,
             sort_by=config.get('sort_by'),
-        )
+        ))
     for config in STACKED_BAR_CONFIG:
         columns = sorted(col for col in df.columns if col.startswith(config['prefix']))
         if columns:
-            _plot_bar(
+            plots.append(_plot_bar(
                 df,
                 columns=columns,
                 title=config['title'],
                 ylabel=config['ylabel'],
                 stacked=True,
-            )
+            ))
         else:
             print(f"Plot '{config['title']}' skipped: no columns with prefix {config['prefix']!r}.")
+
     for config in HISTOGRAMS:
-        _plot_histogram(df, column=config['column'], title=config['title'], xlabel=config['xlabel'])
+        plots.append(_plot_histogram(df, column=config['column'], title=config['title'], xlabel=config['xlabel']))
     if extensions_columns:
-        _plot_bar(df, columns=extensions_columns, title='Extensions totals per worker', ylabel='Count', stacked=False)
-    _plot_queue_time_series(report, df)
-    _render_worker_iteration_table(report, df)
+        plots.append(_plot_bar(df, columns=extensions_columns, title='Extensions totals per worker', ylabel='Count', stacked=False))
+    plots.extend(_plot_queue_time_series(results, report, df))
+    workers_table3 = _render_worker_iteration_table(report, df)
+
+    return workers_table, workers_table2, workers_table3, plots
 
 
-def _plot_queue_time_series(report, df: pd.DataFrame):
+def _plot_queue_time_series(results, report, df: pd.DataFrame):
     workers_data = (report or {}).get('../workers') or {}
-    cache = globals().get('DB10_WORKER_CACHE') or {}
-    worker_stats = cache.get('worker_stats') or {}
+    worker_stats = results.get("worker_stats")
     if not workers_data and not worker_stats:
-        print("Queue time series skipped: worker events unavailable.")
-        return
+        raise ValueError("Queue time series skipped: worker events unavailable.")
+
     union_worker_ids = set(workers_data.keys()) | set(worker_stats.keys())
     label_map = _build_worker_label_map(union_worker_ids)
     queue_series = []
@@ -1201,19 +961,21 @@ def _plot_queue_time_series(report, df: pd.DataFrame):
             queue_series.append((label, queue_points))
         if car_points:
             car_queue_series.append((label, car_points))
-    _render_combined_timeseries(queue_series, title='Queue size overview', ylabel='Queue size')
-    _render_combined_timeseries(car_queue_series, title=f"{CANDIDATE_ANTI_REASONS_NAME} queue overview", ylabel=f"{CANDIDATE_ANTI_REASONS_NAME} queue size")
 
+    return [
+        _render_combined_timeseries(queue_series, title='Queue size overview', ylabel='Queue size'),
+        _render_combined_timeseries(car_queue_series, title=f"{CANDIDATE_ANTI_REASONS_NAME} queue overview", ylabel=f"{CANDIDATE_ANTI_REASONS_NAME} queue size")
+    ]
 
 def _render_worker_iteration_table(report, df: pd.DataFrame, *, max_rows=5000):
     rows = _collect_worker_iteration_rows(report, df)
     if not rows:
         print('Worker iteration details are not available for the current selection.')
-        return
+
     table = pd.DataFrame(rows)
     if table.empty:
         print('Worker iteration details are not available for the current selection.')
-        return
+
     table['timestamp_start'] = pd.to_datetime(table['timestamp_start'], errors='coerce')
     table['timestamp_end'] = pd.to_datetime(table['timestamp_end'], errors='coerce')
     sort_columns = ['worker_label', 'event_order']
@@ -1238,7 +1000,7 @@ def _render_worker_iteration_table(report, df: pd.DataFrame, *, max_rows=5000):
         display_df = table
     if 'worker_id' in display_df.columns:
         display_df = display_df.drop(columns=['worker_id'])
-    display(_rename_columns(display_df))
+    return _rename_columns(display_df)
 
 
 def _plot_histogram(df: pd.DataFrame, *, column: str, title: str, xlabel: str):
@@ -1257,7 +1019,7 @@ def _plot_histogram(df: pd.DataFrame, *, column: str, title: str, xlabel: str):
     plt.ylabel('Number of workers')
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
-    plt.show()
+    return plt
 
 
 def _parse_worker_event_timestamp(event):
@@ -1364,8 +1126,8 @@ def _render_worker_timeseries_grid(series_data, *, title: str, ylabel: str):
 
 def _render_combined_timeseries(series_data, *, title: str, ylabel: str):
     if not series_data:
-        print(f"Plot '{title}' skipped: insufficient data.")
-        return
+        raise ValueError(f"Plot '{title}' skipped: insufficient data.")
+
     plt.figure(figsize=(12, 4))
     for label, items in series_data:
         timestamps = [entry['timestamp'] for entry in items if entry['timestamp'] is not None]
@@ -1398,4 +1160,4 @@ def _render_combined_timeseries(series_data, *, title: str, ylabel: str):
         plt.legend(fontsize=6, ncol=2, frameon=False, loc='upper left', bbox_to_anchor=(1.02, 1))
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
-    plt.show()
+    return plt

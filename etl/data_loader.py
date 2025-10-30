@@ -2,10 +2,54 @@ import json
 import re
 from datetime import datetime
 from matplotlib import pyplot as plt
+from etl.zip_inspector import decode_key, try_decode_value
 
 
-def render_db0_sample_timeseries():
-    entry_map = globals().get('selected_db0_values_by_key') or {}
+def load_db0(selected_manifest, selected_backups):
+    selected_db0_file_name = None
+    if selected_manifest:
+        files_map = selected_manifest.get('files', {}) or {}
+        selected_db0_file_name = files_map.get('0')
+
+    selected_db0_backup = None
+    if selected_backups and selected_db0_file_name:
+        selected_db0_backup = selected_backups.get(selected_db0_file_name)
+
+    selected_db0_values = []
+    if selected_db0_backup:
+        selected_db0_entries = selected_db0_backup.get('entries') or []
+        for entry in selected_db0_entries:
+            try:
+                key_bytes = decode_key(entry)
+                key_text = key_bytes.decode('utf-8', errors='replace')
+            except Exception as exc:
+                key_text = f'<unable to decode key: {exc}>'
+            preview, details = try_decode_value(entry)
+            value_bytes = details.get('decoded_bytes') if isinstance(details, dict) else None
+            if isinstance(value_bytes, (bytes, bytearray)):
+                value_text = value_bytes.decode('utf-8', errors='replace')
+            else:
+                value_text = str(preview)
+            value_json = None
+            if isinstance(value_text, str):
+                try:
+                    value_json = json.loads(value_text)
+                except Exception:
+                    value_json = None
+            selected_db0_values.append({
+                'key': key_text,
+                'type': entry.get('type'),
+                'ttl_ms': entry.get('pttl'),
+                'value_text': value_text,
+                'value_bytes': value_bytes,
+                'value_json': value_json,
+                'details': details,
+            })
+
+    return {item['key']: item for item in selected_db0_values}
+
+
+def render_db0_sample_timeseries(entry_map):
     if not isinstance(entry_map, dict):
         print('DB 0 sample entries not available for the current selection.')
         return
