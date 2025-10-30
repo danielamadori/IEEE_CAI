@@ -110,10 +110,6 @@ def cost_function(sample: Dict[str, float] = None,  icf: Dict[str, Tuple[float, 
 			print(f"  Interval repose: [{interval_min:.4f}, {interval_max:.4f}]")
 
 		# Integrate the Gaussian over the interval [interval_min, interval_max]
-
-
-		# Integrate the Gaussian over the interval [interval_min, interval_max]
-
 		scale_below = percent_below / low_norm
 		scale_above = percent_above / above_norm
 

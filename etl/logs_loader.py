@@ -810,7 +810,9 @@ def _collect_worker_iteration_rows(report, df: pd.DataFrame):
 
 def _filter_valid_points(df: pd.DataFrame, x_key: str, y_key: str):
     subset = df.dropna(subset=[x_key, y_key])
-    subset = subset[subset[[x_key, y_key]].applymap(lambda v: isinstance(v, (int, float))).all(axis=1)]
+    subset = subset[
+        subset[[x_key, y_key]].map(lambda v: isinstance(v, (int, float))).all(axis=1)
+    ]
     if subset.empty:
         return []
     return list(zip(subset[x_key], subset[y_key], subset['worker_label']))
