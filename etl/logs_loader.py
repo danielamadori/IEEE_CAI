@@ -971,17 +971,21 @@ def _render_worker_iteration_table(report, df: pd.DataFrame, *, max_rows=5000):
     rows = _collect_worker_iteration_rows(report, df)
     if not rows:
         print('Worker iteration details are not available for the current selection.')
+        return pd.DataFrame()
 
     table = pd.DataFrame(rows)
     if table.empty:
         print('Worker iteration details are not available for the current selection.')
+        return table
 
-    table['timestamp_start'] = pd.to_datetime(table['timestamp_start'], errors='coerce')
-    table['timestamp_end'] = pd.to_datetime(table['timestamp_end'], errors='coerce')
+    for column in ('timestamp_start', 'timestamp_end'):
+        if column in table.columns:
+            table[column] = pd.to_datetime(table[column], errors='coerce')
+
     sort_columns = ['worker_label', 'event_order']
-    if table['timestamp_start'].notna().any():
+    if 'timestamp_start' in table.columns and table['timestamp_start'].notna().any():
         sort_columns = ['worker_label', 'timestamp_start', 'event_order']
-    elif table['iteration'].notna().any():
+    elif 'iteration' in table.columns and table['iteration'].notna().any():
         sort_columns = ['worker_label', 'iteration', 'event_order']
     table = table.sort_values(sort_columns)
     total_rows = len(table)
