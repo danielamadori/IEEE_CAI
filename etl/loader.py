@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 import zipfile, base64
 
-from etl.data_loader import load_db0
+from etl.data_loader import load_db0, render_db0_sample_timeseries
 from etl.logs_loader import render_worker_report
 
 from etl.zip_inspector import scan_and_load, parse_zip_metadata, collect_archive_data, decode_key, try_decode_value, \
@@ -37,6 +37,8 @@ def etl(zip_paths, results_dir):
     workers_table, workers_table2, workers_table3, plots = render_worker_report(selected_zip_name, selected_manifest, selected_backups, selected_archive_data, selected_manifest_prefix)
 
     db = { DB_NAMES.get(0) : load_db0(selected_manifest, selected_backups)}
+
+    render_db0_sample_timeseries(db[DB_NAMES.get(0)])
 
     if selected_manifest and selected_archive_data and selected_manifest_prefix is not None:
         files_map = (selected_manifest.get('files') or {})
