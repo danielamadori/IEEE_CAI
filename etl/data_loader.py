@@ -50,9 +50,6 @@ def load_db0(selected_manifest, selected_backups):
 
 
 def render_db0_sample_timeseries(entry_map):
-    if not isinstance(entry_map, dict):
-        print('DB 0 sample entries not available for the current selection.')
-        return
     collected = []
     for key, entry in entry_map.items():
         if not (key.startswith('sample_') and not key.endswith('_meta')):
@@ -64,8 +61,8 @@ def render_db0_sample_timeseries(entry_map):
         timestamp = _extract_sample_timestamp(meta_entry) if isinstance(meta_entry, dict) else None
         collected.append((timestamp, key, series))
     if not collected:
-        print('No DB 0 sample time series available.')
-        return
+        raise ValueError('No sample time series available.')
+
     def _sort_key(item):
         ts, key, _ = item
         if ts:
@@ -82,7 +79,7 @@ def render_db0_sample_timeseries(entry_map):
         plt.plot(xs, series, linewidth=1, label=label)
     plt.xlabel('Index')
     plt.ylabel('Value')
-    plt.title('DB 0 sample time series overview')
+    plt.title('Sample time series overview')
     if len(collected) <= 12:
         legend_cols = 1 if len(collected) <= 6 else 2
         plt.legend(fontsize=6, ncol=legend_cols, frameon=False)
