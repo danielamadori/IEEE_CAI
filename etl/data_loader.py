@@ -87,6 +87,9 @@ def render_db0_sample_timeseries(entry_map):
         plt.legend(fontsize=6, ncol=3, frameon=False, loc='upper left', bbox_to_anchor=(1.02, 1))
     plt.tight_layout()
     plt.show()
+
+    #Comment to plot each  series separately
+    return
     cols = 2
     rows = (len(collected) + cols - 1) // cols
     fig, axes = plt.subplots(rows, cols, figsize=(14, rows * 3), squeeze=False)

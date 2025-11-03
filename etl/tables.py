@@ -929,8 +929,6 @@ def get_first_table(
 		'avg_depth',
 		'avg_leaves',
 		'avg_nodes',
-		'n_features',
-		'eu_complexity',
 		'Worker start (min)',
 		'Worker end (max)',
 		'Worker span (s)',
@@ -1087,19 +1085,12 @@ def print_models_analysis_overview(payload: ModelsAnalysisContext | ModelsAnalys
 	print(f'Base dir           : {artifacts.base_dir}')
 	print(f'Loaded {len(artifacts.report_data)} rows from {artifacts.forest_json}')
 	print(f'Results directory  : {artifacts.results_dir} (exists={artifacts.results_dir.exists()})')
-	if artifacts.saved_summary_path:
-		print(f'Summary cache path : {artifacts.saved_summary_path}')
-	print(f'Using cached counts: {artifacts.used_cache}')
 
 
 def print_models_analysis_diagnostics(payload: ModelsAnalysisContext | ModelsAnalysisArtifacts) -> None:
 	artifacts = _extract_artifacts(payload)
 	print(f'? BASE_DIR     : {artifacts.base_dir}')
 	print(f'? RESULTS_DIR  : {artifacts.results_dir}')
-	print(f'? FOREST_REPORT: {artifacts.forest_csv.exists()}')
-	summary_path_display = artifacts.saved_summary_path if artifacts.saved_summary_path else '<none>'
-	print(f'? SUMMARY_FILE : {summary_path_display}')
-	print(f'? USED_CACHE   : {artifacts.used_cache}')
 
 	if artifacts.missing_zip_manifests:
 		print('ZIP senza redis manifest (primi entry mostrati):')
@@ -1111,15 +1102,12 @@ def print_models_analysis_diagnostics(payload: ModelsAnalysisContext | ModelsAna
 				name = entry
 				sample = ''
 			print('-', name, '->', sample)
-	elif artifacts.results_dir.exists():
-		print('Tutti gli zip contengono redis_backup_db*.json (o non ci sono zip).')
-	else:
-		print('Directory results non trovata.')
+
 
 	if artifacts.results_datasets:
-		print('Dataset conteggiati:', ', '.join(sorted(artifacts.results_datasets)))
+		print('Dataset:', ', '.join(sorted(artifacts.results_datasets)))
 	else:
-		print(f'Nessun redis manifest valido trovato in {artifacts.results_dir}')
+		print(f'No redis manifest found in {artifacts.results_dir}')
 
 
 def build_analyzed_counts_table(first_table: FirstTableArtifacts) -> tuple[pd.DataFrame, Any]:
