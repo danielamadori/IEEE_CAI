@@ -1,9 +1,14 @@
 from random import random
-import numpy as np
 from typing import Dict, Tuple
-import pandas as pd
-from scipy.integrate import quad
 import matplotlib.pyplot as plt
+import pandas as pd
+
+import numpy as np
+from scipy.integrate import quad
+
+EPS = np.finfo(float).tiny
+HALF = 0.5
+
 
 def cal_sigmas(X_train, X_test, feature_names, test_ids=None):
 	"""
@@ -29,8 +34,6 @@ def cal_sigmas(X_train, X_test, feature_names, test_ids=None):
 		Each entry maps feature_name -> dict with:
 			sigma_plus, sigma_minus, ratio_above_mean, ratio_below_mean
 	"""
-	import numpy as np
-	import pandas as pd
 
 	sigmas_all = {}
 	X_train_df = pd.DataFrame(X_train, columns=feature_names)
@@ -54,8 +57,8 @@ def cal_sigmas(X_train, X_test, feature_names, test_ids=None):
 			delta_pos = tmp[tmp >= 0]
 			delta_neg = np.abs(tmp[tmp < 0])
 
-			n_above = float(delta_pos.shape[0])
-			n_below = float(delta_neg.shape[0])
+			n_above = np.float64(delta_pos.shape[0])
+			n_below = np.float64(delta_neg.shape[0])
 			n = n_above + n_below
 
 			if n == 0:
@@ -102,14 +105,27 @@ def cost_function(sample: Dict[str, float] = None,  icf: Dict[str, Tuple[float, 
 		if not np.isclose(percent_above + percent_below, 1.0):
 			print(f"Error in percentages for key {key}: sum={percent_above + percent_below}")
 			break
+
+
+		#print("Pos:", sigma_pos, "Neg: ", sigma_neg)
+
+		sigma_neg = max(abs(sigma_neg), np.finfo(float).tiny)
+		sigma_pos = max(abs(sigma_pos), np.finfo(float).tiny)
+
 		low_norm, _ = quad(lambda x: (1 / (sigma_neg * np.sqrt(2 * np.pi))) * np.exp(-0.5 * (x / sigma_neg) ** 2), -np.inf, 0)
 		above_norm, _ = quad(lambda x: (1 / (sigma_pos * np.sqrt(2 * np.pi))) * np.exp(-0.5 * (x / sigma_pos) ** 2), 0, np.inf)
+		low_norm = max(low_norm, np.finfo(float).tiny)
+		above_norm = max(above_norm, np.finfo(float).tiny)
+
+		#print("Low norm:", low_norm, "Above norm:", above_norm)
+
 		interval_min = interval_min - sample[key]
 		interval_max = interval_max - sample[key]
 		if verbose:
 			print(f"  Interval repose: [{interval_min:.4f}, {interval_max:.4f}]")
 
 		# Integrate the Gaussian over the interval [interval_min, interval_max]
+		#print("Percent below:", percent_below, "Percent above:", percent_above)
 		scale_below = percent_below / low_norm
 		scale_above = percent_above / above_norm
 
