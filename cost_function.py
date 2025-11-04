@@ -8,6 +8,18 @@ from scipy.integrate import quad
 
 EPS = np.finfo(float).tiny
 HALF = 0.5
+SQRT_TWO_PI = np.sqrt(2 * np.pi)
+LOG_MAX_FLOAT = np.log(np.finfo(float).max)
+SCALED_CLIP = np.sqrt(2 * LOG_MAX_FLOAT)
+
+
+def _safe_gaussian_pdf(x, sigma):
+        x_arr = np.asarray(x, dtype=np.float64)
+        sigma = max(float(sigma), EPS)
+        scaled = np.clip(x_arr / sigma, -SCALED_CLIP, SCALED_CLIP)
+        exponent = -0.5 * scaled * scaled
+        pdf = np.exp(exponent) / (sigma * SQRT_TWO_PI)
+        return float(pdf) if pdf.ndim == 0 else pdf
 
 
 def cal_sigmas(X_train, X_test, feature_names, test_ids=None):
@@ -112,10 +124,8 @@ def cost_function(sample: Dict[str, float] = None,  icf: Dict[str, Tuple[float, 
 		sigma_neg = max(abs(sigma_neg), np.finfo(float).tiny)
 		sigma_pos = max(abs(sigma_pos), np.finfo(float).tiny)
 
-		low_norm, _ = quad(lambda x: (1 / (sigma_neg * np.sqrt(2 * np.pi))) * np.exp(-0.5 * (x / sigma_neg) ** 2), -np.inf, 0)
-		above_norm, _ = quad(lambda x: (1 / (sigma_pos * np.sqrt(2 * np.pi))) * np.exp(-0.5 * (x / sigma_pos) ** 2), 0, np.inf)
-		low_norm = max(low_norm, np.finfo(float).tiny)
-		above_norm = max(above_norm, np.finfo(float).tiny)
+		low_norm = HALF
+		above_norm = HALF
 
 		#print("Low norm:", low_norm, "Above norm:", above_norm)
 
@@ -130,10 +140,12 @@ def cost_function(sample: Dict[str, float] = None,  icf: Dict[str, Tuple[float, 
 		scale_above = percent_above / above_norm
 
 		def split_pdf(x, sigma_neg, sigma_pos, scale_below, scale_above):
-			x = np.array(x)
-			below = scale_below * (1 / (sigma_neg * np.sqrt(2 * np.pi))) * np.exp(-0.5 * (x / sigma_neg) ** 2) * (x < 0)
-			above = scale_above * (1 / (sigma_pos * np.sqrt(2 * np.pi))) * np.exp(-0.5 * (x / sigma_pos) ** 2) * (x >= 0)
-			return below + above
+			x_arr = np.asarray(x, dtype=np.float64)
+			below = scale_below * _safe_gaussian_pdf(x_arr, sigma_neg) * (x_arr < 0)
+			above = scale_above * _safe_gaussian_pdf(x_arr, sigma_pos) * (x_arr >= 0)
+			total = below + above
+			total_arr = np.asarray(total)
+			return float(total_arr) if total_arr.ndim == 0 else total
 		area_interval, _ = quad(lambda x: split_pdf(x, sigma_neg, sigma_pos, scale_below, scale_above), interval_min, interval_max)
 		area = abs(area_interval) 
 		# Cost is area under the curve in the interval
