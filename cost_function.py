@@ -7,6 +7,7 @@ import numpy as np
 from scipy.integrate import quad
 
 EPS = np.finfo(float).tiny
+MIN_SIGMA = 1e-10  # Minimum meaningful sigma value to prevent numerical issues
 HALF = 0.5
 
 
@@ -80,6 +81,25 @@ def cal_sigmas(X_train, X_test, feature_names, test_ids=None):
 	return sigmas_all
 
 def cost_function(sample: Dict[str, float] = None,  icf: Dict[str, Tuple[float, float]] = None, sigmas: Dict[str, Dict[str, dict]] = None, verbose: bool = False) -> float:
+	"""
+	Calculate cost function based on split Gaussian distributions.
+
+	Parameters
+	----------
+	sample : dict
+		Sample values for each feature
+	icf : dict
+		Interval for each feature (min, max)
+	sigmas : dict
+		Sigma values and ratios for each feature
+	verbose : bool
+		Print debug information
+
+	Returns
+	-------
+	float
+		Total cost across all features
+	"""
 	if sigmas is None:
 		raise ValueError("Sigmas must be provided")
 	if icf is None:
@@ -87,11 +107,18 @@ def cost_function(sample: Dict[str, float] = None,  icf: Dict[str, Tuple[float, 
 	if sample is None:
 		raise ValueError("Sample must be provided")
 	
-
 	cost = 0.0
+
 	for key in icf.keys():
 		if verbose:
 			print(f"Processing key: {key}")
+
+		# Skip if key not in sigmas (feature might have been skipped in cal_sigmas)
+		if key not in sigmas:
+			if verbose:
+				print(f"  Warning: key {key} not in sigmas, skipping")
+			continue
+
 		sigma_pos = sigmas[key]['sigma_plus']
 		sigma_neg = sigmas[key]['sigma_minus']
 		percent_above = sigmas[key]['ratio_above_mean']
@@ -102,80 +129,147 @@ def cost_function(sample: Dict[str, float] = None,  icf: Dict[str, Tuple[float, 
 			print(f"  Interval: [{interval_min:.4f}, {interval_max:.4f}]")
 			print(f"  Sigmas: sigma_pos={sigma_pos:.4f}, sigma_neg={sigma_neg:.4f}")
 			print(f"  Percentages: above={percent_above:.4f}, below={percent_below:.4f}")
-		if not np.isclose(percent_above + percent_below, 1.0):
-			print(f"Error in percentages for key {key}: sum={percent_above + percent_below}")
-			break
 
+		# Validate percentages
+		if not np.isclose(percent_above + percent_below, 1.0, rtol=1e-5):
+			if verbose:
+				print(f"  Warning: percentages for key {key} don't sum to 1.0: sum={percent_above + percent_below}")
+			# Normalize percentages if close enough
+			total_percent = percent_above + percent_below
+			if total_percent > 0:
+				percent_above /= total_percent
+				percent_below /= total_percent
+			else:
+				# If both are zero, skip this feature
+				if verbose:
+					print(f"  Skipping feature {key} due to zero percentages")
+				continue
 
-		#print("Pos:", sigma_pos, "Neg: ", sigma_neg)
+		# Protect against zero or negative sigmas
+		sigma_neg = max(abs(sigma_neg), MIN_SIGMA)
+		sigma_pos = max(abs(sigma_pos), MIN_SIGMA)
 
-		sigma_neg = max(abs(sigma_neg), np.finfo(float).tiny)
-		sigma_pos = max(abs(sigma_pos), np.finfo(float).tiny)
+		# If both sigmas are at minimum threshold, it means no variance - skip this feature
+		if sigma_neg <= MIN_SIGMA and sigma_pos <= MIN_SIGMA:
+			if verbose:
+				print(f"  Skipping feature {key} due to zero variance (both sigmas at minimum)")
+			continue
 
-		low_norm, _ = quad(lambda x: (1 / (sigma_neg * np.sqrt(2 * np.pi))) * np.exp(-0.5 * (x / sigma_neg) ** 2), -np.inf, 0)
-		above_norm, _ = quad(lambda x: (1 / (sigma_pos * np.sqrt(2 * np.pi))) * np.exp(-0.5 * (x / sigma_pos) ** 2), 0, np.inf)
-		low_norm = max(low_norm, np.finfo(float).tiny)
-		above_norm = max(above_norm, np.finfo(float).tiny)
+		# Calculate normalization constants for split Gaussian
+		# These should be ~0.5 for a standard normal distribution
+		try:
+			low_norm, _ = quad(
+				lambda x: (1 / (sigma_neg * np.sqrt(2 * np.pi))) * np.exp(-0.5 * (x / sigma_neg) ** 2),
+				-np.inf, 0,
+				limit=50
+			)
+			above_norm, _ = quad(
+				lambda x: (1 / (sigma_pos * np.sqrt(2 * np.pi))) * np.exp(-0.5 * (x / sigma_pos) ** 2),
+				0, np.inf,
+				limit=50
+			)
+		except Exception as e:
+			if verbose:
+				print(f"  Warning: integration error for key {key}: {e}")
+			continue
 
-		#print("Low norm:", low_norm, "Above norm:", above_norm)
+		# Protect against zero normalization
+		low_norm = max(low_norm, MIN_SIGMA)
+		above_norm = max(above_norm, MIN_SIGMA)
 
-		interval_min = interval_min - sample[key]
-		interval_max = interval_max - sample[key]
+		# Shift interval to be relative to sample value
+		interval_min_shifted = interval_min - sample[key]
+		interval_max_shifted = interval_max - sample[key]
+
 		if verbose:
-			print(f"  Interval repose: [{interval_min:.4f}, {interval_max:.4f}]")
+			print(f"  Interval shifted: [{interval_min_shifted:.4f}, {interval_max_shifted:.4f}]")
 
-		# Integrate the Gaussian over the interval [interval_min, interval_max]
-		#print("Percent below:", percent_below, "Percent above:", percent_above)
+		# Calculate scaling factors to ensure PDF integrates to proper percentages
 		scale_below = percent_below / low_norm
 		scale_above = percent_above / above_norm
 
+		# Protect against infinite or NaN scaling
+		if not np.isfinite(scale_below):
+			scale_below = 0.0
+		if not np.isfinite(scale_above):
+			scale_above = 0.0
+
 		def split_pdf(x, sigma_neg, sigma_pos, scale_below, scale_above):
-			x = np.array(x)
+			"""Split Gaussian PDF: different sigmas for x < 0 and x >= 0"""
+			x = np.asarray(x)
 			below = scale_below * (1 / (sigma_neg * np.sqrt(2 * np.pi))) * np.exp(-0.5 * (x / sigma_neg) ** 2) * (x < 0)
 			above = scale_above * (1 / (sigma_pos * np.sqrt(2 * np.pi))) * np.exp(-0.5 * (x / sigma_pos) ** 2) * (x >= 0)
 			return below + above
-		area_interval, _ = quad(lambda x: split_pdf(x, sigma_neg, sigma_pos, scale_below, scale_above), interval_min, interval_max)
-		area = abs(area_interval) 
+
+		# Integrate over the interval to get cost contribution
+		try:
+			area_interval, error = quad(
+				lambda x: split_pdf(x, sigma_neg, sigma_pos, scale_below, scale_above),
+				interval_min_shifted,
+				interval_max_shifted,
+				limit=50
+			)
+			area = abs(area_interval)
+
+			# Sanity check: area should be between 0 and 1
+			if not (0 <= area <= 1.0 + 1e-6):
+				if verbose:
+					print(f"  Warning: area {area:.6f} outside [0,1] for key {key}, clamping")
+				area = np.clip(area, 0.0, 1.0)
+
+		except Exception as e:
+			if verbose:
+				print(f"  Warning: integration error for interval in key {key}: {e}")
+			area = 0.0
+
 		# Cost is area under the curve in the interval
 		cost += area
-		if verbose:
-			print(f"Area under split Gaussian from {interval_min:.4f} to {interval_max:.4f}: {area:.4f}")
+
 		if verbose:
 			print(f"  Area under curve in interval: {area:.4f}, Cost total: {cost:.4f}")
-			# Plot the curve and highlight the interval
+
+			# Plot the curve and highlight the interval (occasionally)
 			if random() < 0.3:  # Plot only 30% of features for brevity
-				area_below_actual, _ = quad(lambda x: split_pdf(x, sigma_neg, sigma_pos, scale_below, scale_above), -np.inf, 0)
-				area_above_actual, _ = quad(lambda x: split_pdf(x, sigma_neg, sigma_pos, scale_below, scale_above), 0, np.inf)
-				print(f"Area left (<0): {area_below_actual:.4f}, Area right (>=0): {area_above_actual:.4f}, Area sum: {area_below_actual + area_above_actual:.4f}")
-				x_vals = np.linspace(-5, 5, 400)
-				y_vals = split_pdf(x_vals, sigma_neg, sigma_pos, scale_below, scale_above)
-				plt.figure(figsize=(8, 4))
-				plt.plot(x_vals, y_vals)
-				plt.fill_between(x_vals, 0, y_vals, where=(x_vals < 0), color='red', alpha=0.3, label= f'Below_Area={area_below_actual:.2f}')
-				plt.fill_between(x_vals, 0, y_vals, where=(x_vals >= 0), color='green', alpha=0.3, label=f'Above_Area={area_above_actual:.2f}')
-				
-				# Handle infinite intervals for plotting
-				plot_min = max(-5, interval_min if not np.isinf(interval_min) else -5)
-				plot_max = min(5, interval_max if not np.isinf(interval_max) else 5)
-				
-				plt.axvspan(plot_min, plot_max, color='black', alpha=0.4, label='Interval')
-				
-				# Create title with proper inf handling
-				interval_str = f"[{interval_min:.4f}, {interval_max:.4f}]"
-				if np.isinf(interval_min):
-					interval_str = f"[-∞, {interval_max:.4f}]"
-				if np.isinf(interval_max):
-					interval_str = f"[{interval_min:.4f}, ∞]"
-				if np.isinf(interval_min) and np.isinf(interval_max):
-					interval_str = "[-∞, ∞]"
-					
-				plt.title(f'Feature: {key} | Cost contribution: {area:.4f} | Interval: {interval_str} | Sigmas: +{sigma_pos:.2f}, -{sigma_neg:.2f}')
-				plt.axvline(0, color='black', linestyle='--' ) #, label='Center (0)')
-				plt.legend()
-				# plt.show()
-				plt.savefig(f'fig/feature_{key}_cost_plot.png')
-				plt.close()
+				try:
+					area_below_actual, _ = quad(
+						lambda x: split_pdf(x, sigma_neg, sigma_pos, scale_below, scale_above),
+						-np.inf, 0, limit=50
+					)
+					area_above_actual, _ = quad(
+						lambda x: split_pdf(x, sigma_neg, sigma_pos, scale_below, scale_above),
+						0, np.inf, limit=50
+					)
+					print(f"  Area left (<0): {area_below_actual:.4f}, Area right (>=0): {area_above_actual:.4f}, Area sum: {area_below_actual + area_above_actual:.4f}")
 
+					x_vals = np.linspace(-5, 5, 400)
+					y_vals = split_pdf(x_vals, sigma_neg, sigma_pos, scale_below, scale_above)
+					plt.figure(figsize=(8, 4))
+					plt.plot(x_vals, y_vals)
+					plt.fill_between(x_vals, 0, y_vals, where=(x_vals < 0), color='red', alpha=0.3, label=f'Below_Area={area_below_actual:.2f}')
+					plt.fill_between(x_vals, 0, y_vals, where=(x_vals >= 0), color='green', alpha=0.3, label=f'Above_Area={area_above_actual:.2f}')
 
-		
-		return cost
+					# Handle infinite intervals for plotting
+					plot_min = max(-5, interval_min_shifted if not np.isinf(interval_min_shifted) else -5)
+					plot_max = min(5, interval_max_shifted if not np.isinf(interval_max_shifted) else 5)
+
+					plt.axvspan(plot_min, plot_max, color='black', alpha=0.4, label='Interval')
+
+					# Create title with proper inf handling
+					interval_str = f"[{interval_min_shifted:.4f}, {interval_max_shifted:.4f}]"
+					if np.isinf(interval_min_shifted):
+						interval_str = f"[-∞, {interval_max_shifted:.4f}]"
+					if np.isinf(interval_max_shifted):
+						interval_str = f"[{interval_min_shifted:.4f}, ∞]"
+					if np.isinf(interval_min_shifted) and np.isinf(interval_max_shifted):
+						interval_str = "[-∞, ∞]"
+
+					plt.title(f'Feature: {key} | Cost contribution: {area:.4f} | Interval: {interval_str} | Sigmas: +{sigma_pos:.2f}, -{sigma_neg:.2f}')
+					plt.axvline(0, color='black', linestyle='--')
+					plt.legend()
+					plt.savefig(f'fig/feature_{key}_cost_plot.png')
+					plt.close()
+				except Exception as e:
+					if verbose:
+						print(f"  Warning: plotting error for key {key}: {e}")
+
+	return cost

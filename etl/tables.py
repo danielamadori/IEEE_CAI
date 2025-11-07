@@ -1080,13 +1080,6 @@ def load_models_analysis_artifacts(
 	)
 
 
-def print_models_analysis_overview(payload: ModelsAnalysisContext | ModelsAnalysisArtifacts) -> None:
-	artifacts = _extract_artifacts(payload)
-	print(f'Base dir           : {artifacts.base_dir}')
-	print(f'Loaded {len(artifacts.report_data)} rows from {artifacts.forest_json}')
-	print(f'Results directory  : {artifacts.results_dir} (exists={artifacts.results_dir.exists()})')
-
-
 def print_models_analysis_diagnostics(payload: ModelsAnalysisContext | ModelsAnalysisArtifacts) -> None:
 	artifacts = _extract_artifacts(payload)
 	print(f'? BASE_DIR     : {artifacts.base_dir}')
@@ -1321,6 +1314,12 @@ def prepare_summary_display(
 	else:
 		columns = ['dataset', *display_categories] if display_categories else ['dataset']
 		summary_to_show = pd.DataFrame(columns=columns)
+
+	# Converti tutti i valori numerici in interi (tranne la colonna 'dataset')
+	for col in summary_to_show.columns:
+		if col != 'dataset':
+			summary_to_show[col] = pd.to_numeric(summary_to_show[col], errors='coerce').fillna(0).astype(int)
+
 	try:
 		styler = style_summary_table(summary_to_show)
 	except Exception:
@@ -1345,6 +1344,11 @@ def prepare_models_analysis(
 	analyzed_counts_df, analyzed_counts_styler = build_analyzed_counts_table(first_table)
 	combined_analyzed_df, combined_analyzed_styler = build_combined_analyzed_table(first_table.summary_df, analyzed_counts_df)
 	summary_to_show, summary_styler = prepare_summary_display(artifacts.summary)
+
+	print(f'Base dir           : {artifacts.base_dir}')
+	print(f'Loaded {len(artifacts.report_data)} rows from {artifacts.forest_json}')
+	print(f'Results directory  : {artifacts.results_dir} (exists={artifacts.results_dir.exists()})')
+
 
 	return ModelsAnalysisContext(
 		artifacts=artifacts,
