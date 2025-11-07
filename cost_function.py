@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 import numpy as np
-from scipy.integrate import quad
+from scipy.stats import norm
 
 EPS = np.finfo(float).tiny
 MIN_SIGMA = 1e-10  # Minimum meaningful sigma value to prevent numerical issues
@@ -155,61 +155,33 @@ def cost_function(sample: Dict[str, float] = None,  icf: Dict[str, Tuple[float, 
 				print(f"  Skipping feature {key} due to zero variance (both sigmas at minimum)")
 			continue
 
-		# Calculate normalization constants for split Gaussian
-		# These should be ~0.5 for a standard normal distribution
-		try:
-			low_norm, _ = quad(
-				lambda x: (1 / (sigma_neg * np.sqrt(2 * np.pi))) * np.exp(-0.5 * (x / sigma_neg) ** 2),
-				-np.inf, 0,
-				limit=50
-			)
-			above_norm, _ = quad(
-				lambda x: (1 / (sigma_pos * np.sqrt(2 * np.pi))) * np.exp(-0.5 * (x / sigma_pos) ** 2),
-				0, np.inf,
-				limit=50
-			)
-		except Exception as e:
-			if verbose:
-				print(f"  Warning: integration error for key {key}: {e}")
-			continue
-
-		# Protect against zero normalization
-		low_norm = max(low_norm, MIN_SIGMA)
-		above_norm = max(above_norm, MIN_SIGMA)
-
 		# Shift interval to be relative to sample value
+		# According to paper: interval (b - x[f], e - x[f])
 		interval_min_shifted = interval_min - sample[key]
 		interval_max_shifted = interval_max - sample[key]
 
 		if verbose:
 			print(f"  Interval shifted: [{interval_min_shifted:.4f}, {interval_max_shifted:.4f}]")
 
-		# Calculate scaling factors to ensure PDF integrates to proper percentages
-		scale_below = percent_below / low_norm
-		scale_above = percent_above / above_norm
 
-		# Protect against infinite or NaN scaling
-		if not np.isfinite(scale_below):
-			scale_below = 0.0
-		if not np.isfinite(scale_above):
-			scale_above = 0.0
-
-		def split_pdf(x, sigma_neg, sigma_pos, scale_below, scale_above):
-			"""Split Gaussian PDF: different sigmas for x < 0 and x >= 0"""
-			x = np.asarray(x)
-			below = scale_below * (1 / (sigma_neg * np.sqrt(2 * np.pi))) * np.exp(-0.5 * (x / sigma_neg) ** 2) * (x < 0)
-			above = scale_above * (1 / (sigma_pos * np.sqrt(2 * np.pi))) * np.exp(-0.5 * (x / sigma_pos) ** 2) * (x >= 0)
-			return below + above
-
-		# Integrate over the interval to get cost contribution
+		# Calculate cost contribution for this feature
+		# According to paper formula:
+		# A_{x,f}(b,e) = p_{x,f}^+ * ∫_b^e N(x;0,σ+²)dx + p_{x,f}^- * ∫_b^e N(x;0,σ-²)dx
+		# Using CDF: ∫_b^e N(x;0,σ²)dx = Φ(e/σ) - Φ(b/σ)
+		# where Φ is the standard normal CDF
 		try:
-			area_interval, error = quad(
-				lambda x: split_pdf(x, sigma_neg, sigma_pos, scale_below, scale_above),
-				interval_min_shifted,
-				interval_max_shifted,
-				limit=50
-			)
-			area = abs(area_interval)
+			# Positive contribution: p^+ * [Φ(e/σ+) - Φ(b/σ+)]
+			cdf_max_pos = norm.cdf(interval_max_shifted / sigma_pos)
+			cdf_min_pos = norm.cdf(interval_min_shifted / sigma_pos)
+			area_pos = percent_above * (cdf_max_pos - cdf_min_pos)
+
+			# Negative contribution: p^- * [Φ(e/σ-) - Φ(b/σ-)]
+			cdf_max_neg = norm.cdf(interval_max_shifted / sigma_neg)
+			cdf_min_neg = norm.cdf(interval_min_shifted / sigma_neg)
+			area_neg = percent_below * (cdf_max_neg - cdf_min_neg)
+
+			# Total area for this feature
+			area = area_pos + area_neg
 
 			# Sanity check: area should be between 0 and 1
 			if not (0 <= area <= 1.0 + 1e-6):
@@ -219,7 +191,7 @@ def cost_function(sample: Dict[str, float] = None,  icf: Dict[str, Tuple[float, 
 
 		except Exception as e:
 			if verbose:
-				print(f"  Warning: integration error for interval in key {key}: {e}")
+				print(f"  Warning: CDF calculation error for interval in key {key}: {e}")
 			area = 0.0
 
 		# Cost is area under the curve in the interval
@@ -231,22 +203,28 @@ def cost_function(sample: Dict[str, float] = None,  icf: Dict[str, Tuple[float, 
 			# Plot the curve and highlight the interval (occasionally)
 			if random() < 0.3:  # Plot only 30% of features for brevity
 				try:
-					area_below_actual, _ = quad(
-						lambda x: split_pdf(x, sigma_neg, sigma_pos, scale_below, scale_above),
-						-np.inf, 0, limit=50
-					)
-					area_above_actual, _ = quad(
-						lambda x: split_pdf(x, sigma_neg, sigma_pos, scale_below, scale_above),
-						0, np.inf, limit=50
-					)
-					print(f"  Area left (<0): {area_below_actual:.4f}, Area right (>=0): {area_above_actual:.4f}, Area sum: {area_below_actual + area_above_actual:.4f}")
+					# Define split PDF according to paper formula
+					def split_pdf(x):
+						"""PDF according to paper: weighted sum of two Gaussians"""
+						x = np.asarray(x)
+						# p^+ * N(x; 0, σ+²)
+						pdf_pos = percent_above * (1 / (sigma_pos * np.sqrt(2 * np.pi))) * np.exp(-0.5 * (x / sigma_pos) ** 2)
+						# p^- * N(x; 0, σ-²)
+						pdf_neg = percent_below * (1 / (sigma_neg * np.sqrt(2 * np.pi))) * np.exp(-0.5 * (x / sigma_neg) ** 2)
+						return pdf_pos + pdf_neg
+
+					# Calculate total areas using CDF for visualization
+					# Area from -inf to +inf should equal 1.0
+					area_total_pos = percent_above  # ∫_{-∞}^{+∞} p^+ * N(x;0,σ+²)dx = p^+
+					area_total_neg = percent_below  # ∫_{-∞}^{+∞} p^- * N(x;0,σ-²)dx = p^-
+
+					print(f"  Area positive Gaussian: {area_total_pos:.4f}, Area negative Gaussian: {area_total_neg:.4f}, Total: {area_total_pos + area_total_neg:.4f}")
 
 					x_vals = np.linspace(-5, 5, 400)
-					y_vals = split_pdf(x_vals, sigma_neg, sigma_pos, scale_below, scale_above)
+					y_vals = split_pdf(x_vals)
 					plt.figure(figsize=(8, 4))
 					plt.plot(x_vals, y_vals)
-					plt.fill_between(x_vals, 0, y_vals, where=(x_vals < 0), color='red', alpha=0.3, label=f'Below_Area={area_below_actual:.2f}')
-					plt.fill_between(x_vals, 0, y_vals, where=(x_vals >= 0), color='green', alpha=0.3, label=f'Above_Area={area_above_actual:.2f}')
+					plt.fill_between(x_vals, 0, y_vals, alpha=0.3, label=f'PDF (p+={percent_above:.2f}, p-={percent_below:.2f})')
 
 					# Handle infinite intervals for plotting
 					plot_min = max(-5, interval_min_shifted if not np.isinf(interval_min_shifted) else -5)
@@ -273,3 +251,189 @@ def cost_function(sample: Dict[str, float] = None,  icf: Dict[str, Tuple[float, 
 						print(f"  Warning: plotting error for key {key}: {e}")
 
 	return cost
+def plot_cost_distribution(sample, icf, sigmas, feature_key, output_dir='fig'):
+	"""
+Plot the cost distribution for a specific feature showing the split Gaussian.
+Parameters
+----------
+sample : dict
+Sample values for each feature
+icf : dict
+Interval for each feature (min, max)
+sigmas : dict
+Sigma values and ratios for the feature
+feature_key : str
+The feature to plot
+output_dir : str
+Directory to save plots (default: 'fig')
+"""
+	from pathlib import Path
+	# Create output directory if needed
+	Path(output_dir).mkdir(parents=True, exist_ok=True)
+	if feature_key not in sigmas:
+		print(f"Warning: feature {feature_key} not in sigmas")
+		return
+	if feature_key not in icf:
+		print(f"Warning: feature {feature_key} not in icf")
+		return
+	sigma_pos = sigmas[feature_key]['sigma_plus']
+	sigma_neg = sigmas[feature_key]['sigma_minus']
+	percent_above = sigmas[feature_key]['ratio_above_mean']
+	percent_below = sigmas[feature_key]['ratio_below_mean']
+	interval_min, interval_max = icf[feature_key]
+	# Protect against zero sigmas
+	sigma_neg = max(abs(sigma_neg), MIN_SIGMA)
+	sigma_pos = max(abs(sigma_pos), MIN_SIGMA)
+	# Shift interval
+	interval_min_shifted = interval_min - sample[feature_key]
+	interval_max_shifted = interval_max - sample[feature_key]
+	# Define split PDF
+	def split_pdf(x):
+		x = np.asarray(x)
+		pdf_pos = percent_above * (1 / (sigma_pos * np.sqrt(2 * np.pi))) * np.exp(-0.5 * (x / sigma_pos) ** 2)
+		pdf_neg = percent_below * (1 / (sigma_neg * np.sqrt(2 * np.pi))) * np.exp(-0.5 * (x / sigma_neg) ** 2)
+		return pdf_pos + pdf_neg
+	# Calculate area in interval using CDF
+	if interval_max_shifted <= 0:
+		cdf_max = norm.cdf(interval_max_shifted / sigma_neg)
+		cdf_min = norm.cdf(interval_min_shifted / sigma_neg)
+		area = percent_below * (cdf_max - cdf_min)
+	elif interval_min_shifted >= 0:
+		cdf_max = norm.cdf(interval_max_shifted / sigma_pos)
+		cdf_min = norm.cdf(interval_min_shifted / sigma_pos)
+		area = percent_above * (cdf_max - cdf_min)
+	else:
+		# Split interval
+		cdf_0_neg = norm.cdf(0 / sigma_neg)
+		cdf_min_neg = norm.cdf(interval_min_shifted / sigma_neg)
+		area_neg = percent_below * (cdf_0_neg - cdf_min_neg)
+		cdf_max_pos = norm.cdf(interval_max_shifted / sigma_pos)
+		cdf_0_pos = norm.cdf(0 / sigma_pos)
+		area_pos = percent_above * (cdf_max_pos - cdf_0_pos)
+		area = area_neg + area_pos
+	# Plot
+	x_vals = np.linspace(-5, 5, 400)
+	y_vals = split_pdf(x_vals)
+	plt.figure(figsize=(8, 4))
+	plt.plot(x_vals, y_vals)
+	plt.fill_between(x_vals, 0, y_vals, alpha=0.3, label=f'PDF (p+={percent_above:.2f}, p-={percent_below:.2f})')
+	# Handle infinite intervals for plotting
+	plot_min = max(-5, interval_min_shifted if not np.isinf(interval_min_shifted) else -5)
+	plot_max = min(5, interval_max_shifted if not np.isinf(interval_max_shifted) else 5)
+	plt.axvspan(plot_min, plot_max, color='black', alpha=0.4, label='Interval')
+	# Create title with proper inf handling
+	interval_str = f"[{interval_min_shifted:.4f}, {interval_max_shifted:.4f}]"
+	if np.isinf(interval_min_shifted):
+		interval_str = f"[-∞, {interval_max_shifted:.4f}]"
+	if np.isinf(interval_max_shifted):
+		interval_str = f"[{interval_min_shifted:.4f}, ∞]"
+	if np.isinf(interval_min_shifted) and np.isinf(interval_max_shifted):
+		interval_str = "[-∞, ∞]"
+	plt.title(f'Feature: {feature_key} | Cost: {area:.4f} | Interval: {interval_str} | σ+={sigma_pos:.2f}, σ-={sigma_neg:.2f}')
+	plt.axvline(0, color='black', linestyle='--')
+	plt.xlabel('Shifted value (relative to sample)')
+	plt.ylabel('Probability density')
+	plt.legend()
+	plt.tight_layout()
+	output_path = Path(output_dir) / f'feature_{feature_key}_cost_plot.png'
+	plt.savefig(output_path)
+	plt.close()
+	print(f"  Saved plot to {output_path}")
+def plot_extreme_costs_per_category(cost_df, db, tests_sample, sigmas_all, top_n=2, output_dir='fig'):
+	"""
+Per ogni categoria (reason_type), plotta le prime N con costo minimo e massimo.
+Parameters
+----------
+cost_df : pd.DataFrame
+DataFrame con colonne: sample_id, bitmap_index, reason_type, cost, icf
+db : dict
+Database con le informazioni (reasons, non_reasons, anti_reasons)
+tests_sample : dict
+Dizionario con i sample test
+sigmas_all : dict
+Sigmas calcolati per ogni sample
+top_n : int
+Numero di reason da plottare per estremo (default: 2)
+output_dir : str
+Directory per salvare i plot (default: 'fig')
+"""
+	from pathlib import Path
+	# Create output directory
+	Path(output_dir).mkdir(parents=True, exist_ok=True)
+	# Raggruppa per reason_type
+	reason_types = cost_df['reason_type'].unique()
+	print(f"\n{'='*80}")
+	print(f"PLOTTING EXTREME COSTS FOR EACH CATEGORY (Top {top_n} min and max)")
+	print(f"{'='*80}\n")
+	for reason_type in reason_types:
+		print(f"\n{'─'*80}")
+		print(f"📊 Category: {reason_type.upper()}")
+		print(f"{'─'*80}")
+		# Filtra per categoria
+		subset = cost_df[cost_df['reason_type'] == reason_type].copy()
+		if len(subset) == 0:
+			print(f"  No data for {reason_type}")
+			continue
+		# Ordina per costo
+		subset_sorted = subset.sort_values('cost')
+		# Prendi top N min e max
+		n_available = len(subset_sorted)
+		n_min = min(top_n, n_available)
+		n_max = min(top_n, n_available)
+		min_costs = subset_sorted.head(n_min)
+		max_costs = subset_sorted.tail(n_max)
+		print(f"\n🔽 TOP {n_min} MINIMUM COST:")
+		for idx, (_, row) in enumerate(min_costs.iterrows(), 1):
+			sample_id = row['sample_id']
+			bitmap_idx = row['bitmap_index']
+			cost = row['cost']
+			icf = row['icf']
+			print(f"\n  #{idx} - Sample: {sample_id}, Bitmap: {bitmap_idx}, Cost: {cost:.6f}")
+			# Get sample and sigmas
+			if sample_id not in tests_sample:
+				print(f"    Warning: sample_id {sample_id} not found in tests_sample")
+				continue
+			if sample_id not in sigmas_all:
+				print(f"    Warning: sample_id {sample_id} not found in sigmas_all")
+				continue
+			sample = tests_sample[sample_id]['features']
+			sigmas = sigmas_all[sample_id]
+			# Plot prima feature (come esempio)
+			if icf and len(icf) > 0:
+				first_feature = list(icf.keys())[0]
+				try:
+					plot_cost_distribution(
+sample, icf, sigmas, first_feature,
+output_dir=f"{output_dir}/{reason_type}_min_{idx}"
+)
+				except Exception as e:
+					print(f"    Warning: could not plot {first_feature}: {e}")
+		print(f"\n🔼 TOP {n_max} MAXIMUM COST:")
+		for idx, (_, row) in enumerate(max_costs.iterrows(), 1):
+			sample_id = row['sample_id']
+			bitmap_idx = row['bitmap_index']
+			cost = row['cost']
+			icf = row['icf']
+			print(f"\n  #{idx} - Sample: {sample_id}, Bitmap: {bitmap_idx}, Cost: {cost:.6f}")
+			# Get sample and sigmas
+			if sample_id not in tests_sample:
+				print(f"    Warning: sample_id {sample_id} not found in tests_sample")
+				continue
+			if sample_id not in sigmas_all:
+				print(f"    Warning: sample_id {sample_id} not found in sigmas_all")
+				continue
+			sample = tests_sample[sample_id]['features']
+			sigmas = sigmas_all[sample_id]
+			# Plot prima feature (come esempio)
+			if icf and len(icf) > 0:
+				first_feature = list(icf.keys())[0]
+				try:
+					plot_cost_distribution(
+sample, icf, sigmas, first_feature,
+output_dir=f"{output_dir}/{reason_type}_max_{idx}"
+)
+				except Exception as e:
+					print(f"    Warning: could not plot {first_feature}: {e}")
+	print(f"\n{'='*80}")
+	print(f"✓ Completed plotting for all categories")
+	print(f"{'='*80}\n")
