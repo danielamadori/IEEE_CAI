@@ -4,6 +4,8 @@ import zipfile, base64
 
 from etl.data_loader import load_db0, render_db0_sample_timeseries
 from etl.logs_loader import render_worker_report
+from etl.cache import ETLCache
+from etl.raw_cache import RawDataCache
 
 from etl.zip_inspector import scan_and_load, parse_zip_metadata, collect_archive_data, decode_key, try_decode_value, \
     summarise_entry_generic, DB_LABELS, _fetch_backup_metadata, summarise_entry
@@ -21,9 +23,81 @@ DB_NAMES = {
     9: "anti_reason_profiles",
 }
 
+# Global cache instances
+_cache = ETLCache()
+_raw_cache = RawDataCache()
 
-def etl(zip_paths, results_dir):
+
+def etl(zip_paths, results_dir, use_cache=True, force_refresh=False):
+    """
+    Extract, Transform, Load data from ZIP archives with 2-level caching
+
+    Parameters
+    ----------
+    zip_paths : list
+        List of paths to ZIP files
+    results_dir : Path
+        Directory containing results
+    use_cache : bool, optional
+        Whether to use cache (default: True)
+    force_refresh : bool, optional
+        Force refresh Full Cache but use Raw Cache if available (default: False)
+
+    Returns
+    -------
+    tuple
+        (db, workers_table, workers_table2, workers_table3, plots)
+    """
     selected_zip_name = scan_and_load(zip_paths, results_dir)
+
+    # Find the selected ZIP path
+    selected_zip_path = None
+    for path in zip_paths:
+        if path.name == selected_zip_name:
+            selected_zip_path = path
+            break
+
+    # Level 2: Try Full Cache first (if not force_refresh)
+    # Note: Full Cache only stores 'db', workers and plots are regenerated
+    if use_cache and not force_refresh and selected_zip_path:
+        cached_data = _cache.load(selected_zip_path)
+        if cached_data is not None:
+            print(f"📦 Using cached DB, regenerating workers/plots...")
+            db = cached_data['db']
+
+            # Regenerate workers and plots (not cacheable due to unpicklable objects)
+            archives_data = [collect_archive_data(path) for path in zip_paths]
+            manifests_by_archive = {item['zip_name']: item['manifest'] for item in archives_data}
+            manifest_prefix_by_archive = {item['zip_name']: item.get('manifest_prefix', '') for item in archives_data}
+            backups_by_archive = {item['zip_name']: item['backups'] for item in archives_data}
+            selected_archive_data = next((item for item in archives_data if item['zip_name'] == selected_zip_name), None)
+            selected_manifest = manifests_by_archive.get(selected_zip_name)
+            selected_manifest_prefix = manifest_prefix_by_archive.get(selected_zip_name, '')
+            selected_backups = backups_by_archive.get(selected_zip_name)
+
+            workers_table, workers_table2, workers_table3, plots = render_worker_report(
+                selected_zip_name, selected_manifest, selected_backups, selected_archive_data, selected_manifest_prefix
+            )
+
+            return db, workers_table, workers_table2, workers_table3, plots
+
+    if use_cache:
+        print(f"🔄 Processing {selected_zip_name}...")
+
+    # Level 1: Try Raw Cache for database extraction
+    db = None
+    if use_cache and not force_refresh:
+        db = _raw_cache.load(selected_zip_name)
+
+    # If no raw cache, extract databases from ZIP
+    if db is None:
+        db = _extract_databases(zip_paths, selected_zip_name, results_dir)
+
+        # Save to Raw Cache
+        if use_cache:
+            _raw_cache.save(selected_zip_name, db)
+
+    # Process workers and plots (not cached at raw level)
     archives_data = [collect_archive_data(path) for path in zip_paths]
     manifests_by_archive = {item['zip_name']: item['manifest'] for item in archives_data}
     manifest_prefix_by_archive = {item['zip_name']: item.get('manifest_prefix', '') for item in archives_data}
@@ -33,12 +107,52 @@ def etl(zip_paths, results_dir):
     selected_manifest_prefix = manifest_prefix_by_archive.get(selected_zip_name, '')
     selected_backups = backups_by_archive.get(selected_zip_name)
 
+    workers_table, workers_table2, workers_table3, plots = render_worker_report(
+        selected_zip_name, selected_manifest, selected_backups, selected_archive_data, selected_manifest_prefix
+    )
 
-    workers_table, workers_table2, workers_table3, plots = render_worker_report(selected_zip_name, selected_manifest, selected_backups, selected_archive_data, selected_manifest_prefix)
+    render_db0_sample_timeseries(db.get(DB_NAMES.get(0), {}))
 
-    db = { DB_NAMES.get(0) : load_db0(selected_manifest, selected_backups)}
+    # Save to Full Cache (only db, workers/plots are regenerated on load)
+    if use_cache and selected_zip_path:
+        cache_data = {
+            'db': db,
+        }
+        _cache.save(selected_zip_path, cache_data)
 
-    render_db0_sample_timeseries(db[DB_NAMES.get(0)])
+    return db, workers_table, workers_table2, workers_table3, plots
+
+
+def _extract_databases(zip_paths, selected_zip_name, results_dir):
+    """
+    Extract all databases from the selected ZIP file
+
+    Parameters
+    ----------
+    zip_paths : list
+        List of all ZIP paths
+    selected_zip_name : str
+        Name of the selected ZIP file
+    results_dir : Path
+        Results directory
+
+    Returns
+    -------
+    dict
+        Dictionary with all database data
+    """
+    print(f"📦 Extracting databases from {selected_zip_name}...")
+
+    archives_data = [collect_archive_data(path) for path in zip_paths]
+    manifests_by_archive = {item['zip_name']: item['manifest'] for item in archives_data}
+    manifest_prefix_by_archive = {item['zip_name']: item.get('manifest_prefix', '') for item in archives_data}
+    backups_by_archive = {item['zip_name']: item['backups'] for item in archives_data}
+    selected_archive_data = next((item for item in archives_data if item['zip_name'] == selected_zip_name), None)
+    selected_manifest = manifests_by_archive.get(selected_zip_name)
+    selected_manifest_prefix = manifest_prefix_by_archive.get(selected_zip_name, '')
+    selected_backups = backups_by_archive.get(selected_zip_name)
+
+    db = {DB_NAMES.get(0): load_db0(selected_manifest, selected_backups)}
 
     if selected_manifest and selected_archive_data and selected_manifest_prefix is not None:
         files_map = (selected_manifest.get('files') or {})
@@ -88,7 +202,28 @@ def etl(zip_paths, results_dir):
                 name = DB_NAMES.get(db_index, f"db_{db_index}")
                 db[name] = entries_map
 
-    return db, workers_table, workers_table2, workers_table3, plots
+    return db
 
 
+
+
+
+def clear_raw_cache(dataset_name=None):
+    """Clear raw database cache"""
+    _raw_cache.clear(dataset_name)
+
+
+def list_raw_cache():
+    """List cached raw databases"""
+    return _raw_cache.list_cached()
+
+
+def clear_cache(dataset_name=None):
+    """Clear full ETL cache"""
+    _cache.clear(dataset_name)
+
+
+def list_cache():
+    """List cached datasets"""
+    return _cache.list_cached()
 
