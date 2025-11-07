@@ -4,10 +4,32 @@ Saves extracted database information to avoid re-processing ZIP files every time
 """
 
 import json
-import hashlib
+import pickle
 from pathlib import Path
 from typing import Dict, Any, Optional
-import pickle
+import hashlib
+
+
+def _make_pickleable(obj: Any) -> Any:
+    """
+    Trasforma ricorsivamente l'oggetto in qualcosa di pickleable:
+    - dizionari, liste, tuple, set vengono processati ricorsivamente
+    - oggetti non serializzabili vengono sostituiti con None
+    """
+    try:
+        # rapido controllo: se è già pickleable, restituiscilo così com'è
+        pickle.dumps(obj)
+        return obj
+    except Exception:
+        if isinstance(obj, dict):
+            return {k: _make_pickleable(v) for k, v in obj.items()}
+        if isinstance(obj, (list, tuple)):
+            converted = [_make_pickleable(v) for v in obj]
+            return type(obj)(converted)
+        if isinstance(obj, set):
+            return set(_make_pickleable(v) for v in obj)
+        # fallback: oggetti complessi (es. moduli, figure, funzioni) -> None
+        return None
 
 
 class ETLCache:
@@ -113,9 +135,12 @@ class ETLCache:
         cache_path = self._get_cache_path(cache_key)
         file_hash = self._get_file_hash(zip_path)
 
+        # Sanifica i dati per evitare errori di pickle con moduli/figure/funzioni
+        safe_data = _make_pickleable(data)
+
         # Save data using pickle for speed
         with open(cache_path, 'wb') as f:
-            pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
+            pickle.dump(safe_data, f, protocol=pickle.HIGHEST_PROTOCOL)
 
         # Update metadata
         self.metadata[cache_key] = {

@@ -398,16 +398,21 @@ Directory per salvare i plot (default: 'fig')
 				continue
 			sample = tests_sample[sample_id]['features']
 			sigmas = sigmas_all[sample_id]
-			# Plot prima feature (come esempio)
+
+			# Plot tutte le feature dell'ICF
 			if icf and len(icf) > 0:
-				first_feature = list(icf.keys())[0]
-				try:
-					plot_cost_distribution(
-sample, icf, sigmas, first_feature,
-output_dir=f"{output_dir}/{reason_type}_min_{idx}"
-)
-				except Exception as e:
-					print(f"    Warning: could not plot {first_feature}: {e}")
+				feature_dir = f"{output_dir}/{reason_type}_min_{idx}"
+				Path(feature_dir).mkdir(parents=True, exist_ok=True)
+
+				print(f"       Plotting {len(icf)} features to {feature_dir}/")
+				for feature_key in icf.keys():
+					try:
+						plot_cost_distribution(
+							sample, icf, sigmas, feature_key,
+							output_dir=feature_dir
+						)
+					except Exception as e:
+						print(f"        Warning: could not plot {feature_key}: {e}")
 		print(f"\n🔼 TOP {n_max} MAXIMUM COST:")
 		for idx, (_, row) in enumerate(max_costs.iterrows(), 1):
 			sample_id = row['sample_id']
@@ -424,16 +429,21 @@ output_dir=f"{output_dir}/{reason_type}_min_{idx}"
 				continue
 			sample = tests_sample[sample_id]['features']
 			sigmas = sigmas_all[sample_id]
-			# Plot prima feature (come esempio)
+
+			# Plot tutte le feature dell'ICF
 			if icf and len(icf) > 0:
-				first_feature = list(icf.keys())[0]
-				try:
-					plot_cost_distribution(
-sample, icf, sigmas, first_feature,
-output_dir=f"{output_dir}/{reason_type}_max_{idx}"
-)
-				except Exception as e:
-					print(f"    Warning: could not plot {first_feature}: {e}")
+				feature_dir = f"{output_dir}/{reason_type}_max_{idx}"
+				Path(feature_dir).mkdir(parents=True, exist_ok=True)
+
+				print(f"       Plotting {len(icf)} features to {feature_dir}/")
+				for feature_key in icf.keys():
+					try:
+						plot_cost_distribution(
+							sample, icf, sigmas, feature_key,
+							output_dir=feature_dir
+						)
+					except Exception as e:
+						print(f"        Warning: could not plot {feature_key}: {e}")
 	print(f"\n{'='*80}")
 	print(f"✓ Completed plotting for all categories")
 	print(f"{'='*80}\n")
