@@ -468,73 +468,83 @@ def collect_archive_data(zip_path):
         'members': [],
         'backups': {},
     }
-    with zipfile.ZipFile(zip_path) as archive:
-        try:
-            prefix, manifest = resolve_manifest(archive, zip_path)
-            result['manifest'] = manifest
-            result['manifest_prefix'] = prefix
-        except Exception:
-            prefix = detect_root_prefix(archive, zip_path)
-            manifest = None
-            result['manifest_prefix'] = prefix
-        if manifest:
-            files_map = manifest.get('files', {})
-            dbs = manifest.get('databases', [])
-            for db_index in dbs:
-                file_name = files_map.get(str(db_index))
-                if not file_name:
+
+    # Skip empty or corrupted ZIP files
+    try:
+        with zipfile.ZipFile(zip_path) as archive:
+            try:
+                prefix, manifest = resolve_manifest(archive, zip_path)
+                result['manifest'] = manifest
+                result['manifest_prefix'] = prefix
+            except Exception:
+                prefix = detect_root_prefix(archive, zip_path)
+                manifest = None
+                result['manifest_prefix'] = prefix
+            if manifest:
+                files_map = manifest.get('files', {})
+                dbs = manifest.get('databases', [])
+                for db_index in dbs:
+                    file_name = files_map.get(str(db_index))
+                    if not file_name:
+                        continue
+                    archive_name = f"{prefix}{file_name}"
+                    try:
+                        size = archive.getinfo(archive_name).file_size
+                    except KeyError:
+                        size = None
+                    result['db_overview'].append({
+                        'db_index': db_index,
+                        'label': DB_LABELS.get(db_index, 'Unknown'),
+                        'json_file': file_name,
+                        'size_bytes': size,
+                        'size_text': format_bytes(size) if size is not None else None,
+                    })
+            members = sorted((info for info in archive.infolist() if not info.is_dir()), key=lambda info: info.filename)
+            for info in members:
+                relative = get_relative_member_name(info, prefix)
+                if is_logs_entry(relative):
                     continue
-                archive_name = f"{prefix}{file_name}"
-                try:
-                    size = archive.getinfo(archive_name).file_size
-                except KeyError:
-                    size = None
-                result['db_overview'].append({
-                    'db_index': db_index,
-                    'label': DB_LABELS.get(db_index, 'Unknown'),
-                    'json_file': file_name,
+                size = info.file_size
+                entry = {
+                    'relative_name': relative,
                     'size_bytes': size,
-                    'size_text': format_bytes(size) if size is not None else None,
-                })
-        members = sorted((info for info in archive.infolist() if not info.is_dir()), key=lambda info: info.filename)
-        for info in members:
-            relative = get_relative_member_name(info, prefix)
-            if is_logs_entry(relative):
-                continue
-            size = info.file_size
-            entry = {
-                'relative_name': relative,
-                'size_bytes': size,
-                'size_text': format_bytes(size),
-                'json_data': None,
-                'json_truncated': False,
-                'text_preview': None,
-                'backup_preview': None,
-            }
-            read_entire = size <= MAX_FULL_BYTES or relative.endswith('.json')
-            with archive.open(info.filename) as handle:
-                payload = handle.read() if read_entire else handle.read(MAX_PREVIEW_BYTES)
-            if relative.endswith('.json') and (size is None or size <= READ_JSON_LIMIT_BYTES):
-                try:
-                    text = payload.decode('utf-8')
-                    data = json.loads(text)
-                except Exception:
-                    data = None
-                if data is not None:
-                    entry['json_data'] = data
-                    preview = try_render_backup_preview(relative, payload)
-                    if preview is not None:
-                        entry['backup_preview'] = preview
-                        result['backups'][relative] = data
+                    'size_text': format_bytes(size),
+                    'json_data': None,
+                    'json_truncated': False,
+                    'text_preview': None,
+                    'backup_preview': None,
+                }
+                read_entire = size <= MAX_FULL_BYTES or relative.endswith('.json')
+                with archive.open(info.filename) as handle:
+                    payload = handle.read() if read_entire else handle.read(MAX_PREVIEW_BYTES)
+                if relative.endswith('.json') and (size is None or size <= READ_JSON_LIMIT_BYTES):
+                    try:
+                        text = payload.decode('utf-8')
+                        data = json.loads(text)
+                    except Exception:
+                        data = None
+                    if data is not None:
+                        entry['json_data'] = data
+                        preview = try_render_backup_preview(relative, payload)
+                        if preview is not None:
+                            entry['backup_preview'] = preview
+                            result['backups'][relative] = data
+                    else:
+                        entry['text_preview'] = payload.decode('utf-8', errors='replace')[:1000]
                 else:
-                    entry['text_preview'] = payload.decode('utf-8', errors='replace')[:1000]
-            else:
-                entry['json_truncated'] = relative.endswith('.json') and (size is not None and size > READ_JSON_LIMIT_BYTES)
-                try:
-                    entry['text_preview'] = payload.decode('utf-8', errors='replace')[:1000]
-                except Exception:
-                    entry['text_preview'] = None
-            result['members'].append(entry)
+                    entry['json_truncated'] = relative.endswith('.json') and (size is not None and size > READ_JSON_LIMIT_BYTES)
+                    try:
+                        entry['text_preview'] = payload.decode('utf-8', errors='replace')[:1000]
+                    except Exception:
+                        entry['text_preview'] = None
+                result['members'].append(entry)
+    except (zipfile.BadZipFile, Exception) as e:
+        # Handle corrupted or empty ZIP files
+        print(f"⚠️  WARNING: Skipping corrupted/empty ZIP file: {zip_path.name} ({e})")
+        result['manifest'] = None
+        result['db_overview'] = []
+        result['members'] = []
+
     return result
 
 def _format_number(value: float) -> str:
