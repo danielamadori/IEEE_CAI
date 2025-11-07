@@ -1315,9 +1315,18 @@ def prepare_summary_display(
 		columns = ['dataset', *display_categories] if display_categories else ['dataset']
 		summary_to_show = pd.DataFrame(columns=columns)
 
-	# Converti tutti i valori numerici in interi (tranne la colonna 'dataset')
+	# Definisci le colonne che devono essere sempre intere
+	# Usa i nomi completi (dopo il rename) dalle DISPLAY_LABELS
+	int_columns = [
+		DISPLAY_LABELS.get(cat, DISPLAY_NAMES.get(cat, cat))
+		for cat in DISPLAY_CATEGORIES
+	]
+	# Aggiungi anche 'Total' e 'TOT' se presenti
+	int_columns.extend(['Total', 'TOT'])
+
+	# Converti tutte le colonne categoriche e Total in interi
 	for col in summary_to_show.columns:
-		if col != 'dataset':
+		if col in int_columns:
 			summary_to_show[col] = pd.to_numeric(summary_to_show[col], errors='coerce').fillna(0).astype(int)
 
 	try:

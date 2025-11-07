@@ -16,3 +16,6 @@ results/ElectricDevices_1_false_0.zip
 results/Wafer_-1_false_0.zip
 
 results/FordA_-1_false_0.zip
+results/_cache/
+
+.DS_Store
