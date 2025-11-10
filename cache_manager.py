@@ -1,262 +1,417 @@
 """
-Utilità per gestire tutte le cache del progetto
+ETL Cache Manager - Comprehensive cache management tool
+
+Manage, monitor, build and clear ETL cache for datasets.
+
+Usage:
+    python cache_manager.py --info                           # Show cache statistics
+    python cache_manager.py --list                           # List all cached datasets
+    python cache_manager.py --build                          # Build cache for all datasets
+    python cache_manager.py --build --dataset NAME           # Build cache for specific dataset
+    python cache_manager.py --clear                          # Clear all cache (with confirmation)
+    python cache_manager.py --clear --dataset NAME           # Clear cache for specific dataset
+    python cache_manager.py --rebuild                        # Clear and rebuild all cache
+    python cache_manager.py --rebuild --dataset NAME         # Clear and rebuild specific dataset
 """
 
-import os
+import argparse
+import sys
 from pathlib import Path
-import shutil
+from etl.cache import ETLCache
+from etl.raw_cache import RawDataCache
 
 
-def clear_all_cache():
-    """Cancella tutte le cache del progetto"""
+def format_size(bytes_size):
+    """Format bytes to human readable size"""
+    for unit in ['B', 'KB', 'MB', 'GB']:
+        if bytes_size < 1024.0:
+            return f"{bytes_size:.2f} {unit}"
+        bytes_size /= 1024.0
+    return f"{bytes_size:.2f} TB"
+
+
+def show_info():
+    """Show cache statistics and disk space"""
+    cache = ETLCache()
+    raw_cache = RawDataCache()
+
     cache_dir = Path("results/_cache")
 
-    if not cache_dir.exists():
-        print("✓ Nessuna cache da cancellare")
-        return
+    print("\n" + "=" * 70)
+    print("CACHE INFORMATION")
+    print("=" * 70)
 
-    print("Cancellazione cache in corso...")
+    # Full cache info
+    full_cache_files = list(cache_dir.glob("*.pkl"))
+    full_cache_files = [f for f in full_cache_files if not f.name.startswith("raw_")]
+    full_cache_size = sum(f.stat().st_size for f in full_cache_files) if full_cache_files else 0
 
-    # Lista file prima di cancellare
-    pkl_files = list(cache_dir.glob("*.pkl"))
-    csv_files = list(cache_dir.glob("*.csv"))
-    json_files = list(cache_dir.glob("*.json"))
+    print(f"\nFull Cache:")
+    print(f"  Location: {cache_dir}")
+    print(f"  Files: {len(full_cache_files)}")
+    print(f"  Total size: {format_size(full_cache_size)}")
 
-    print(f"  - {len(pkl_files)} file .pkl (reasons_analysis cache)")
-    print(f"  - {len(csv_files)} file .csv (models_analysis cache)")
-    print(f"  - {len(json_files)} file .json (metadata)")
+    # Raw cache info
+    raw_cache_files = list(cache_dir.glob("raw_*.pkl"))
+    raw_cache_size = sum(f.stat().st_size for f in raw_cache_files) if raw_cache_files else 0
 
-    # Cancella directory
-    shutil.rmtree(cache_dir)
-    cache_dir.mkdir(parents=True, exist_ok=True)
+    print(f"\nRaw Cache:")
+    print(f"  Files: {len(raw_cache_files)}")
+    print(f"  Total size: {format_size(raw_cache_size)}")
 
-    print("✓ Tutte le cache cancellate!")
+    # Total
+    total_size = full_cache_size + raw_cache_size
+    print(f"\nTotal Cache Size: {format_size(total_size)}")
+
+    # Disk space
+    import shutil
+    stat = shutil.disk_usage(cache_dir)
+    print(f"\nDisk Space:")
+    print(f"  Total: {format_size(stat.total)}")
+    print(f"  Used: {format_size(stat.used)} ({stat.used / stat.total * 100:.1f}%)")
+    print(f"  Free: {format_size(stat.free)} ({stat.free / stat.total * 100:.1f}%)")
+
+    if stat.free < 100 * 1024 * 1024:  # Less than 100 MB
+        print(f"\n[!] WARNING: Low disk space! ({format_size(stat.free)} available)")
+        print(f"   Consider clearing cache or freeing up disk space.")
+    elif stat.free < 1024 * 1024 * 1024:  # Less than 1 GB
+        print(f"\n[!] CAUTION: Disk space below 1 GB ({format_size(stat.free)} available)")
+
+    print("\n" + "=" * 70 + "\n")
 
 
-def clear_reasons_cache():
-    """Cancella solo cache di reasons_analysis.ipynb"""
-    from etl.loader import clear_cache, clear_raw_cache
+def list_cached():
+    """List all cached datasets"""
+    cache = ETLCache()
+    raw_cache = RawDataCache()
 
-    print("Cancellazione cache reasons_analysis...")
-    clear_cache()
-    clear_raw_cache()
-    print("✓ Cache reasons_analysis cancellata!")
+    print("\n" + "=" * 70)
+    print("CACHED DATASETS")
+    print("=" * 70)
 
-
-def clear_models_cache():
-    """Cancella solo cache di models_analysis.ipynb"""
-    cache_dir = Path("results/_cache")
-
-    files_removed = []
-
-    counts_cache = cache_dir / "_counts_cache.csv"
-    if counts_cache.exists():
-        counts_cache.unlink()
-        files_removed.append("_counts_cache.csv")
-
-    meta_cache = cache_dir / "redis_counts_meta.json"
-    if meta_cache.exists():
-        meta_cache.unlink()
-        files_removed.append("redis_counts_meta.json")
-
-    summary_file = Path("results/redis_reason_counts.csv")
-    if summary_file.exists():
-        summary_file.unlink()
-        files_removed.append("redis_reason_counts.csv")
-
-    if files_removed:
-        print(f"✓ Cancellati: {', '.join(files_removed)}")
+    print("\nFull Cache:")
+    if cache.metadata:
+        for key, info in sorted(cache.metadata.items()):
+            print(f"  [+] {info.get('file_name', key)}")
     else:
-        print("✓ Nessuna cache models_analysis da cancellare")
+        print("  (none)")
 
-
-def list_all_cache():
-    """Elenca tutte le cache disponibili"""
-    from etl.loader import list_cache, list_raw_cache
-
-    print("=" * 70)
-    print("CACHE DISPONIBILI")
-    print("=" * 70)
-    print()
-
-    # Reasons analysis cache
-    print("1. REASONS_ANALYSIS CACHE (Full)")
-    full_cache = list_cache()
-    if full_cache:
-        for dataset, info in full_cache.items():
-            print(f"   • {info['file_name']}")
+    print("\nRaw Cache:")
+    if raw_cache.metadata:
+        for key, info in sorted(raw_cache.metadata.items()):
+            db_count = info.get('num_dbs', 'unknown')
+            print(f"  [+] {info.get('dataset_name', key)} ({db_count} databases)")
     else:
-        print("   (nessuna)")
-    print()
+        print("  (none)")
 
-    print("2. REASONS_ANALYSIS CACHE (Raw)")
-    raw_cache = list_raw_cache()
-    if raw_cache:
-        for dataset, info in raw_cache.items():
-            print(f"   • {info['dataset_name']}: {info['num_dbs']} databases")
-    else:
-        print("   (nessuna)")
-    print()
-
-    # Models analysis cache
-    print("3. MODELS_ANALYSIS CACHE")
-    cache_dir = Path("results/_cache")
-    models_files = []
-
-    if (cache_dir / "_counts_cache.csv").exists():
-        models_files.append("_counts_cache.csv")
-    if (cache_dir / "redis_counts_meta.json").exists():
-        models_files.append("redis_counts_meta.json")
-    if Path("results/redis_reason_counts.csv").exists():
-        models_files.append("redis_reason_counts.csv")
-
-    if models_files:
-        for f in models_files:
-            print(f"   • {f}")
-    else:
-        print("   (nessuna)")
-    print()
-
-    # Statistiche totali
-    total_pkl = len(list(cache_dir.glob("*.pkl"))) if cache_dir.exists() else 0
-    total_csv = len(list(cache_dir.glob("*.csv"))) if cache_dir.exists() else 0
-    total_json = len(list(cache_dir.glob("*.json"))) if cache_dir.exists() else 0
-
-    print("=" * 70)
-    print(f"TOTALE: {total_pkl} pkl, {total_csv} csv, {total_json} json")
-    print("=" * 70)
+    print("\n" + "=" * 70 + "\n")
 
 
-def get_cache_size():
-    """Calcola dimensione totale cache"""
-    cache_dir = Path("results/_cache")
+def clear_all():
+    """Clear all cache"""
+    cache = ETLCache()
+    raw_cache = RawDataCache()
 
-    if not cache_dir.exists():
-        return 0
+    print("\n" + "=" * 70)
+    print("CLEARING ALL CACHE")
+    print("=" * 70 + "\n")
 
-    total_size = 0
-    for file in cache_dir.rglob("*"):
-        if file.is_file():
-            total_size += file.stat().st_size
+    cache.clear()
+    raw_cache.clear()
 
-    # Converti in MB
-    size_mb = total_size / (1024 * 1024)
-    return size_mb
+    print("[OK] All cache cleared successfully\n")
 
 
-def show_cache_info():
-    """Mostra informazioni dettagliate sulla cache"""
-    print("=" * 70)
-    print("INFORMAZIONI CACHE")
-    print("=" * 70)
-    print()
+def clear_dataset(dataset_name):
+    """Clear cache for specific dataset"""
+    cache = ETLCache()
+    raw_cache = RawDataCache()
 
-    cache_dir = Path("results/_cache")
+    print("\n" + "=" * 70)
+    print(f"CLEARING CACHE FOR: {dataset_name}")
+    print("=" * 70 + "\n")
 
-    if not cache_dir.exists():
-        print("✗ Directory cache non esiste")
-        return
+    cache.clear(dataset_name)
+    raw_cache.clear(dataset_name)
 
-    print(f"📁 Directory: {cache_dir.absolute()}")
-    print()
-
-    # Conta file per tipo
-    pkl_files = list(cache_dir.glob("*.pkl"))
-    csv_files = list(cache_dir.glob("*.csv"))
-    json_files = list(cache_dir.glob("*.json"))
-
-    print("File per tipo:")
-    print(f"  • PKL:  {len(pkl_files)} file")
-    print(f"  • CSV:  {len(csv_files)} file")
-    print(f"  • JSON: {len(json_files)} file")
-    print()
-
-    # Dimensione totale
-    size_mb = get_cache_size()
-    print(f"💾 Dimensione totale: {size_mb:.2f} MB")
-    print()
-
-    # File più grandi
-    all_files = list(cache_dir.rglob("*"))
-    file_sizes = [(f, f.stat().st_size) for f in all_files if f.is_file()]
-    file_sizes.sort(key=lambda x: x[1], reverse=True)
-
-    if file_sizes:
-        print("File più grandi:")
-        for f, size in file_sizes[:5]:
-            size_mb = size / (1024 * 1024)
-            print(f"  • {f.name}: {size_mb:.2f} MB")
-    print()
+    print(f"[OK] Cache cleared for {dataset_name}\n")
 
 
-def interactive_menu():
-    """Menu interattivo per gestire cache"""
-    while True:
-        print()
-        print("=" * 70)
-        print("GESTIONE CACHE - Menu Interattivo")
-        print("=" * 70)
-        print()
-        print("1. Mostra cache disponibili")
-        print("2. Mostra informazioni cache")
-        print("3. Cancella TUTTE le cache")
-        print("4. Cancella solo cache reasons_analysis")
-        print("5. Cancella solo cache models_analysis")
-        print("0. Esci")
-        print()
+def build_cache_for_dataset(zip_path, results_dir):
+    """Build cache for a specific dataset"""
+    from etl.loader import etl
 
-        choice = input("Scelta: ").strip()
+    print(f"\n  Processing: {zip_path.name}")
+    print(f"  " + "-" * 60)
 
-        if choice == "1":
-            list_all_cache()
-        elif choice == "2":
-            show_cache_info()
-        elif choice == "3":
-            confirm = input("⚠️  Cancellare TUTTE le cache? (y/N): ").strip().lower()
-            if confirm == 'y':
-                clear_all_cache()
-            else:
-                print("✗ Operazione annullata")
-        elif choice == "4":
-            clear_reasons_cache()
-        elif choice == "5":
-            clear_models_cache()
-        elif choice == "0":
-            print("\n👋 Arrivederci!")
-            break
+    try:
+        # Force refresh to rebuild cache
+        db = etl([zip_path], results_dir, use_cache=True, force_refresh=True)
+
+        if "workers_report" in db:
+            worker_count = db["workers_report"].get("worker_count", 0)
+            print(f"  [OK] Successfully built cache ({worker_count} workers)")
+            return True
         else:
-            print("✗ Scelta non valida")
+            print(f"  [!] Warning: Cache built but no workers_report")
+            return True
+
+    except Exception as e:
+        print(f"  [ERROR] Error building cache: {e}")
+        return False
+
+
+def build_all_cache(results_dir):
+    """Build cache for all datasets"""
+    from etl.loader import etl
+    import builtins
+
+    # Mock input to avoid interactive prompts
+    original_input = builtins.input
+    def mock_input(prompt=""):
+        return ""
+    builtins.input = mock_input
+
+    zip_paths = sorted(results_dir.glob('*.zip'))
+
+    if len(zip_paths) == 0:
+        print("[ERROR] No ZIP files found in results directory")
+        return
+
+    print("\n" + "=" * 70)
+    print(f"BUILDING CACHE FOR ALL DATASETS ({len(zip_paths)} files)")
+    print("=" * 70)
+
+    success_count = 0
+    error_count = 0
+
+    for i, zip_path in enumerate(zip_paths, 1):
+        print(f"\n[{i}/{len(zip_paths)}]", end=" ")
+
+        if build_cache_for_dataset(zip_path, results_dir):
+            success_count += 1
+        else:
+            error_count += 1
+
+    # Summary
+    print("\n" + "=" * 70)
+    print("SUMMARY")
+    print("=" * 70)
+    print(f"  Total: {len(zip_paths)}")
+    print(f"  [OK] Success: {success_count}")
+    if error_count > 0:
+        print(f"  [ERROR] Errors: {error_count}")
+    print()
+
+    # Restore original input
+    builtins.input = original_input
+
+
+def build_dataset_cache(dataset_name, results_dir):
+    """Build cache for a specific dataset"""
+    import builtins
+
+    # Mock input to avoid interactive prompts
+    original_input = builtins.input
+    def mock_input(prompt=""):
+        return ""
+    builtins.input = mock_input
+
+    # Find the dataset
+    zip_paths = list(results_dir.glob('*.zip'))
+    target_path = None
+
+    for path in zip_paths:
+        if path.name == dataset_name or path.stem == dataset_name:
+            target_path = path
+            break
+
+    if target_path is None:
+        print(f"\n[ERROR] Dataset '{dataset_name}' not found in {results_dir}")
+        print(f"\nAvailable datasets:")
+        for path in sorted(zip_paths):
+            print(f"  - {path.name}")
+        return False
+
+    print("\n" + "=" * 70)
+    print(f"BUILDING CACHE FOR: {target_path.name}")
+    print("=" * 70)
+
+    result = build_cache_for_dataset(target_path, results_dir)
+
+    print("=" * 70)
+    if result:
+        print("[OK] Cache built successfully")
+    else:
+        print("[ERROR] Failed to build cache")
+    print()
+
+    # Restore original input
+    builtins.input = original_input
+
+    return result
+
+
+def rebuild_all():
+    """Clear and rebuild all cache"""
+    print("\n" + "=" * 70)
+    print("REBUILD ALL CACHE")
+    print("=" * 70)
+    print("\nThis will:")
+    print("  1. Clear all existing cache")
+    print("  2. Rebuild cache for all datasets")
+    print()
+
+    confirm = input("Are you sure you want to continue? (y/N): ")
+    if confirm.lower() != 'y':
+        print("Cancelled.")
+        return
+
+    # Clear first
+    clear_all()
+
+    # Then rebuild
+    results_dir = Path('results')
+    build_all_cache(results_dir)
+
+
+def rebuild_dataset(dataset_name):
+    """Clear and rebuild cache for specific dataset"""
+    print("\n" + "=" * 70)
+    print(f"REBUILD CACHE FOR: {dataset_name}")
+    print("=" * 70)
+    print("\nThis will:")
+    print("  1. Clear existing cache for this dataset")
+    print("  2. Rebuild cache from source ZIP")
+    print()
+
+    # Clear first
+    clear_dataset(dataset_name)
+
+    # Then rebuild
+    results_dir = Path('results')
+    build_dataset_cache(dataset_name, results_dir)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="ETL Cache Manager - Manage, build and clear cache",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Information and listing
+  python cache_manager.py --info                         # Show cache statistics
+  python cache_manager.py --list                         # List all cached datasets
+  
+  # Building cache
+  python cache_manager.py --build                        # Build cache for all datasets
+  python cache_manager.py --build --dataset Coffee.zip   # Build cache for specific dataset
+  
+  # Clearing cache
+  python cache_manager.py --clear                        # Clear all cache (with confirmation)
+  python cache_manager.py --clear --dataset Coffee.zip   # Clear specific dataset cache
+  
+  # Rebuilding (clear + build)
+  python cache_manager.py --rebuild                      # Rebuild all cache
+  python cache_manager.py --rebuild --dataset Coffee.zip # Rebuild specific dataset
+        """
+    )
+
+    parser.add_argument(
+        '--info',
+        action='store_true',
+        help='Show cache statistics and disk space'
+    )
+
+    parser.add_argument(
+        '--list',
+        action='store_true',
+        help='List all cached datasets'
+    )
+
+    parser.add_argument(
+        '--build',
+        action='store_true',
+        help='Build cache (for all datasets or specific dataset with --dataset)'
+    )
+
+    parser.add_argument(
+        '--clear',
+        action='store_true',
+        help='Clear cache (all or specific dataset with --dataset)'
+    )
+
+    parser.add_argument(
+        '--rebuild',
+        action='store_true',
+        help='Clear and rebuild cache (all or specific dataset with --dataset)'
+    )
+
+    parser.add_argument(
+        '--dataset',
+        type=str,
+        metavar='NAME',
+        help='Specify dataset name (e.g., Coffee.zip or Coffee_0_false_0.zip)'
+    )
+
+    args = parser.parse_args()
+
+    # Validate args
+    action_count = sum([args.info, args.list, args.build, args.clear, args.rebuild])
+
+    if action_count == 0:
+        parser.print_help()
+        sys.exit(0)
+
+    if action_count > 1:
+        print("Error: Please specify only one action (--info, --list, --build, --clear, or --rebuild)")
+        sys.exit(1)
+
+    # Execute actions
+    try:
+        if args.info:
+            show_info()
+
+        elif args.list:
+            list_cached()
+
+        elif args.build:
+            results_dir = Path('results')
+            if not results_dir.exists():
+                print(f"Error: Results directory '{results_dir}' not found")
+                sys.exit(1)
+
+            if args.dataset:
+                build_dataset_cache(args.dataset, results_dir)
+            else:
+                build_all_cache(results_dir)
+
+        elif args.clear:
+            if args.dataset:
+                clear_dataset(args.dataset)
+            else:
+                confirm = input("Are you sure you want to clear ALL cache? (y/N): ")
+                if confirm.lower() == 'y':
+                    clear_all()
+                else:
+                    print("Cancelled.")
+
+        elif args.rebuild:
+            if args.dataset:
+                rebuild_dataset(args.dataset)
+            else:
+                rebuild_all()
+
+    except KeyboardInterrupt:
+        print("\n\nInterrupted by user.")
+        sys.exit(1)
+    except Exception as e:
+        print(f"\n[ERROR] {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
 
 
 if __name__ == '__main__':
-    import sys
-
-    if len(sys.argv) > 1:
-        command = sys.argv[1]
-
-        if command == "list":
-            list_all_cache()
-        elif command == "info":
-            show_cache_info()
-        elif command == "clear-all":
-            clear_all_cache()
-        elif command == "clear-reasons":
-            clear_reasons_cache()
-        elif command == "clear-models":
-            clear_models_cache()
-        elif command == "size":
-            size = get_cache_size()
-            print(f"Cache size: {size:.2f} MB")
-        else:
-            print("Comandi disponibili:")
-            print("  list          - Elenca cache disponibili")
-            print("  info          - Mostra informazioni dettagliate")
-            print("  clear-all     - Cancella tutte le cache")
-            print("  clear-reasons - Cancella cache reasons_analysis")
-            print("  clear-models  - Cancella cache models_analysis")
-            print("  size          - Mostra dimensione cache")
-            print()
-            print("Senza parametri: menu interattivo")
-    else:
-        interactive_menu()
+    main()
 

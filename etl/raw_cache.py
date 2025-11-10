@@ -91,8 +91,17 @@ class RawDataCache:
                 ...
             }
         """
+        import shutil
+
         cache_key = self._get_cache_key(dataset_name)
         cache_path = self._get_cache_path(cache_key)
+
+        # Check available disk space
+        stat = shutil.disk_usage(self.cache_dir)
+        available_mb = stat.free / (1024 * 1024)
+
+        if available_mb < 100:  # Less than 100 MB available
+            raise OSError(f"Not enough disk space to save cache (only {available_mb:.0f} MB available)")
 
         # Save data using pickle
         with open(cache_path, 'wb') as f:
@@ -141,6 +150,19 @@ class RawDataCache:
             print(f"📂 Loaded raw data from cache: {dataset_name}")
             print(f"   Databases: {db_names}")
             return data
+        except (EOFError, pickle.UnpicklingError) as e:
+            # Corrupted cache file - remove it
+            print(f"✗ Corrupted raw cache detected for {dataset_name}: {e}")
+            print(f"   Removing corrupted cache file...")
+            try:
+                cache_path.unlink()
+                # Also remove from metadata
+                if cache_key in self.metadata:
+                    del self.metadata[cache_key]
+                    self._save_metadata()
+            except Exception:
+                pass
+            return None
         except Exception as e:
             print(f"✗ Error loading raw cache for {dataset_name}: {e}")
             return None

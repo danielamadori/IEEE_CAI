@@ -12,6 +12,8 @@ import pandas as pd
 from IPython.core.display_functions import display
 from matplotlib import pyplot as plt, dates as mdates
 
+from etl.constants import DB_NAMES
+
 try:
 	import ipywidgets as widgets
 except ImportError:
@@ -188,7 +190,7 @@ def summarise_db10_workers(selected_zip_name, selected_manifest, selected_backup
     }
 
 
-def build_db10_worker_report(results, max_events=None, sort_by='iteration'):
+def build_db10_worker_report(selected_zip_name, selected_manifest, selected_backups, selected_archive_data, selected_manifest_prefix, max_events=None, sort_by='iteration'):
     def safe_mean(values):
         return statistics.mean(values) if values else None
 
@@ -231,8 +233,11 @@ def build_db10_worker_report(results, max_events=None, sort_by='iteration'):
             'outcomes': event.get('outcomes'),
         }
 
+    results = summarise_db10_workers(selected_zip_name, selected_manifest, selected_backups, selected_archive_data, selected_manifest_prefix)
+
     worker_stats = results.get("worker_stats")
     report = {
+        'worker_stats' : worker_stats,
         'zip_name': results.get('zip_name'),
         'worker_count': len(worker_stats),
         'workers': {}
@@ -663,10 +668,11 @@ def _extract_numeric_value(*candidates):
     return None
 
 
-def render_worker_report(selected_zip_name, selected_manifest, selected_backups, selected_archive_data, selected_manifest_prefix):
-    results = summarise_db10_workers(selected_zip_name, selected_manifest, selected_backups, selected_archive_data, selected_manifest_prefix)
+def render_worker_report(db):
+    report = db.get(DB_NAMES.get(10), None)
 
-    report = build_db10_worker_report(results, max_events=None)
+    if report is None:
+        raise ValueError('No worker report (DB 10) available in the database, Run etl.')
 
     rows = _flatten_worker_summary(report)
     if not rows:
@@ -731,15 +737,15 @@ def render_worker_report(selected_zip_name, selected_manifest, selected_backups,
         plots.append(_plot_histogram(df, column=config['column'], title=config['title'], xlabel=config['xlabel']))
     if extensions_columns:
         plots.append(_plot_bar(df, columns=extensions_columns, title='Extensions totals per worker', ylabel='Count', stacked=False))
-    plots.extend(_plot_queue_time_series(results, report, df))
+    plots.extend(_plot_queue_time_series(report, df))
     workers_table3 = _render_worker_iteration_table(report, df)
 
     return workers_table, workers_table2, workers_table3, plots
 
 
-def _plot_queue_time_series(results, report, df: pd.DataFrame):
+def _plot_queue_time_series(report, df: pd.DataFrame):
     workers_data = (report or {}).get('../workers') or {}
-    worker_stats = results.get("worker_stats")
+    worker_stats = report.get("worker_stats")
     if not workers_data and not worker_stats:
         raise ValueError("Queue time series skipped: worker events unavailable.")
 
