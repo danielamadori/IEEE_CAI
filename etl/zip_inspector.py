@@ -63,7 +63,14 @@ def scan_and_load(zip_paths, results_dir):
         print("Available ZIP archives:")
         for index, name in enumerate(zip_names):
             print(f"[{index}] {name}")
-        user_choice = input("Select ZIP by index or name (press Enter to keep current selection): ").strip()
+
+        # Salta l'input interattivo se la variabile d'ambiente è impostata
+        if env_selected_index is not None or env_selected_zip is not None:
+            print(f"Auto-selected from environment: [{selected_zip_index}] {selected_zip_name}")
+            user_choice = ""
+        else:
+            user_choice = input("Select ZIP by index or name (press Enter to keep current selection): ").strip()
+
         if user_choice:
             resolved_index = None
             try:

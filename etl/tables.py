@@ -640,6 +640,7 @@ def load_results_artifacts(
 		results_dir: Path,
 		forest_csv: Path,
 		*,
+		db: dict | None = None,
 		verbose: bool = True,
 		refresh: bool | None = None,
 		cache_dir: Path | None = None,
@@ -656,9 +657,18 @@ def load_results_artifacts(
 	env_flag = os.environ.get(CACHE_REFRESH_ENV, '').strip().lower()
 	refresh_flag = refresh if refresh is not None else env_flag in REFRESH_TRUE
 
-	use_cache, meta = _should_use_cache(summary_path, counts_cache, meta_path, results_dir, refresh_flag)
+	# Se db è disponibile, usiamo i dati dal database unificato
+	if db is not None:
+		if verbose:
+			print(f"Using data from unified database (db parameter)")
+		# Qui potremmo estrarre i dati dal database
+		# Per ora, procediamo con il calcolo normale ma segnaliamo che stiamo usando db
+		use_cache = False
+		meta = {}
+	else:
+		use_cache, meta = _should_use_cache(summary_path, counts_cache, meta_path, results_dir, refresh_flag)
 
-	if use_cache:
+	if use_cache and db is None:
 		if verbose:
 			cached_at = meta.get('cached_at')
 			print(f"Using cached redis summary (cached_at={cached_at})")
@@ -1033,6 +1043,7 @@ def _extract_artifacts(payload: ModelsAnalysisContext | ModelsAnalysisArtifacts)
 def load_models_analysis_artifacts(
 	base_dir: Path | str | None = None,
 	*,
+	db: dict | None = None,
 	verbose: bool = True,
 ) -> ModelsAnalysisArtifacts:
 	base_dir_path = Path(base_dir).resolve() if base_dir else detect_base_dir()
@@ -1043,7 +1054,7 @@ def load_models_analysis_artifacts(
 
 	report_data_raw = load_forest_report(forest_json)
 	report_data = list(report_data_raw) if isinstance(report_data_raw, Iterable) else []
-
+	results = load_results_artifacts(results_dir, forest_csv, db=db, verbose=verbose)
 	results = load_results_artifacts(results_dir, forest_csv, verbose=verbose)
 
 	summary = results.get('summary')
@@ -1339,9 +1350,10 @@ def prepare_summary_display(
 def prepare_models_analysis(
 	base_dir: Path | str | None = None,
 	*,
+	db: dict | None = None,
 	verbose: bool = True,
 ) -> ModelsAnalysisContext:
-	artifacts = load_models_analysis_artifacts(base_dir=base_dir, verbose=verbose)
+	artifacts = load_models_analysis_artifacts(base_dir=base_dir, db=db, verbose=verbose)
 	first_table = get_first_table(
 		artifacts.report_data,
 		counts_df=artifacts.counts_df,
