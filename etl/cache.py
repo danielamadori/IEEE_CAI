@@ -131,9 +131,18 @@ class ETLCache:
             - workers_table3: worker statistics table 3
             - plots: plot data
         """
+        import shutil
+
         cache_key = self._get_cache_key(zip_path.name)
         cache_path = self._get_cache_path(cache_key)
         file_hash = self._get_file_hash(zip_path)
+
+        # Check available disk space
+        stat = shutil.disk_usage(self.cache_dir)
+        available_mb = stat.free / (1024 * 1024)
+
+        if available_mb < 100:  # Less than 100 MB available
+            raise OSError(f"Not enough disk space to save cache (only {available_mb:.0f} MB available)")
 
         # Sanifica i dati per evitare errori di pickle con moduli/figure/funzioni
         safe_data = _make_pickleable(data)
@@ -177,6 +186,19 @@ class ETLCache:
                 data = pickle.load(f)
             print(f"✓ Loaded cached data for {zip_path.name}")
             return data
+        except (EOFError, pickle.UnpicklingError) as e:
+            # Corrupted cache file - remove it
+            print(f"✗ Corrupted cache detected for {zip_path.name}: {e}")
+            print(f"   Removing corrupted cache file...")
+            try:
+                cache_path.unlink()
+                # Also remove from metadata
+                if cache_key in self.metadata:
+                    del self.metadata[cache_key]
+                    self._save_metadata()
+            except Exception:
+                pass
+            return None
         except Exception as e:
             print(f"✗ Error loading cache for {zip_path.name}: {e}")
             return None

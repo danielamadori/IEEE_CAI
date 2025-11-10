@@ -3,25 +3,11 @@ from pathlib import Path
 import zipfile, base64
 
 from etl.data_loader import load_db0, render_db0_sample_timeseries
-from etl.logs_loader import render_worker_report
+from etl.logs_loader import build_db10_worker_report
 from etl.cache import ETLCache
 from etl.raw_cache import RawDataCache
-
-from etl.zip_inspector import scan_and_load, parse_zip_metadata, collect_archive_data, decode_key, try_decode_value, \
-    summarise_entry_generic, DB_LABELS, _fetch_backup_metadata, summarise_entry
-
-DB_NAMES = {
-    0: "data",
-    1: "candidates",
-    2: "reasons",
-    3: "non_reasons",
-    4: "candidate_anti_reasons",
-    5: "anti_reasons",
-    6: "good_profiles",
-    7: "bad_profiles",
-    8: "preferred_reasons",
-    9: "anti_reason_profiles",
-}
+from etl.zip_inspector import scan_and_load, collect_archive_data, decode_key, try_decode_value
+from etl.constants import DB_NAMES
 
 # Global cache instances
 _cache = ETLCache()
@@ -75,11 +61,9 @@ def etl(zip_paths, results_dir, use_cache=True, force_refresh=False):
             selected_manifest_prefix = manifest_prefix_by_archive.get(selected_zip_name, '')
             selected_backups = backups_by_archive.get(selected_zip_name)
 
-            workers_table, workers_table2, workers_table3, plots = render_worker_report(
-                selected_zip_name, selected_manifest, selected_backups, selected_archive_data, selected_manifest_prefix
-            )
+            db[DB_NAMES.get(10)] = build_db10_worker_report(selected_zip_name, selected_manifest, selected_backups, selected_archive_data, selected_manifest_prefix, max_events=None)
 
-            return db, workers_table, workers_table2, workers_table3, plots
+            return db
 
     if use_cache:
         print(f"🔄 Processing {selected_zip_name}...")
@@ -95,7 +79,13 @@ def etl(zip_paths, results_dir, use_cache=True, force_refresh=False):
 
         # Save to Raw Cache
         if use_cache:
-            _raw_cache.save(selected_zip_name, db)
+            try:
+                _raw_cache.save(selected_zip_name, db)
+            except OSError as e:
+                print(f"⚠️  Warning: Could not save raw cache: {e}")
+                print("   Continuing without cache...")
+            except Exception as e:
+                print(f"⚠️  Warning: Unexpected error saving raw cache: {e}")
 
     # Process workers and plots (not cached at raw level)
     archives_data = [collect_archive_data(path) for path in zip_paths]
@@ -107,9 +97,7 @@ def etl(zip_paths, results_dir, use_cache=True, force_refresh=False):
     selected_manifest_prefix = manifest_prefix_by_archive.get(selected_zip_name, '')
     selected_backups = backups_by_archive.get(selected_zip_name)
 
-    workers_table, workers_table2, workers_table3, plots = render_worker_report(
-        selected_zip_name, selected_manifest, selected_backups, selected_archive_data, selected_manifest_prefix
-    )
+    db[DB_NAMES.get(10)] = build_db10_worker_report(selected_zip_name, selected_manifest, selected_backups, selected_archive_data, selected_manifest_prefix, max_events=None)
 
     render_db0_sample_timeseries(db.get(DB_NAMES.get(0), {}))
 
@@ -118,9 +106,15 @@ def etl(zip_paths, results_dir, use_cache=True, force_refresh=False):
         cache_data = {
             'db': db,
         }
-        _cache.save(selected_zip_path, cache_data)
+        try:
+            _cache.save(selected_zip_path, cache_data)
+        except OSError as e:
+            print(f"⚠️  Warning: Could not save full cache: {e}")
+            print("   Continuing without cache...")
+        except Exception as e:
+            print(f"⚠️  Warning: Unexpected error saving cache: {e}")
 
-    return db, workers_table, workers_table2, workers_table3, plots
+    return db
 
 
 def _extract_databases(zip_paths, selected_zip_name, results_dir):
