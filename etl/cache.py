@@ -184,11 +184,11 @@ class ETLCache:
         try:
             with open(cache_path, 'rb') as f:
                 data = pickle.load(f)
-            print(f"✓ Loaded cached data for {zip_path.name}")
+            print(f"[OK] Loaded cached data for {zip_path.name}")
             return data
         except (EOFError, pickle.UnpicklingError) as e:
             # Corrupted cache file - remove it
-            print(f"✗ Corrupted cache detected for {zip_path.name}: {e}")
+            print(f"[ERR] Corrupted cache detected for {zip_path.name}: {e}")
             print(f"   Removing corrupted cache file...")
             try:
                 cache_path.unlink()
@@ -200,7 +200,7 @@ class ETLCache:
                 pass
             return None
         except Exception as e:
-            print(f"✗ Error loading cache for {zip_path.name}: {e}")
+            print(f"[ERR] Error loading cache for {zip_path.name}: {e}")
             return None
 
     def clear(self, zip_name: Optional[str] = None):

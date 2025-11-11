@@ -356,7 +356,7 @@ def plot_timeseries_comparison(
                      n_points, sample_id, output_dir)
 
     print("\n" + "="*80)
-    print("✓ VISUALIZATION COMPLETED")
+    print("VISUALIZATION COMPLETED")
     print("="*80)
     print("\nGenerated 4 plots in fig/visualization/")
 
@@ -373,7 +373,7 @@ def _plot_timeseries_only(x_axis, series, sample_id, output_dir):
     plt.tight_layout()
     plt.savefig(f'{output_dir}/01_timeseries_only.png', dpi=150, bbox_inches='tight')
     plt.show()
-    print(f"✓ Saved: {output_dir}/01_timeseries_only.png")
+    print(f"Saved: {output_dir}/01_timeseries_only.png")
 
 
 def _plot_darwiche_style(x_axis, series, upper_corridor, lower_corridor,
@@ -408,7 +408,7 @@ def _plot_darwiche_style(x_axis, series, upper_corridor, lower_corridor,
     plt.tight_layout()
     plt.savefig(f'{output_dir}/02_darwiche_reason.png', dpi=150, bbox_inches='tight')
     plt.show()
-    print(f"✓ Saved: {output_dir}/02_darwiche_reason.png")
+    print(f"Saved: {output_dir}/02_darwiche_reason.png")
 
 
 def _get_maximal_icf(sample_dict, db):
@@ -473,7 +473,7 @@ def _plot_our_maximal(x_axis, series, maximal_icf, maximal_bitmap,
     plt.tight_layout()
     plt.savefig(f'{output_dir}/03_our_maximal_reason.png', dpi=150, bbox_inches='tight')
     plt.show()
-    print(f"✓ Saved: {output_dir}/03_our_maximal_reason.png")
+    print(f"Saved: {output_dir}/03_our_maximal_reason.png")
 
 
 def _plot_comparison(x_axis, series, upper_corridor, lower_corridor,
@@ -520,5 +520,5 @@ def _plot_comparison(x_axis, series, upper_corridor, lower_corridor,
     plt.tight_layout()
     plt.savefig(f'{output_dir}/04_comparison.png', dpi=150, bbox_inches='tight')
     plt.show()
-    print(f"✓ Saved: {output_dir}/04_comparison.png")
+    print(f"Saved: {output_dir}/04_comparison.png")
 

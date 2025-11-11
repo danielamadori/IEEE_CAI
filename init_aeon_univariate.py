@@ -531,10 +531,10 @@ def store_training_set(connections, X_train, y_train, feature_names, dataset_nam
 
     try:
         connections['DATA'].set('TRAINING_SET', json.dumps(training_data))
-        print(f"✓ Training set saved successfully ({X_train.shape[0]} samples, {X_train.shape[1]} features)")
+        print(f"Training set saved successfully ({X_train.shape[0]} samples, {X_train.shape[1]} features)")
         return True
     except Exception as e:
-        print(f"❌ Failed to save training set: {e}")
+        print(f"Failed to save training set: {e}")
         return False
 
 
@@ -543,7 +543,7 @@ def store_forest_and_endpoints(connections, our_forest):
     # Store forest in Redis
     print("Storing Random Forest in DATA['RF']...")
     if store_forest(connections['DATA'], 'RF', our_forest):
-        print("✓ Forest saved successfully")
+        print("Forest saved successfully")
     else:
         raise Exception("Failed to save forest to Redis")
 
@@ -554,7 +554,7 @@ def store_forest_and_endpoints(connections, our_forest):
 
     print("Storing endpoints universe in DATA['EU']...")
     if store_monotonic_dict(connections['DATA'], 'EU', feature_thresholds):
-        print("✓ Endpoints universe saved successfully")
+        print("Endpoints universe saved successfully")
     else:
         raise Exception("Failed to save endpoints universe to Redis")
 
@@ -686,13 +686,13 @@ def process_all_classified_samples(connections, dataset_name, class_label, our_f
     
     connections['DATA'].set(f"summary_{dataset_name}_{class_label}", json.dumps(summary))
     
-    print(f"✓ Stored {len(stored_samples)} samples in DATA")
-    print(f"✓ Stored {len(stored_samples)} ICF representations in R")
-    print(f"✓ Correct predictions: {summary['correct_predictions']}")
-    print(f"✓ Incorrect predictions: {summary['incorrect_predictions']}")
-    print(f"✓ Accuracy: {summary['accuracy']:.3f}")
-    print(f"✓ Summary stored in DATA['summary_{dataset_name}_{class_label}']")
-    
+    print(f"Stored {len(stored_samples)} samples in DATA")
+    print(f"Stored {len(stored_samples)} ICF representations in R")
+    print(f"Correct predictions: {summary['correct_predictions']}")
+    print(f"Incorrect predictions: {summary['incorrect_predictions']}")
+    print(f"Accuracy: {summary['accuracy']:.3f}")
+    print(f"Summary stored in DATA['summary_{dataset_name}_{class_label}']")
+
     return stored_samples, summary
 
 
@@ -727,13 +727,13 @@ def initialize_seed_candidate(connections, sample_dict, our_forest, eu_data):
         'cost': cost
     }
     connections['CAN'].set(bitmap_string, json.dumps(icf_metadata))
-    print(f"✓ Stored initial candidate in CAN")
+    print(f"Stored initial candidate in CAN")
 
     # Also store in PR (Preferred Reasons) database - timestamp auto-generated
     if insert_to_pr(connections['PR'], bitmap_string, current_timestamp, icf_metadata):
-        print(f"✓ Stored initial candidate in PR")
+        print(f"Stored initial candidate in PR")
     else:
-        print(f"⚠️  Failed to store candidate in PR")
+        print(f"Warning: Failed to store candidate in PR")
 
     return bitmap_string, forest_icf
 
@@ -870,9 +870,9 @@ Examples:
         
         if args.class_label:
             if args.class_label in [str(c) for c in info['classes']]:
-                print(f"✓ Target class label '{args.class_label}' is valid")
+                print(f"Target class label '{args.class_label}' is valid")
             else:
-                print(f"❌ Target class label '{args.class_label}' not found in dataset classes")
+                print(f"Error: Target class label '{args.class_label}' not found in dataset classes")
                 print(f"   Available classes: {info['classes']}")
         
         return
@@ -908,7 +908,7 @@ Examples:
         # Optionally optimize RF hyperparameters with Bayesian optimization
         if args.optimize_rf:
             if not SKOPT_AVAILABLE:
-                print("❌ Error: scikit-optimize is not installed.")
+                print("Error: scikit-optimize is not installed.")
                 print("   Install with: pip install scikit-optimize")
                 return 1
 
@@ -947,11 +947,11 @@ Examples:
             # Convert numpy types to native Python types for JSON serialization
             opt_results_serializable = convert_numpy_types(opt_results)
             connections['DATA'].set('RF_OPTIMIZATION_RESULTS', json.dumps(opt_results_serializable))
-            print(f"✓ Optimization results saved to DATA['RF_OPTIMIZATION_RESULTS']")
+            print(f"Optimization results saved to DATA['RF_OPTIMIZATION_RESULTS']")
 
             # Use optimized parameters
             rf_params = {**best_params, 'random_state': args.random_state}
-            print(f"\n🎯 Using optimized parameters for final model")
+            print(f"\nUsing optimized parameters for final model")
 
         else:
             # Use manually specified parameters
@@ -988,24 +988,24 @@ Examples:
         
         # Store the target label for worker compatibility
         connections['DATA'].set('label', args.class_label)
-        print(f"🏷️  Target label '{args.class_label}' set for worker processing")
+        print(f"  Target label '{args.class_label}' set for worker processing")
         
-        print(f"\n🎉 Successfully initialized {args.dataset_name}")
-        print(f"📈 Forest: {len(our_forest)} trees")
-        print(f"📋 Features: {len(feature_names)}")
-        print(f"🎯 Processed: {summary['total_samples_processed']} samples with label '{args.class_label}'")
-        print(f"✅ Correct: {summary['correct_predictions']}")
-        print(f"❌ Incorrect: {summary['incorrect_predictions']}")
-        print(f"🎯 Accuracy: {summary['accuracy']:.3f}")
-        print(f"💾 Data stored in Redis databases")
+        print(f"\n Successfully initialized {args.dataset_name}")
+        print(f" Forest: {len(our_forest)} trees")
+        print(f" Features: {len(feature_names)}")
+        print(f" Processed: {summary['total_samples_processed']} samples with label '{args.class_label}'")
+        print(f" Correct: {summary['correct_predictions']}")
+        print(f" Incorrect: {summary['incorrect_predictions']}")
+        print(f" Accuracy: {summary['accuracy']:.3f}")
+        print(f" Data stored in Redis databases")
         
-        print(f"\n🔧 System Ready for Worker Processing!")
-        print(f"   Next step: run python worker_rcheck.py")
+        print(f"\n System Ready for Worker Processing!")
+        print(f"  Next step: run python worker_rcheck.py")
         
     except KeyboardInterrupt:
-        print("\n⏹️  Interrupted by user")
+        print("\n  Interrupted by user")
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        print(f"\n Error: {e}")
         import traceback
         print(f"Traceback: {traceback.format_exc()}")
         return 1

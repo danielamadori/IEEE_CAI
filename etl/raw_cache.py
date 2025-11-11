@@ -116,7 +116,7 @@ class RawDataCache:
         }
         self._save_metadata()
 
-        print(f"💾 Cached raw data for {dataset_name} ({len(db_data)} databases)")
+        print(f"Cached raw data for {dataset_name} ({len(db_data)} databases)")
 
     def load(self, dataset_name: str) -> Optional[Dict[str, Any]]:
         """
