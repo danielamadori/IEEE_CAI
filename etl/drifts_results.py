@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import base64
 import binascii
+import gc
 import json
 import re
 import sys
@@ -150,26 +151,42 @@ def _count_in_dir(ds_dir: Path, verbose: bool = False) -> Optional[Dict[str, Any
         db_index = _detect_db_index(entry.name)
         if db_index is None:
             continue
+
+        data = None
+        entries_list = None
+
         try:
             data = json.loads(entry.read_text(encoding="utf-8", errors="ignore"))
         except Exception:
             if verbose:
                 print(f"?? Errore leggendo JSON: {entry}")
             continue
+
         if isinstance(data, dict) and isinstance(data.get("entries"), list):
             cat = DB_TO_CAT.get(db_index)
             if cat:
                 entries_list = data["entries"]
-                agg[cat] += len(entries_list)
+                count = len(entries_list)
+                agg[cat] += count
+
                 if cat == "DATA":
                     agg["selected_sample"] += _count_sample_entries(entries_list)
-                if cat == "LOGS":
+                elif cat == "LOGS":
+                    # Estrai timestamp da tutti i log
                     timestamps: List[datetime] = []
                     for entry_obj in entries_list:
                         if isinstance(entry_obj, dict):
                             timestamps.extend(_extract_log_timestamps_from_entry(entry_obj))
                     log_bounds = _update_log_bounds(log_bounds, timestamps)
+                    # Libera memoria dei timestamps
+                    del timestamps
+
                 any_found = True
+
+        # Libera memoria del data JSON dopo l'elaborazione
+        del data, entries_list
+        data = None
+        entries_list = None
     if not any_found and verbose:
         print(f"Manifest not found in directory: {ds_dir}")
         return None
@@ -190,29 +207,49 @@ def _count_in_zip(zip_path: Path, verbose: bool = False) -> Optional[Dict[str, A
     any_found = False
     try:
         with zipfile.ZipFile(zip_path, "r") as archive:
-            for name in archive.namelist():
+            namelist = archive.namelist()
+            for name in namelist:
                 db_index = _detect_db_index(name)
                 if db_index is None:
                     continue
+
+                raw = None
+                text = None
+                data = None
+                entries_list = None
+
                 try:
                     raw = archive.read(name)
                     try:
                         text = raw.decode("utf-8")
                     except Exception:
                         text = raw.decode("latin-1", errors="ignore")
+                    # Libera raw dopo decodifica
+                    del raw
+                    raw = None
+
                     data = json.loads(text)
+                    # Libera text dopo parsing JSON
+                    del text
+                    text = None
                 except Exception:
                     if verbose:
                         print(f"?? Errore leggendo {name} in {zip_path}")
+                    # Libera eventuali riferimenti
+                    del raw, text, data
                     continue
+
                 if isinstance(data, dict) and isinstance(data.get("entries"), list):
                     cat = DB_TO_CAT.get(db_index)
                     if cat:
                         entries_list = data["entries"]
-                        agg[cat] += len(entries_list)
+                        count = len(entries_list)
+                        agg[cat] += count
+
                         if cat == "DATA":
                             agg["selected_sample"] += _count_sample_entries(entries_list)
-                        if cat == "LOGS":
+                        elif cat == "LOGS":
+                            # Estrai timestamp da tutti i log per Worker start/end/span
                             timestamps: List[datetime] = []
                             for entry_obj in entries_list:
                                 if isinstance(entry_obj, dict):
@@ -220,7 +257,15 @@ def _count_in_zip(zip_path: Path, verbose: bool = False) -> Optional[Dict[str, A
                                         _extract_log_timestamps_from_entry(entry_obj)
                                     )
                             log_bounds = _update_log_bounds(log_bounds, timestamps)
+                            # Libera memoria dei timestamps
+                            del timestamps
+
                         any_found = True
+
+                # Libera memoria del data JSON dopo l'elaborazione
+                del data, entries_list
+                data = None
+                entries_list = None
     except zipfile.BadZipFile:
         if verbose:
             print(f"?? Corrupted zip: {zip_path}")
@@ -242,48 +287,147 @@ def _count_in_zip(zip_path: Path, verbose: bool = False) -> Optional[Dict[str, A
     return agg
 
 
-def compute_counts_from_results(results_dir: Path, verbose: bool = False) -> pd.DataFrame:
-    """Return a DataFrame with counts per dataset and category."""
+def compute_counts_from_results(
+    results_dir: Path,
+    verbose: bool = False,
+    cache_file: Optional[Path] = None,
+    log_summary_file: Optional[Path] = None,
+    selected_dataset: Optional[str] = None,
+) -> pd.DataFrame:
+    """Return a DataFrame with counts per dataset and category.
+
+    Processes datasets one at a time with explicit garbage collection to minimize RAM usage.
+    Writes results incrementally to cache_file if provided (one row per dataset).
+
+    Args:
+        results_dir: Directory containing result ZIP files
+        verbose: Print progress messages
+        cache_file: Optional path to write results incrementally (CSV format)
+        log_summary_file: Optional path to write log summary incrementally (JSON format)
+        selected_dataset: Optional dataset name to process (if None, processes all datasets)
+    """
     rows: List[Dict[str, Any]] = []
     log_info: Dict[str, Dict[str, Any]] = {}
     base_columns = ["dataset", *DISPLAY_CATEGORIES, "TOT", "selected_sample"]
+
     if not results_dir.exists():
         if verbose:
             print(f"Results directory not found: {results_dir}")
         return pd.DataFrame(columns=base_columns)
-    for entry in sorted(results_dir.iterdir()):
+
+    # Se cache_file esiste, carica i dataset già processati
+    processed_datasets = set()
+    if cache_file and cache_file.exists():
+        try:
+            existing_df = pd.read_csv(cache_file)
+            if 'dataset' in existing_df.columns:
+                processed_datasets = set(existing_df['dataset'].astype(str))
+                rows = existing_df.to_dict('records')
+                if verbose:
+                    print(f"Resuming from cache: {len(processed_datasets)} datasets already processed")
+        except Exception as e:
+            if verbose:
+                print(f"Could not load existing cache: {e}")
+
+    # Carica log summary esistente
+    if log_summary_file and log_summary_file.exists():
+        try:
+            log_info = json.loads(log_summary_file.read_text(encoding='utf-8'))
+        except Exception:
+            pass
+
+    # Conta totale per progresso
+    entries_list = sorted(results_dir.iterdir())
+
+    # Se selected_dataset è specificato, filtra solo quel dataset
+    if selected_dataset:
+        entries_list = [
+            entry for entry in entries_list
+            if (entry.is_dir() and entry.name.split("_")[0] == selected_dataset) or
+               (entry.is_file() and entry.suffix.lower() == ".zip" and entry.stem.split("_")[0] == selected_dataset)
+        ]
+
+    total_entries = len(entries_list)
+    processed_count = len(processed_datasets)
+    new_count = 0
+
+    # Inizializza cache file con header se non esiste
+    if cache_file and not cache_file.exists():
+        cache_file.parent.mkdir(parents=True, exist_ok=True)
+        pd.DataFrame(columns=base_columns).to_csv(cache_file, index=False)
+
+    for idx, entry in enumerate(entries_list, 1):
+        dataset = None
+
         if entry.is_dir():
             dataset = entry.name.split("_")[0] if "_" in entry.name else entry.name
-            agg = _count_in_dir(entry, verbose=verbose)
-            if agg:
-                extras = {
-                    key: agg.pop(key)
-                    for key in list(agg.keys())
-                    if key in SUMMARY_EXTRA_COLUMNS
-                }
-                counts = {cat: agg.get(cat, 0) for cat in DISPLAY_CATEGORIES}
-                row = {"dataset": dataset, **counts}
-                row["selected_sample"] = agg.get("selected_sample", 0)
-                rows.append(row)
-                if extras:
-                    log_info[dataset] = extras
         elif entry.is_file() and entry.suffix.lower() == ".zip":
             dataset = entry.stem.split("_")[0] if "_" in entry.stem else entry.stem
-            agg = _count_in_zip(entry, verbose=verbose)
-            if agg:
-                extras = {
-                    key: agg.pop(key)
-                    for key in list(agg.keys())
-                    if key in SUMMARY_EXTRA_COLUMNS
-                }
-                counts = {cat: agg.get(cat, 0) for cat in DISPLAY_CATEGORIES}
-                row = {"dataset": dataset, **counts}
-                row["selected_sample"] = agg.get("selected_sample", 0)
-                rows.append(row)
-                if extras:
-                    log_info[dataset] = extras
         else:
             continue
+
+        # Salta se già processato
+        if dataset in processed_datasets:
+            continue
+
+        if verbose and total_entries > 10:
+            print(f"Processing {idx}/{total_entries}: {entry.name}...", end='\r')
+
+        agg = None
+        if entry.is_dir():
+            agg = _count_in_dir(entry, verbose=verbose)
+        elif entry.is_file() and entry.suffix.lower() == ".zip":
+            agg = _count_in_zip(entry, verbose=verbose)
+
+        if agg and dataset:
+            # Estrai extra prima di modificare agg
+            extras = {
+                key: agg.pop(key)
+                for key in list(agg.keys())
+                if key in SUMMARY_EXTRA_COLUMNS
+            }
+            counts = {cat: agg.get(cat, 0) for cat in DISPLAY_CATEGORIES}
+            row = {"dataset": dataset, **counts}
+            row["selected_sample"] = agg.get("selected_sample", 0)
+            rows.append(row)
+
+            if extras:
+                log_info[dataset] = extras
+
+            # SCRIVI INCREMENTALMENTE nel cache file dopo ogni dataset
+            if cache_file:
+                try:
+                    row_df = pd.DataFrame([row])
+                    row_df.to_csv(cache_file, mode='a', header=False, index=False)
+                except Exception as e:
+                    if verbose:
+                        print(f"\nWarning: Could not append to cache: {e}")
+
+            # SCRIVI log summary incrementalmente
+            if log_summary_file and extras:
+                try:
+                    log_summary_file.parent.mkdir(parents=True, exist_ok=True)
+                    log_summary_file.write_text(
+                        json.dumps(log_info, ensure_ascii=False, indent=2),
+                        encoding='utf-8'
+                    )
+                except Exception as e:
+                    if verbose:
+                        print(f"\nWarning: Could not write log summary: {e}")
+
+            processed_datasets.add(dataset)
+            new_count += 1
+
+            # Libera memoria esplicitamente dopo ogni dataset
+            del agg, counts, row, extras
+
+            # Garbage collection ogni 3 dataset per evitare accumulo
+            if new_count % 3 == 0:
+                gc.collect()
+
+    if verbose and total_entries > 10:
+        print(f"\nProcessed {new_count} new datasets ({len(processed_datasets)} total)")
+
     if not rows:
         return pd.DataFrame(columns=base_columns)
     df = pd.DataFrame(rows)

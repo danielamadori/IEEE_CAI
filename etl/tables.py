@@ -509,7 +509,23 @@ def _decode_db10_entry(entry: Mapping[str, Any]) -> Mapping[str, Any] | None:
 	except json.JSONDecodeError:
 		return None
 
-def compute_worker_can_metrics(results_dir: Path) -> dict[str, dict[str, Any]]:
+def compute_worker_can_metrics(results_dir: Path, db10_data: dict | None = None) -> dict[str, dict[str, Any]]:
+	"""
+	Compute worker CAN metrics from results directory.
+
+	Parameters
+	----------
+	results_dir : Path
+		Directory containing result ZIP files
+	db10_data : dict | None
+		Pre-loaded DB10 data from etl() to avoid re-reading ZIP files.
+		If provided and matches a dataset, will use it instead of reading from disk.
+
+	Returns
+	-------
+	dict
+		Dictionary with worker metrics per dataset
+	"""
 	dataset_stats: dict[str, dict[str, Any]] = {}
 	all_time_values: list[float] = []
 	overall_totals = defaultdict(float)
@@ -524,7 +540,23 @@ def compute_worker_can_metrics(results_dir: Path) -> dict[str, dict[str, Any]]:
 		dataset = entry.stem.split('_')[0] if entry.is_file() else entry.name.split('_')[0]
 		if not dataset:
 			continue
-		db10_entries = _iter_db10_entries(entry)
+
+		# Try to use pre-loaded DB10 data if available and matches this dataset
+		db10_entries = None
+		if db10_data is not None and isinstance(db10_data, dict):
+			# Check if db10_data is for this specific dataset
+			workers_data = db10_data.get('workers', {})
+			if isinstance(workers_data, dict) and workers_data:
+				# We have pre-loaded workers data, use it
+				db10_entries = []
+				for worker_id, worker_info in workers_data.items():
+					events = worker_info.get('events', [])
+					if isinstance(events, list):
+						db10_entries.extend(events)
+
+		# Fallback to reading from file if no pre-loaded data
+		if db10_entries is None:
+			db10_entries = _iter_db10_entries(entry)
 		if not db10_entries:
 			continue
 		worker_metrics: dict[str, dict[str, float]] = {}
@@ -644,6 +676,7 @@ def load_results_artifacts(
 		verbose: bool = True,
 		refresh: bool | None = None,
 		cache_dir: Path | None = None,
+		selected_dataset: str | None = None,
 ) -> dict[str, Any]:
 	if cache_dir is None:
 		cache_dir = _ensure_cache_dir(results_dir)
@@ -657,18 +690,14 @@ def load_results_artifacts(
 	env_flag = os.environ.get(CACHE_REFRESH_ENV, '').strip().lower()
 	refresh_flag = refresh if refresh is not None else env_flag in REFRESH_TRUE
 
-	# Se db è disponibile, usiamo i dati dal database unificato
-	if db is not None:
-		if verbose:
-			print(f"Using data from unified database (db parameter)")
-		# Qui potremmo estrarre i dati dal database
-		# Per ora, procediamo con il calcolo normale ma segnaliamo che stiamo usando db
-		use_cache = False
-		meta = {}
-	else:
-		use_cache, meta = _should_use_cache(summary_path, counts_cache, meta_path, results_dir, refresh_flag)
+	# Verifica se possiamo usare la cache (sia con che senza db)
+	use_cache, meta = _should_use_cache(summary_path, counts_cache, meta_path, results_dir, refresh_flag)
 
-	if use_cache and db is None:
+	# Se db è disponibile, segnaliamolo ma usiamo comunque la cache se disponibile
+	if db is not None and verbose:
+		print(f"Using unified database (db parameter) for DB10 data sharing")
+
+	if use_cache:
 		if verbose:
 			cached_at = meta.get('cached_at')
 			print(f"Using cached redis summary (cached_at={cached_at})")
@@ -703,7 +732,17 @@ def load_results_artifacts(
 			'used_cache': False,
 		}
 
-	counts_df = compute_counts_from_results(results_dir, verbose=verbose)
+	# Passa i percorsi dei file per scrittura incrementale
+	incremental_cache = cache_dir / '_incremental_counts.csv'
+	incremental_log_summary = cache_dir / '_incremental_log_summary.json'
+
+	counts_df = compute_counts_from_results(
+		results_dir,
+		verbose=verbose,
+		cache_file=incremental_cache,
+		log_summary_file=incremental_log_summary,
+		selected_dataset=selected_dataset
+	)
 	analyzed_df = load_analyzed_df(forest_csv)
 
 	counts_df = cast_dataset_str(counts_df)
@@ -740,7 +779,17 @@ def load_results_artifacts(
 	else:
 		summary = pd.DataFrame(columns=['dataset', *DISPLAY_CATEGORIES])
 
-	log_summary = counts_df.attrs.get('log_summary', {}) if hasattr(counts_df, 'attrs') else {}
+	# Carica log_summary dal file incrementale se disponibile
+	log_summary = {}
+	if incremental_log_summary.exists():
+		try:
+			log_summary = json.loads(incremental_log_summary.read_text(encoding='utf-8'))
+		except Exception:
+			pass
+	# Fallback agli attrs del dataframe
+	if not log_summary and hasattr(counts_df, 'attrs'):
+		log_summary = counts_df.attrs.get('log_summary', {})
+
 	if not summary.empty and log_summary:
 		summary['Worker start (min)'] = summary['dataset'].map(lambda ds: log_summary.get(ds, {}).get('log_start_min'))
 		summary['Worker end (max)'] = summary['dataset'].map(lambda ds: log_summary.get(ds, {}).get('log_end_max'))
@@ -803,6 +852,7 @@ def get_first_table(
 	zip_dataset_prefixes: Iterable[str] | None = None,
 	results_dir: Path | None = None,
 	summary: pd.DataFrame | None = None,
+	db: dict | None = None,
 ) -> FirstTableArtifacts:
 	def to_int(value: Any | None) -> int | None:
 		try:
@@ -961,7 +1011,12 @@ def get_first_table(
 			if col in summary_counts.columns:
 				summary_counts[col] = pd.to_numeric(summary_counts[col], errors='coerce')
 
-	worker_can_metrics = compute_worker_can_metrics(results_dir_path) if results_dir_path else {}
+	# Extract DB10 from db parameter if available (to avoid re-reading ZIP files)
+	db10_data = None
+	if db is not None and isinstance(db, dict):
+		db10_data = db.get('LOGS') or db.get(10)
+
+	worker_can_metrics = compute_worker_can_metrics(results_dir_path, db10_data=db10_data) if results_dir_path else {}
 	per_dataset_rows: list[dict[str, Any]] = []
 	overall_aggregate: dict[str, Any] | None = None
 	if worker_can_metrics:
@@ -1045,6 +1100,7 @@ def load_models_analysis_artifacts(
 	*,
 	db: dict | None = None,
 	verbose: bool = True,
+	selected_dataset: str | None = None,
 ) -> ModelsAnalysisArtifacts:
 	base_dir_path = Path(base_dir).resolve() if base_dir else detect_base_dir()
 	results_dir = base_dir_path / 'results'
@@ -1054,8 +1110,7 @@ def load_models_analysis_artifacts(
 
 	report_data_raw = load_forest_report(forest_json)
 	report_data = list(report_data_raw) if isinstance(report_data_raw, Iterable) else []
-	results = load_results_artifacts(results_dir, forest_csv, db=db, verbose=verbose)
-	results = load_results_artifacts(results_dir, forest_csv, verbose=verbose)
+	results = load_results_artifacts(results_dir, forest_csv, db=db, verbose=verbose, selected_dataset=selected_dataset)
 
 	summary = results.get('summary')
 	summary_df = summary.copy() if isinstance(summary, pd.DataFrame) else pd.DataFrame()
@@ -1352,8 +1407,9 @@ def prepare_models_analysis(
 	*,
 	db: dict | None = None,
 	verbose: bool = True,
+	selected_dataset: str | None = None,
 ) -> ModelsAnalysisContext:
-	artifacts = load_models_analysis_artifacts(base_dir=base_dir, db=db, verbose=verbose)
+	artifacts = load_models_analysis_artifacts(base_dir=base_dir, db=db, verbose=verbose, selected_dataset=selected_dataset)
 	first_table = get_first_table(
 		artifacts.report_data,
 		counts_df=artifacts.counts_df,
@@ -1361,6 +1417,7 @@ def prepare_models_analysis(
 		zip_dataset_prefixes=artifacts.zip_dataset_prefixes,
 		results_dir=artifacts.results_dir,
 		summary=artifacts.summary,
+		db=db,
 	)
 	analyzed_counts_df, analyzed_counts_styler = build_analyzed_counts_table(first_table)
 	combined_analyzed_df, combined_analyzed_styler = build_combined_analyzed_table(first_table.summary_df, analyzed_counts_df)
