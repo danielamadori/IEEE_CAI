@@ -25,7 +25,7 @@ MAX_FULL_BYTES = 999_999
 MAX_PREVIEW_BYTES = 10_000
 
 
-def scan_and_load(zip_paths, results_dir):
+def scan_and_load(zip_paths, results_dir, auto_select=False, verbose=True):
 
     zip_names = [path.name for path in zip_paths]
     zip_inventory = {
@@ -60,13 +60,15 @@ def scan_and_load(zip_paths, results_dir):
     selected_zip_path = zip_paths[selected_zip_index] if selected_zip_index is not None else None
 
     if zip_names:
-        print("Available ZIP archives:")
-        for index, name in enumerate(zip_names):
-            print(f"[{index}] {name}")
+        if verbose:
+            print("Available ZIP archives:")
+            for index, name in enumerate(zip_names):
+                print(f"[{index}] {name}")
 
-        # Salta l'input interattivo se la variabile d'ambiente è impostata
-        if env_selected_index is not None or env_selected_zip is not None:
-            print(f"Auto-selected from environment: [{selected_zip_index}] {selected_zip_name}")
+        # Salta l'input interattivo se la variabile d'ambiente è impostata o auto_select è True
+        if auto_select or env_selected_index is not None or env_selected_zip is not None:
+            if verbose:
+                print(f"Auto-selected: [{selected_zip_index}] {selected_zip_name}")
             user_choice = ""
         else:
             user_choice = input("Select ZIP by index or name (press Enter to keep current selection): ").strip()
@@ -84,14 +86,17 @@ def scan_and_load(zip_paths, results_dir):
                 selected_zip_name = user_choice
                 selected_zip_index = zip_names.index(selected_zip_name)
             else:
-                print("Invalid selection, keeping previous choice.")
+                if verbose:
+                    print("Invalid selection, keeping previous choice.")
         selected_zip_path = zip_paths[selected_zip_index] if selected_zip_index is not None else None
-        if selected_zip_name is not None and selected_zip_path is not None:
-            print(f"Current selection: [{selected_zip_index}] {selected_zip_name}")
-        else:
-            print("Current selection: none")
+        if verbose:
+            if selected_zip_name is not None and selected_zip_path is not None:
+                print(f"Current selection: [{selected_zip_index}] {selected_zip_name}")
+            else:
+                print("Current selection: none")
     else:
-        print("No ZIP archives found in results directory.")
+        if verbose:
+            print("No ZIP archives found in results directory.")
 
     zip_inventory["selection"] = {
         "name": selected_zip_name,
