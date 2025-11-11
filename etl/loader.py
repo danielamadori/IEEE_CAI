@@ -55,7 +55,7 @@ def etl(zip_paths, results_dir, use_cache=True, force_refresh=False, auto_select
     # Special mode: load only DB10 (LOGS) to save RAM
     if load_only_db10:
         if verbose:
-            print(f"📦 Loading only DB10 (LOGS) for {selected_zip_name}...")
+            print(f"Loading only DB10 (LOGS) for {selected_zip_name}...")
         db = {}
         archives_data = [collect_archive_data(path) for path in zip_paths]
         manifests_by_archive = {item['zip_name']: item['manifest'] for item in archives_data}
@@ -80,19 +80,16 @@ def etl(zip_paths, results_dir, use_cache=True, force_refresh=False, auto_select
         cached_data = _cache.load(selected_zip_path)
         if cached_data is not None:
             if verbose:
-                print(f"📦 Using cached DB" + (", skipping workers report..." if skip_workers_report else ", regenerating workers/plots..."))
+                print(f"Using cached DB" + (", skipping workers report..." if skip_workers_report else ", regenerating workers/plots..."))
             db = cached_data['db']
 
             # Regenerate workers and plots (not cacheable due to unpicklable objects)
             if not skip_workers_report:
-                archives_data = [collect_archive_data(path) for path in zip_paths]
-                manifests_by_archive = {item['zip_name']: item['manifest'] for item in archives_data}
-                manifest_prefix_by_archive = {item['zip_name']: item.get('manifest_prefix', '') for item in archives_data}
-                backups_by_archive = {item['zip_name']: item['backups'] for item in archives_data}
-                selected_archive_data = next((item for item in archives_data if item['zip_name'] == selected_zip_name), None)
-                selected_manifest = manifests_by_archive.get(selected_zip_name)
-                selected_manifest_prefix = manifest_prefix_by_archive.get(selected_zip_name, '')
-                selected_backups = backups_by_archive.get(selected_zip_name)
+                # Process only the selected ZIP, not all ZIPs
+                selected_archive_data = collect_archive_data(selected_zip_path)
+                selected_manifest = selected_archive_data['manifest']
+                selected_manifest_prefix = selected_archive_data.get('manifest_prefix', '')
+                selected_backups = selected_archive_data['backups']
 
                 db[DB_NAMES.get(10)] = build_db10_worker_report(selected_zip_name, selected_manifest, selected_backups, selected_archive_data, selected_manifest_prefix, max_events=None)
 
@@ -103,7 +100,7 @@ def etl(zip_paths, results_dir, use_cache=True, force_refresh=False, auto_select
             return db
 
     if use_cache and verbose:
-        print(f"🔄 Processing {selected_zip_name}...")
+        print(f"Processing {selected_zip_name}...")
 
     # Level 1: Try Raw Cache for database extraction
     db = None
@@ -120,22 +117,19 @@ def etl(zip_paths, results_dir, use_cache=True, force_refresh=False, auto_select
                 _raw_cache.save(selected_zip_name, db)
             except OSError as e:
                 if verbose:
-                    print(f"⚠️  Warning: Could not save raw cache: {e}")
+                    print(f"Warning: Could not save raw cache: {e}")
                     print("   Continuing without cache...")
             except Exception as e:
                 if verbose:
-                    print(f"⚠️  Warning: Unexpected error saving raw cache: {e}")
+                    print(f"Warning: Unexpected error saving raw cache: {e}")
 
     # Process workers and plots (not cached at raw level)
     if not skip_workers_report:
-        archives_data = [collect_archive_data(path) for path in zip_paths]
-        manifests_by_archive = {item['zip_name']: item['manifest'] for item in archives_data}
-        manifest_prefix_by_archive = {item['zip_name']: item.get('manifest_prefix', '') for item in archives_data}
-        backups_by_archive = {item['zip_name']: item['backups'] for item in archives_data}
-        selected_archive_data = next((item for item in archives_data if item['zip_name'] == selected_zip_name), None)
-        selected_manifest = manifests_by_archive.get(selected_zip_name)
-        selected_manifest_prefix = manifest_prefix_by_archive.get(selected_zip_name, '')
-        selected_backups = backups_by_archive.get(selected_zip_name)
+        # Process only the selected ZIP, not all ZIPs
+        selected_archive_data = collect_archive_data(selected_zip_path)
+        selected_manifest = selected_archive_data['manifest']
+        selected_manifest_prefix = selected_archive_data.get('manifest_prefix', '')
+        selected_backups = selected_archive_data['backups']
 
         db[DB_NAMES.get(10)] = build_db10_worker_report(selected_zip_name, selected_manifest, selected_backups, selected_archive_data, selected_manifest_prefix, max_events=None)
 
@@ -154,11 +148,11 @@ def etl(zip_paths, results_dir, use_cache=True, force_refresh=False, auto_select
             _cache.save(selected_zip_path, cache_data)
         except OSError as e:
             if verbose:
-                print(f"⚠️  Warning: Could not save full cache: {e}")
+                print(f"Warning: Could not save full cache: {e}")
                 print("   Continuing without cache...")
         except Exception as e:
             if verbose:
-                print(f"⚠️  Warning: Unexpected error saving cache: {e}")
+                print(f"Warning: Unexpected error saving cache: {e}")
 
     return db
 
@@ -181,16 +175,23 @@ def _extract_databases(zip_paths, selected_zip_name, results_dir):
     dict
         Dictionary with all database data
     """
-    print(f"📦 Extracting databases from {selected_zip_name}...")
+    print(f"Extracting databases from {selected_zip_name}...")
 
-    archives_data = [collect_archive_data(path) for path in zip_paths]
-    manifests_by_archive = {item['zip_name']: item['manifest'] for item in archives_data}
-    manifest_prefix_by_archive = {item['zip_name']: item.get('manifest_prefix', '') for item in archives_data}
-    backups_by_archive = {item['zip_name']: item['backups'] for item in archives_data}
-    selected_archive_data = next((item for item in archives_data if item['zip_name'] == selected_zip_name), None)
-    selected_manifest = manifests_by_archive.get(selected_zip_name)
-    selected_manifest_prefix = manifest_prefix_by_archive.get(selected_zip_name, '')
-    selected_backups = backups_by_archive.get(selected_zip_name)
+    # Find the selected ZIP path
+    selected_zip_path = None
+    for path in zip_paths:
+        if path.name == selected_zip_name:
+            selected_zip_path = path
+            break
+
+    if selected_zip_path is None:
+        raise ValueError(f"ZIP file not found: {selected_zip_name}")
+
+    # Process only the selected ZIP, not all ZIPs
+    selected_archive_data = collect_archive_data(selected_zip_path)
+    selected_manifest = selected_archive_data['manifest']
+    selected_manifest_prefix = selected_archive_data.get('manifest_prefix', '')
+    selected_backups = selected_archive_data['backups']
 
     db = {DB_NAMES.get(0): load_db0(selected_manifest, selected_backups)}
 

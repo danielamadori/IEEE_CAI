@@ -253,20 +253,20 @@ def cost_function(sample: Dict[str, float] = None,  icf: Dict[str, Tuple[float, 
 	return cost
 def plot_cost_distribution(sample, icf, sigmas, feature_key, output_dir='fig'):
 	"""
-Plot the cost distribution for a specific feature showing the split Gaussian.
-Parameters
-----------
-sample : dict
-Sample values for each feature
-icf : dict
-Interval for each feature (min, max)
-sigmas : dict
-Sigma values and ratios for the feature
-feature_key : str
-The feature to plot
-output_dir : str
-Directory to save plots (default: 'fig')
-"""
+	Plot the cost distribution for a specific feature showing the split Gaussian.
+	Parameters
+	----------
+	sample : dict
+	Sample values for each feature
+	icf : dict
+	Interval for each feature (min, max)
+	sigmas : dict
+	Sigma values and ratios for the feature
+	feature_key : str
+	The feature to plot
+	output_dir : str
+	Directory to save plots (default: 'fig')
+	"""
 	from pathlib import Path
 	# Create output directory if needed
 	Path(output_dir).mkdir(parents=True, exist_ok=True)
@@ -341,22 +341,22 @@ Directory to save plots (default: 'fig')
 	print(f"  Saved plot to {output_path}")
 def plot_extreme_costs_per_category(cost_df, db, tests_sample, sigmas_all, top_n=2, output_dir='fig'):
 	"""
-Per ogni categoria (reason_type), plotta le prime N con costo minimo e massimo.
-Parameters
-----------
-cost_df : pd.DataFrame
-DataFrame con colonne: sample_id, bitmap_index, reason_type, cost, icf
-db : dict
-Database con le informazioni (reasons, non_reasons, anti_reasons)
-tests_sample : dict
-Dizionario con i sample test
-sigmas_all : dict
-Sigmas calcolati per ogni sample
-top_n : int
-Numero di reason da plottare per estremo (default: 2)
-output_dir : str
-Directory per salvare i plot (default: 'fig')
-"""
+	Per ogni categoria (reason_type), plotta le prime N con costo minimo e massimo.
+	Parameters
+	----------
+	cost_df : pd.DataFrame
+	DataFrame con colonne: sample_id, bitmap_index, reason_type, cost, icf
+	db : dict
+	Database con le informazioni (reasons, non_reasons, anti_reasons)
+	tests_sample : dict
+	Dizionario con i sample test
+	sigmas_all : dict
+	Sigmas calcolati per ogni sample
+	top_n : int
+	Numero di reason da plottare per estremo (default: 2)
+	output_dir : str
+	Directory per salvare i plot (default: 'fig')
+	"""
 	from pathlib import Path
 	# Create output directory
 	Path(output_dir).mkdir(parents=True, exist_ok=True)

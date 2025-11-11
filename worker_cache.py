@@ -385,12 +385,12 @@ def main():
                 if ar_result:
                     total_info['car_confirmed_ar'] += 1
                     if VERBOSE_ITERATION:
-                        print(f"CAR: Result: ✓ CONFIRMED as anti-reason")
+                        print(f"CAR: Result: CONFIRMED as anti-reason")
                 else:
                     total_info['car_not_ar'] += 1
                     if VERBOSE_ITERATION:
-                        print(f"CAR: Result: ✗ NOT an anti-reason")
-                
+                        print(f"CAR: Result: NOT an anti-reason")
+
                 # Delete from CAR after processing
                 delete_from_can(connections['CAR'], car_candidate)
                 
@@ -463,7 +463,7 @@ def main():
 
             if result:
                 if VERBOSE_ITERATION:
-                    print(f"CAN: Result: ✓ GOOD (Reason)")
+                    print(f"CAN: Result: GOOD (Reason)")
                     print(f"CAN: Time: {can_time:.4f}s")
                     
                     # Show key internal stats from rcheck_cache
@@ -660,9 +660,9 @@ def main():
                 print(f"{'='*80}")
 
     except KeyboardInterrupt:
-        print("\n\n⚠️  Interrupted by user")
+        print("\n\n Interrupted by user")
     except Exception as e:
-        print(f"\n\n❌ Error occurred: {e}")
+        print(f"\n\n Error occurred: {e}")
         import traceback
         traceback.print_exc()
 

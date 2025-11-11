@@ -552,7 +552,7 @@ def collect_archive_data(zip_path):
                 result['members'].append(entry)
     except (zipfile.BadZipFile, Exception) as e:
         # Handle corrupted or empty ZIP files
-        print(f"⚠️  WARNING: Skipping corrupted/empty ZIP file: {zip_path.name} ({e})")
+        print(f"WARNING: Skipping corrupted/empty ZIP file: {zip_path.name} ({e})")
         result['manifest'] = None
         result['db_overview'] = []
         result['members'] = []
