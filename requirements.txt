@@ -16,3 +16,4 @@ argparse  # Built-in but included for completeness
 
 PyYAML
 seaborn
+jinja2
