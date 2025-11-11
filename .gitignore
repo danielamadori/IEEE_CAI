@@ -19,3 +19,4 @@ results/FordA_-1_false_0.zip
 results/_cache/
 
 .DS_Store
+*.svg
