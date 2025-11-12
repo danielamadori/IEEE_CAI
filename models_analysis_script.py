@@ -183,12 +183,14 @@ def model_analysis(db):
                 )
 
                 if fig_main is not None:
-                    reason_path = RESULTS_DIR / f"{dataset_name}_sample_{sample_id}_reasons.html"
-                    fig_main.write_html(str(reason_path))
+                    # Save as PDF
+                    pdf_path = RESULTS_DIR / f"{dataset_name}_sample_{sample_id}_reasons.pdf"
+                    fig_main.write_image(str(pdf_path), format='pdf', width=1200, height=700, scale=1)
 
                 if fig_quartiles is not None:
-                    reason_path = RESULTS_DIR / f"{dataset_name}_sample_{sample_id}_reasons_quartiles.html"
-                    fig_quartiles.write_html(str(reason_path))
+                    # Save as PDF
+                    pdf_path = RESULTS_DIR / f"{dataset_name}_sample_{sample_id}_reasons_quartiles.pdf"
+                    fig_quartiles.write_image(str(pdf_path), format='pdf', width=1200, height=700, scale=1)
             else:
                 print("sample_robustness_df not available. Run previous cells first.")
 
@@ -200,8 +202,9 @@ def model_analysis(db):
 
             # Visualize all time series (max 50 samples)
             fig = visualize_all_time_series(tests_sample, test_ids, feature_names, max_samples=50)
-            reason_path = RESULTS_DIR / f"{dataset_name}_sample_{sample_id}_time_series.html"
-            fig.write_html(str(reason_path))
+            # Save as PDF
+            pdf_path = RESULTS_DIR / f"{dataset_name}_sample_{sample_id}_time_series.pdf"
+            fig.write_image(str(pdf_path), format='pdf', width=1200, height=700, scale=1)
 
             # Select first sample for detailed analysis
             sample_id = test_ids[0]
@@ -214,20 +217,24 @@ def model_analysis(db):
 
             fig = visualize_sample_with_icf(sample_id, tests_sample, feature_names, reason_type='reasons')
             if fig is not None:
-                reason_path = RESULTS_DIR / f"{dataset_name}_sample_{sample_id}_visualize_sample_with_icf_reasons.html"
-                fig.write_html(str(reason_path))
+                
+                # Save as PDF
+                pdf_path = RESULTS_DIR / f"{dataset_name}_sample_{sample_id}_visualize_sample_with_icf_reasons.pdf"
+                fig.write_image(str(pdf_path), format='pdf', width=1200, height=700, scale=1)
 
             fig = visualize_sample_with_icf(sample_id, tests_sample, feature_names, reason_type='anti_reasons')
             if fig is not None:
-                reason_path = RESULTS_DIR / f"{dataset_name}_sample_{sample_id}_visualize_sample_with_icf_anti_reasons.html"
-                fig.write_html(str(reason_path))
+                # Save as PDF
+                pdf_path = RESULTS_DIR / f"{dataset_name}_sample_{sample_id}_visualize_sample_with_icf_anti_reasons.pdf"
+                fig.write_image(str(pdf_path), format='pdf', width=1200, height=700, scale=1)
             # Plot 4: Combined view - Reason vs Anti-Reason
             from etl.reasons_analysis import visualize_sample_comparison
 
             fig = visualize_sample_comparison(sample_id, tests_sample, feature_names)
             if fig is not None:
-                reason_path = RESULTS_DIR / f"{dataset_name}_sample_{sample_id}_visualize_sample_comparison.html"
-                fig.write_html(str(reason_path))
+                # Save as PDF
+                pdf_path = RESULTS_DIR / f"{dataset_name}_sample_{sample_id}_visualize_sample_comparison.pdf"
+                fig.write_image(str(pdf_path), format='pdf', width=1200, height=700, scale=1)
 
             # Calculate robustness per bitmap (ICF) - ONLY for Anti-Reasons
             
@@ -257,8 +264,8 @@ def model_analysis(db):
 
             fig = visualize_sample_comparison_smooth(sample_id, tests_sample, feature_names)
             if fig is not None:
-                reason_path = RESULTS_DIR / f"{dataset_name}_sample_{sample_id}_visualize_sample_comparison_smooth.html"
-                fig.write_html(str(reason_path))
+                pdf_path = RESULTS_DIR / f"{dataset_name}_sample_{sample_id}_visualize_sample_comparison_smooth.pdf"
+                fig.write_image(str(pdf_path), format='pdf', width=1200, height=700, scale=1)
             print_models_analysis_diagnostics(analysis_context)
             combined_df = analysis_context.combined_analyzed_styler.data
             combined_df.to_csv(f"results/{dataset_name}_combined_analyzed_results.csv")
