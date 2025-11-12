@@ -184,12 +184,12 @@ def model_analysis(db):
 
                 if fig_main is not None:
                     # Save as PDF
-                    pdf_path = RESULTS_DIR / f"{dataset_name}_sample_{sample_id}_reasons.pdf"
+                    pdf_path = RESULTS_DIR / f"{dataset_name}_sample_reasons.pdf"
                     fig_main.write_image(str(pdf_path), format='pdf', width=1200, height=700, scale=1)
 
                 if fig_quartiles is not None:
                     # Save as PDF
-                    pdf_path = RESULTS_DIR / f"{dataset_name}_sample_{sample_id}_reasons_quartiles.pdf"
+                    pdf_path = RESULTS_DIR / f"{dataset_name}_sample_reasons_quartiles.pdf"
                     fig_quartiles.write_image(str(pdf_path), format='pdf', width=1200, height=700, scale=1)
             else:
                 print("sample_robustness_df not available. Run previous cells first.")
@@ -203,7 +203,7 @@ def model_analysis(db):
             # Visualize all time series (max 50 samples)
             fig = visualize_all_time_series(tests_sample, test_ids, feature_names, max_samples=50)
             # Save as PDF
-            pdf_path = RESULTS_DIR / f"{dataset_name}_sample_{sample_id}_time_series.pdf"
+            pdf_path = RESULTS_DIR / f"{dataset_name}_sample_time_series.pdf"
             fig.write_image(str(pdf_path), format='pdf', width=1200, height=700, scale=1)
 
             # Select first sample for detailed analysis
@@ -219,13 +219,13 @@ def model_analysis(db):
             if fig is not None:
                 
                 # Save as PDF
-                pdf_path = RESULTS_DIR / f"{dataset_name}_sample_{sample_id}_visualize_sample_with_icf_reasons.pdf"
+                pdf_path = RESULTS_DIR / f"{dataset_name}_sample_visualize_sample_with_icf_reasons.pdf"
                 fig.write_image(str(pdf_path), format='pdf', width=1200, height=700, scale=1)
 
             fig = visualize_sample_with_icf(sample_id, tests_sample, feature_names, reason_type='anti_reasons')
             if fig is not None:
                 # Save as PDF
-                pdf_path = RESULTS_DIR / f"{dataset_name}_sample_{sample_id}_visualize_sample_with_icf_anti_reasons.pdf"
+                pdf_path = RESULTS_DIR / f"{dataset_name}_sample_visualize_sample_with_icf_anti_reasons.pdf"
                 fig.write_image(str(pdf_path), format='pdf', width=1200, height=700, scale=1)
             # Plot 4: Combined view - Reason vs Anti-Reason
             from etl.reasons_analysis import visualize_sample_comparison
@@ -233,7 +233,7 @@ def model_analysis(db):
             fig = visualize_sample_comparison(sample_id, tests_sample, feature_names)
             if fig is not None:
                 # Save as PDF
-                pdf_path = RESULTS_DIR / f"{dataset_name}_sample_{sample_id}_visualize_sample_comparison.pdf"
+                pdf_path = RESULTS_DIR / f"{dataset_name}_sample_visualize_sample_comparison.pdf"
                 fig.write_image(str(pdf_path), format='pdf', width=1200, height=700, scale=1)
 
             # Calculate robustness per bitmap (ICF) - ONLY for Anti-Reasons
@@ -264,7 +264,7 @@ def model_analysis(db):
 
             fig = visualize_sample_comparison_smooth(sample_id, tests_sample, feature_names)
             if fig is not None:
-                pdf_path = RESULTS_DIR / f"{dataset_name}_sample_{sample_id}_visualize_sample_comparison_smooth.pdf"
+                pdf_path = RESULTS_DIR / f"{dataset_name}_sample_visualize_sample_comparison_smooth.pdf"
                 fig.write_image(str(pdf_path), format='pdf', width=1200, height=700, scale=1)
             print_models_analysis_diagnostics(analysis_context)
             combined_df = analysis_context.combined_analyzed_styler.data
@@ -421,7 +421,7 @@ if __name__ == "__main__":
         "names": zip_names,
     }
     for name in zip_names:
-        print(f"Found dataset ZIP: {name}")
+        print(f"Processing dataset ZIP: {name}")
         db = etl(
             zip_paths,
             RESULTS_DIR,
@@ -433,5 +433,5 @@ if __name__ == "__main__":
             name_dataset=name,    # Set to specific dataset name if needed
         )
 #         IEEE_CAI$ nohup python models_analysis_script.py  > models_robustness.log 2>&1 & 
-# [1] 2702955
+# [1] 2703842
         model_analysis(db)
