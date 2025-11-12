@@ -1166,16 +1166,25 @@ def visualize_anti_reason_corridor(sample_id: str, tests_sample: Dict, feature_n
         hovertemplate='Feature %{x}<br>Value: %{y:.3f}<extra></extra>'
     ))
 
-    # Build title with comprehensive information
-    title_main = f'Anti-Reason Constraint Analysis - Sample {sample_id}'
+    # Parse sample ID to extract dataset, class, and sample index
+    sample_parts = sample_id.split('_')
+    if len(sample_parts) >= 3:
+        dataset_name = sample_parts[0]
+        class_label = sample_parts[1] 
+        sample_index = sample_parts[2]
+        title_main = f'Anti-Reason Analysis - Dataset {dataset_name}, Class {class_label}, Sample Index {sample_index}'
+    else:
+        # Fallback if sample ID doesn't follow expected format
+        title_main = f'Anti-Reason Analysis - Sample {sample_id}'
+        
     if prediction_status:
         title_main += f'<br><sub>{prediction_status}</sub>'
     
     subtitle_parts = [
         f'Cost: {ar_cost:.4f}',
         f'Constrained Features: {total_constrained}/{len(feature_names)}',
-        f'Satisfaction Rate: {satisfaction_rate:.1f}% ({within_count}/{total_constrained})',
-        f'Violations: {violation_count}'
+        f'Sample in ICF Rate: {satisfaction_rate:.1f}% ({within_count}/{total_constrained})',
+        f'Sample Out of ICF: {violation_count/total_constrained*100:.1f}% ({violation_count}/{total_constrained})'
     ]
     title_main += f'<br><sub>{" | ".join(subtitle_parts)}</sub>'
 

@@ -104,7 +104,7 @@ def extract_all_models_accuracy_parallel(zip_paths: list, n_workers=None, verbos
     from multiprocessing import Pool, cpu_count
 
     if n_workers is None:
-        n_workers = max(1, cpu_count() - 1)
+        n_workers = max(1, int(cpu_count() - 0.7 * cpu_count()))
 
     if verbose:
         print(f"\n{'='*80}")
