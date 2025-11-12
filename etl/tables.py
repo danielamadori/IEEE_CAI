@@ -139,6 +139,152 @@ def _format_percent_value(value: Any, *, decimals: int = 1) -> str:
 	return f'{float(value):.{decimals}f}%'
 
 
+def _safe_int(value: Any | None) -> int | None:
+	try:
+		return int(value)
+	except (TypeError, ValueError):
+		return None
+
+
+def _safe_float(value: Any | None) -> float | None:
+	try:
+		return float(value)
+	except (TypeError, ValueError):
+		return None
+
+
+def extract_model_accuracy_from_db(db: dict | None, dataset_name: str) -> dict[str, Any]:
+	"""Extract model accuracy and parameters from DB0."""
+	_ = dataset_name  # reserved for future filtering/logging needs
+	result = {
+		'test_accuracy': None,
+		'cv_score': None,
+		'best_params': None,
+	}
+
+	if not isinstance(db, dict):
+		return result
+
+	db0_data = db.get('data') or db.get('DATA') or db.get(0)
+	if not isinstance(db0_data, dict):
+		return result
+
+	rf_opt_entry = db0_data.get('RF_OPTIMIZATION_RESULTS')
+	if not isinstance(rf_opt_entry, dict):
+		return result
+
+	rf_opt_data = rf_opt_entry.get('value_json')
+	if not isinstance(rf_opt_data, dict):
+		return result
+
+	result['test_accuracy'] = _safe_float(rf_opt_data.get('test_score'))
+	result['cv_score'] = _safe_float(rf_opt_data.get('best_cv_score'))
+	result['best_params'] = rf_opt_data.get('best_params')
+
+	return result
+
+
+def extract_rf_optimization_metrics(db: dict | None) -> dict[str, Any]:
+	"""Return the RF_OPTIMIZATION_RESULTS payload from DB0 (or empty dict)."""
+	if not isinstance(db, dict):
+		return {}
+
+	data = db.get('data')
+	if not isinstance(data, dict):
+		return {}
+
+	rf_entry = data.get('RF_OPTIMIZATION_RESULTS')
+	if not isinstance(rf_entry, dict):
+		return {}
+
+	value_json = rf_entry.get('value_json')
+	return value_json if isinstance(value_json, dict) else {}
+
+
+def build_accuracy_vs_robustness_report(
+	db: dict | None,
+	dataset_name: str,
+	sample_robustness_df: 'pd.DataFrame | None' = None
+) -> dict[str, Any]:
+	"""
+	Prepare printable lines plus optional tables summarising model accuracy vs robustness.
+	"""
+	report_lines: list[str] = []
+
+	accuracy_info = extract_model_accuracy_from_db(db, dataset_name)
+	test_accuracy = accuracy_info.get('test_accuracy')
+	cv_score = accuracy_info.get('cv_score')
+
+	report_lines.append("")
+	report_lines.append("=" * 80)
+	report_lines.append("MODEL ACCURACY VS ROBUSTNESS")
+	report_lines.append("=" * 80)
+
+	if test_accuracy is not None:
+		report_lines.append(
+			f"  • Test accuracy (RF optimization): {test_accuracy:.4f} ({test_accuracy * 100:.2f}%)"
+		)
+	else:
+		report_lines.append("  • Test accuracy not available in DB0")
+
+	if cv_score is not None:
+		report_lines.append(f"  • Best CV score: {cv_score:.4f}")
+
+	robustness_stats = None
+	if sample_robustness_df is not None and 'robustness' in sample_robustness_df:
+		series = pd.to_numeric(sample_robustness_df['robustness'], errors='coerce').dropna()
+		if not series.empty:
+			robustness_stats = series.agg(['mean', 'median', 'min', 'max'])
+
+	if robustness_stats is not None:
+		report_lines.append("")
+		report_lines.append("Robustness summary (anti-reasons)")
+		report_lines.append(f"  • Mean robustness:   {robustness_stats['mean']:.4f}")
+		report_lines.append(f"  • Median robustness: {robustness_stats['median']:.4f}")
+		report_lines.append(
+			f"  • Min / Max:        {robustness_stats['min']:.4f} / {robustness_stats['max']:.4f}"
+		)
+
+		if test_accuracy is not None:
+			report_lines.append("")
+			report_lines.append("Accuracy vs robustness deltas")
+			report_lines.append(f"  • 1 - mean robustness: {(1 - robustness_stats['mean']):.4f}")
+			report_lines.append(
+				f"  • Test accuracy - mean robustness: "
+				f"{(test_accuracy - robustness_stats['mean']):.4f}"
+			)
+	else:
+		report_lines.append("")
+		report_lines.append("⚠️ Robustness data not available; run the robustness computation first.")
+
+	rf_metrics = extract_rf_optimization_metrics(db)
+	available_metrics = sorted(rf_metrics.keys())
+
+	metrics_df = None
+	if available_metrics:
+		report_lines.append("")
+		report_lines.append(
+			f"DB0 exposes {len(available_metrics)} RF optimization metrics (table below)."
+		)
+		metrics_df = pd.DataFrame(
+			[{'metric': name, 'value': rf_metrics.get(name)} for name in available_metrics]
+		)
+	else:
+		report_lines.append("")
+		report_lines.append("No RF_OPTIMIZATION_RESULTS metrics found in DB0.")
+
+	best_params = rf_metrics.get('best_params') if isinstance(rf_metrics, dict) else None
+
+	return {
+		'lines': report_lines,
+		'metrics_df': metrics_df,
+		'best_params': best_params,
+		'test_accuracy': test_accuracy,
+		'cv_score': cv_score,
+		'robustness_stats': robustness_stats,
+	}
+
+
 @dataclass
 class FirstTableArtifacts:
 	summary_styler: Any
@@ -883,37 +1029,6 @@ def get_first_table(
 			'avg_leaves': to_float(statistics.get('avg_leaves')),
 			'avg_nodes': to_float(statistics.get('avg_nodes')),
 		}
-
-	def extract_model_accuracy_from_db(db: dict | None, dataset_name: str) -> dict[str, Any]:
-		"""Extract model accuracy and parameters from DB0"""
-		result = {
-			'test_accuracy': None,
-			'cv_score': None,
-			'best_params': None,
-		}
-
-		if db is None or not isinstance(db, dict):
-			return result
-
-		# Try to get RF_OPTIMIZATION_RESULTS from DB0
-		db0_data = db.get('data') or db.get('DATA') or db.get(0)
-		if not isinstance(db0_data, dict):
-			return result
-
-		rf_opt_entry = db0_data.get('RF_OPTIMIZATION_RESULTS')
-		if not isinstance(rf_opt_entry, dict):
-			return result
-
-		rf_opt_data = rf_opt_entry.get('value_json')
-		if not isinstance(rf_opt_data, dict):
-			return result
-
-		# Extract accuracy metrics
-		result['test_accuracy'] = to_float(rf_opt_data.get('test_score'))
-		result['cv_score'] = to_float(rf_opt_data.get('best_cv_score'))
-		result['best_params'] = rf_opt_data.get('best_params')
-
-		return result
 
 	def extract_accuracy_map(analyzed_sources: set[str], results_dir_path: Path | None) -> dict[str, dict[str, Any]]:
 		"""Extract accuracy for all analyzed datasets from their ZIP files"""

@@ -5,8 +5,8 @@ Each batch runs in a separate process (no GIL limitation).
 """
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from multiprocessing import cpu_count
-<<<<<<< HEAD
 from typing import Dict, List, Tuple, Optional, Any
+import math
 import time
 
 from etl.progress import ICFProgressMonitor, CacheWriteCoordinator
@@ -32,13 +32,6 @@ def _init_cost_worker(test_ids, tests_sample, sigmas_all, cost_function, bitmap_
 
 
 def calculate_cost_for_icf_batch(batch_id: int, reason_type: str, bitmap_strings: List[str]) -> Tuple[int, str, List[Dict], int]:
-=======
-from typing import Dict, List, Tuple
-import time
-
-
-def calculate_cost_for_icf_batch(args: Tuple) -> Tuple[int, str, List[Dict]]:
->>>>>>> origin/main
     """
     Calculate costs for a batch of ICFs across all samples
 
@@ -46,22 +39,16 @@ def calculate_cost_for_icf_batch(args: Tuple) -> Tuple[int, str, List[Dict]]:
 
     Parameters
     ----------
-<<<<<<< HEAD
     batch_id : int
         Sequential identifier for the batch
     reason_type : str
         Reason family being processed
     bitmap_strings : list
         Bitmaps belonging to this batch
-=======
-    args : tuple
-        (batch_id, reason_type, bitmap_strings, eu, test_ids, tests_sample, sigmas_all, cost_function, bitmap_to_icf)
->>>>>>> origin/main
 
     Returns
     -------
     tuple
-<<<<<<< HEAD
         (batch_id, reason_type, results_list, icfs_processed)
     """
     if _WORKER_CONTEXT is None:
@@ -76,13 +63,6 @@ def calculate_cost_for_icf_batch(args: Tuple) -> Tuple[int, str, List[Dict]]:
 
     results = []
     processed_icfs = len(bitmap_strings)
-=======
-        (batch_id, reason_type, results_list)
-    """
-    batch_id, reason_type, bitmap_strings, eu, test_ids, tests_sample, sigmas_all, cost_function, bitmap_to_icf = args
-
-    results = []
->>>>>>> origin/main
     for bitmap_string in bitmap_strings:
         try:
             icf = bitmap_to_icf(bitmap_string, eu)
@@ -108,22 +88,14 @@ def calculate_cost_for_icf_batch(args: Tuple) -> Tuple[int, str, List[Dict]]:
             # Silent error - don't break parallel processing
             continue
 
-<<<<<<< HEAD
     return batch_id, reason_type, results, processed_icfs
-=======
-    return batch_id, reason_type, results
->>>>>>> origin/main
 
 
 def calculate_costs_parallel_incremental(db, test_ids, tests_sample, sigmas_all, cost_function, bitmap_to_icf,
                                          reason_types, cache, selected_zip_path,
-<<<<<<< HEAD
                                          n_workers=None, batch_size=50, save_every_n_batches=10, verbose=True,
                                          progress_monitor: Optional[ICFProgressMonitor] = None,
                                          cache_writer: Optional[CacheWriteCoordinator] = None):
-=======
-                                         n_workers=None, batch_size=50, save_every_n_batches=10, verbose=True):
->>>>>>> origin/main
     """
     Calculate costs in TRUE PARALLEL mode using ProcessPoolExecutor
 
@@ -165,24 +137,15 @@ def calculate_costs_parallel_incremental(db, test_ids, tests_sample, sigmas_all,
         (total_costs_count, tests_sample_updated)
     """
     if n_workers is None:
-<<<<<<< HEAD
         n_workers = max(1, cpu_count() - 2)
 
     if verbose:
         print(f"\n🚀 TRUE MULTIPROCESSING MODE - Using {n_workers} SEPARATE PROCESSES")
-=======
-        n_workers = max(1, cpu_count() - 1)
-
-    if verbose:
-        print(f"\n🚀 TRUE MULTIPROCESSING MODE - Using {n_workers} SEPARATE PROCESSES")
-        print(f"   Each process runs on a separate CPU core (no GIL limitation)")
->>>>>>> origin/main
         print(f"   Batch size: {batch_size} ICFs | Save every: {save_every_n_batches} batches")
 
     eu = db["data"]['EU']['value_json']
     total_costs = 0
 
-<<<<<<< HEAD
     worker_init_args = (test_ids, tests_sample, sigmas_all,
                         cost_function, bitmap_to_icf, eu)
 
@@ -204,21 +167,49 @@ def calculate_costs_parallel_incremental(db, test_ids, tests_sample, sigmas_all,
 
             bitmap_strings = list(db[reason_type].keys())
 
-            # Split into batches
-            batch_args = []
-            for batch_idx in range(0, len(bitmap_strings), batch_size):
-                batch = bitmap_strings[batch_idx:batch_idx+batch_size]
-                batch_args.append((len(batch_args), reason_type, batch))
+            total_icfs_reason = len(bitmap_strings)
+            desired_batches = max(1, math.ceil(total_icfs_reason / max(1, batch_size)))
+            adjusted_batches = desired_batches
 
-            # Pad with empty batches so the total is a multiple of n_workers
-            if batch_args:
-                remainder = len(batch_args) % n_workers
-                if remainder != 0:
-                    padding = n_workers - remainder
-                    for _ in range(padding):
-                        batch_args.append((len(batch_args), reason_type, []))
-                    if verbose:
-                        print(f"  Added {padding} padding batches to match {n_workers} workers")
+            if n_workers and total_icfs_reason >= n_workers:
+                if desired_batches % n_workers != 0:
+                    lower_multiple = (desired_batches // n_workers) * n_workers
+                    if lower_multiple < n_workers:
+                        lower_multiple = n_workers
+                    upper_multiple = lower_multiple + n_workers
+
+                    candidate_batches = []
+                    for candidate in (lower_multiple, upper_multiple):
+                        if candidate and candidate <= total_icfs_reason:
+                            candidate_batches.append(candidate)
+
+                    if not candidate_batches:
+                        candidate_batches.append(min(total_icfs_reason, max(n_workers, 1)))
+
+                    adjusted_batches = min(
+                        candidate_batches,
+                        key=lambda candidate: abs(candidate - desired_batches)
+                    )
+
+            if verbose and adjusted_batches != desired_batches:
+                effective_size = math.ceil(total_icfs_reason / adjusted_batches)
+                print(f"  Adjusted batches {desired_batches} -> {adjusted_batches} "
+                      f"to evenly spread work across {n_workers} processes "
+                      f"(~{effective_size} ICFs each)")
+
+            # Split into batches ensuring the total count is a multiple of workers when feasible
+            batch_args = []
+            start_idx = 0
+            for batch_id in range(adjusted_batches):
+                remaining_batches = adjusted_batches - batch_id
+                remaining_items = total_icfs_reason - start_idx
+                if remaining_items <= 0:
+                    break
+
+                current_size = math.ceil(remaining_items / remaining_batches)
+                batch = bitmap_strings[start_idx:start_idx + current_size]
+                batch_args.append((batch_id, reason_type, batch))
+                start_idx += current_size
 
             if verbose:
                 print(f"  Created {len(batch_args)} batches")
@@ -240,67 +231,15 @@ def calculate_costs_parallel_incremental(db, test_ids, tests_sample, sigmas_all,
                 executor.submit(calculate_cost_for_icf_batch, batch_id, reason_type, batch): batch_id
                 for batch_id, reason_type, batch in batch_args
             }
-=======
-    for reason_idx, reason_type in enumerate(reason_types):
-        if reason_type not in db or len(db[reason_type]) == 0:
-            if verbose:
-                print(f"\n⚠️  {reason_type} not found in database or empty, skipping...")
-            continue
-
-        if verbose:
-            print(f"\n{'='*80}")
-            print(f"Processing {reason_type.upper()}")
-            print(f"{'='*80}")
-            print(f"  Total ICFs: {len(db[reason_type])}")
-
-        bitmap_strings = list(db[reason_type].keys())
-
-        # Split into batches
-        batch_args = []
-        for batch_idx in range(0, len(bitmap_strings), batch_size):
-            batch = bitmap_strings[batch_idx:batch_idx+batch_size]
-            batch_args.append((
-                len(batch_args),  # batch_id
-                reason_type,
-                batch,
-                eu,
-                test_ids,
-                tests_sample,
-                sigmas_all,
-                cost_function,
-                bitmap_to_icf
-            ))
-
-        if verbose:
-            print(f"  Created {len(batch_args)} batches")
-            print(f"  Submitting ALL batches to {n_workers} parallel processes...")
-
-        # Process ALL batches in TRUE PARALLEL using ProcessPoolExecutor
-        accumulated_costs = []
-        accumulated_samples = {}
-        completed = 0
-
-        overall_start = time.time()
-
-        with ProcessPoolExecutor(max_workers=n_workers) as executor:
-            # Submit ALL batches at once - they will run in parallel
-            future_to_batch = {executor.submit(calculate_cost_for_icf_batch, args): args[0]
-                              for args in batch_args}
->>>>>>> origin/main
 
             # Process results as they complete
             for future in as_completed(future_to_batch):
                 batch_id = future_to_batch[future]
 
                 try:
-<<<<<<< HEAD
                     returned_batch_id, returned_reason_type, batch_results, icfs_in_batch = future.result()
                     completed += 1
                     icfs_this_type += icfs_in_batch
-=======
-                    returned_batch_id, returned_reason_type, batch_results = future.result()
-                    completed += 1
->>>>>>> origin/main
 
                     # Accumulate results
                     for cost_entry in batch_results:
@@ -320,7 +259,6 @@ def calculate_costs_parallel_incremental(db, test_ids, tests_sample, sigmas_all,
                             'cost': cost_entry['cost']
                         }
 
-<<<<<<< HEAD
                     if progress_monitor:
                         progress_monitor.batch_completed(returned_reason_type, icfs_in_batch)
 
@@ -330,21 +268,12 @@ def calculate_costs_parallel_incremental(db, test_ids, tests_sample, sigmas_all,
                         print(f"  ✓ Batch {completed}/{len(batch_args)} complete | "
                               f"{icfs_this_type} ICFs | "
                               f"{icf_rate:.1f} ICF/sec")
-=======
-                    if verbose:
-                        elapsed = time.time() - overall_start
-                        rate = completed / elapsed if elapsed > 0 else 0
-                        print(f"  ✓ Batch {completed}/{len(batch_args)} complete | "
-                              f"{len(batch_results)} costs | "
-                              f"{rate:.1f} batches/sec")
->>>>>>> origin/main
 
                     # Save to cache incrementally
                     if completed % save_every_n_batches == 0 or completed == len(batch_args):
                         if cache and selected_zip_path and accumulated_costs:
                             is_first = (reason_idx == 0 and completed <= save_every_n_batches)
 
-<<<<<<< HEAD
                             costs_to_save = accumulated_costs
                             samples_to_save = accumulated_samples
                             accumulated_costs = []
@@ -375,24 +304,6 @@ def calculate_costs_parallel_incremental(db, test_ids, tests_sample, sigmas_all,
 
                             # Update main tests_sample
                             for sample_id, data in samples_to_save.items():
-=======
-                            cache.save_costs_incremental(
-                                selected_zip_path,
-                                accumulated_costs,
-                                accumulated_samples,
-                                returned_reason_type,
-                                is_first_batch=is_first
-                            )
-
-                            if verbose:
-                                print(f"  💾 Saved {len(accumulated_costs)} costs to cache "
-                                      f"(checkpoint at batch {completed}/{len(batch_args)})")
-
-                            total_costs += len(accumulated_costs)
-
-                            # Update main tests_sample
-                            for sample_id, data in accumulated_samples.items():
->>>>>>> origin/main
                                 if sample_id not in tests_sample:
                                     tests_sample[sample_id] = {}
                                 for rt, bitmaps in data.items():
@@ -400,18 +311,10 @@ def calculate_costs_parallel_incremental(db, test_ids, tests_sample, sigmas_all,
                                         tests_sample[sample_id][rt] = {}
                                     tests_sample[sample_id][rt].update(bitmaps)
 
-<<<<<<< HEAD
-=======
-                            # Clear accumulated data to free RAM
-                            accumulated_costs = []
-                            accumulated_samples = {}
-
->>>>>>> origin/main
                 except Exception as e:
                     if verbose:
                         print(f"  ⚠️  Error in batch {batch_id}: {e}")
 
-<<<<<<< HEAD
             total_elapsed = time.time() - overall_start
             if verbose:
                 avg_icf_rate = icfs_this_type / total_elapsed if total_elapsed > 0 else 0
@@ -419,12 +322,6 @@ def calculate_costs_parallel_incremental(db, test_ids, tests_sample, sigmas_all,
                 print(f"     Average: {avg_icf_rate:.1f} ICF/sec ({icfs_this_type} ICFs total)")
             if progress_monitor:
                 progress_monitor.complete_reason(reason_type)
-=======
-        total_elapsed = time.time() - overall_start
-        if verbose:
-            print(f"\n  ✅ Completed {reason_type} in {total_elapsed:.1f}s")
-            print(f"     Average: {len(batch_args)/total_elapsed:.2f} batches/sec")
->>>>>>> origin/main
 
     if verbose:
         print(f"\n{'='*80}")
@@ -432,11 +329,8 @@ def calculate_costs_parallel_incremental(db, test_ids, tests_sample, sigmas_all,
         print(f"{'='*80}")
         print(f"Total costs calculated: {total_costs}")
 
-<<<<<<< HEAD
     if cache_writer:
         cache_writer.flush()
 
-=======
->>>>>>> origin/main
     return total_costs, tests_sample
 

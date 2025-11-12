@@ -4,6 +4,25 @@ ETL functions for reasons analysis - data extraction and processing
 from typing import Dict, List, Tuple, Any
 
 
+def _format_feature_label(feature_name: Any, fallback_index: int) -> str:
+    """
+    Convert feature identifiers like 't_007' into plain numeric labels.
+    Falls back to the original string or positional index if parsing fails.
+    """
+    if feature_name is None:
+        return str(fallback_index)
+
+    feature_str = str(feature_name)
+    digits = ''.join(ch for ch in feature_str if ch.isdigit())
+    if digits:
+        try:
+            return str(int(digits))
+        except ValueError:
+            pass
+
+    return feature_str if feature_str else str(fallback_index)
+
+
 def extract_test_samples(db: Dict[str, Any]) -> Tuple[Dict, List, List, List]:
     """
     Extract test samples from database
@@ -391,44 +410,24 @@ def print_robustness_statistics(sample_robustness_df: 'pd.DataFrame') -> None:
         DataFrame from calculate_all_samples_robustness
     """
     import pandas as pd
-<<<<<<< HEAD
     import numpy as np
 
     print(f"\n\n{'='*80}")
     print(f"  SAMPLE-LEVEL ROBUSTNESS ANALYSIS")
     print(f"{'='*80}\n")
-=======
-
-    print(f"\n{'='*80}")
-    print(f"STATISTICAL ANALYSIS - SAMPLE ROBUSTNESS")
-    print(f"{'='*80}")
->>>>>>> origin/main
 
     # Remove samples with no robustness value
     valid_robustness = sample_robustness_df['robustness'].dropna()
 
     if len(valid_robustness) == 0:
-<<<<<<< HEAD
         print("\n⚠ WARNING: No valid robustness values found!")
         return
 
     # Prediction correctness statistics
-=======
-        print("\nWARNING: No valid robustness values found!")
-        return
-
-    print(f"\nTotal samples analyzed: {len(sample_robustness_df)}")
-    print(f"Valid robustness values: {len(valid_robustness)}")
-    print(f"Samples with N/A: {len(sample_robustness_df) - len(valid_robustness)}")
-
-    # Prediction correctness statistics
-    print(f"\n--- Prediction Correctness ---")
->>>>>>> origin/main
     correct_count = sample_robustness_df['correct_prediction'].sum()
     total_count = len(sample_robustness_df)
     incorrect_count = total_count - correct_count
     accuracy = (correct_count / total_count * 100) if total_count > 0 else 0
-<<<<<<< HEAD
 
     # Basic info
     print(f"📊 Dataset Overview:")
@@ -458,45 +457,17 @@ def print_robustness_statistics(sample_robustness_df: 'pd.DataFrame') -> None:
     print(f"   • IQR:       {iqr:.6f} (Q1={q25:.6f}, Q3={q75:.6f})")
 
     # Distribution analysis
-=======
-    print(f"Correct predictions:   {correct_count}/{total_count} ({accuracy:.1f}%)")
-    print(f"Incorrect predictions: {incorrect_count}/{total_count} ({(100-accuracy):.1f}%)")
-
-    # Descriptive statistics
-    print(f"\n--- Descriptive Statistics ---")
-    print(f"Mean:        {valid_robustness.mean():.6f}")
-    print(f"Median:      {valid_robustness.median():.6f}")
-    print(f"Std Dev:     {valid_robustness.std():.6f}")
-    print(f"Min:         {valid_robustness.min():.6f}")
-    print(f"Max:         {valid_robustness.max():.6f}")
-    print(f"25th %ile:   {valid_robustness.quantile(0.25):.6f}")
-    print(f"75th %ile:   {valid_robustness.quantile(0.75):.6f}")
-    print(f"IQR:         {valid_robustness.quantile(0.75) - valid_robustness.quantile(0.25):.6f}")
-
-    # Distribution analysis
-    print(f"\n--- Distribution Analysis ---")
->>>>>>> origin/main
     low_robustness = (valid_robustness < 0.33).sum()
     medium_robustness = ((valid_robustness >= 0.33) & (valid_robustness < 0.67)).sum()
     high_robustness = (valid_robustness >= 0.67).sum()
 
-<<<<<<< HEAD
     # Robustness comparison: Correct vs Incorrect predictions
-=======
-    print(f"Low robustness (< 0.33):      {low_robustness} ({low_robustness/len(valid_robustness)*100:.1f}%)")
-    print(f"Medium robustness (0.33-0.67): {medium_robustness} ({medium_robustness/len(valid_robustness)*100:.1f}%)")
-    print(f"High robustness (>= 0.67):    {high_robustness} ({high_robustness/len(valid_robustness)*100:.1f}%)")
-
-    # Robustness comparison: Correct vs Incorrect predictions
-    print(f"\n--- Robustness by Prediction Correctness ---")
->>>>>>> origin/main
     correct_samples = sample_robustness_df[sample_robustness_df['correct_prediction'] == True]
     incorrect_samples = sample_robustness_df[sample_robustness_df['correct_prediction'] == False]
 
     correct_rob = None
     incorrect_rob = None
 
-<<<<<<< HEAD
     print(f"\n🔍 Robustness by Prediction Correctness:")
     print(f"{'-'*80}")
 
@@ -517,20 +488,10 @@ def print_robustness_statistics(sample_robustness_df: 'pd.DataFrame') -> None:
             print(f"     Mean:      {c_mean:.6f} +/- {c_std:.6f}")
             print(f"     Median:    {c_median:.6f}")
             print(f"     Range:     [{c_min:.6f}, {c_max:.6f}]")
-=======
-    if len(correct_samples) > 0:
-        correct_rob = correct_samples['robustness'].dropna()
-        if len(correct_rob) > 0:
-            print(f"\nCorrect Predictions ({len(correct_samples)} samples):")
-            print(f"  Mean robustness: {correct_rob.mean():.6f} ± {correct_rob.std():.6f}")
-            print(f"  Median:          {correct_rob.median():.6f}")
-            print(f"  Range:           [{correct_rob.min():.6f}, {correct_rob.max():.6f}]")
->>>>>>> origin/main
 
     if len(incorrect_samples) > 0:
         incorrect_rob = incorrect_samples['robustness'].dropna()
         if len(incorrect_rob) > 0:
-<<<<<<< HEAD
             i_mean = incorrect_rob.mean()
             i_std = incorrect_rob.std()
             i_median = incorrect_rob.median()
@@ -553,16 +514,6 @@ def print_robustness_statistics(sample_robustness_df: 'pd.DataFrame') -> None:
                 print(f"\n  📊 Difference (Correct - Incorrect): {sign}{diff:.6f}")
 
     print(f"\n{'-'*80}")
-=======
-            print(f"\nIncorrect Predictions ({len(incorrect_samples)} samples):")
-            print(f"  Mean robustness: {incorrect_rob.mean():.6f} ± {incorrect_rob.std():.6f}")
-            print(f"  Median:          {incorrect_rob.median():.6f}")
-            print(f"  Range:           [{incorrect_rob.min():.6f}, {incorrect_rob.max():.6f}]")
-
-            if correct_rob is not None and len(correct_rob) > 0:
-                diff = correct_rob.mean() - incorrect_rob.mean()
-                print(f"\n  Difference (Correct - Incorrect): {diff:.6f}")
->>>>>>> origin/main
 
 
 def create_robustness_visualizations(sample_robustness_df: 'pd.DataFrame',
@@ -844,8 +795,10 @@ def visualize_sample_with_icf(sample_id: str, tests_sample: Dict,
     sample_dict = tests_sample[sample_id]["features"]
     series = np.array([sample_dict[f] for f in feature_names])
     x_axis = np.arange(len(series))
+    display_feature_names = [
+        _format_feature_label(name, idx) for idx, name in enumerate(feature_names)
+    ]
 
-<<<<<<< HEAD
     # Get prediction info
     sample_meta = tests_sample.get(sample_id, {})
     predicted_label = sample_meta.get('predicted_label', 'N/A')
@@ -862,8 +815,6 @@ def visualize_sample_with_icf(sample_id: str, tests_sample: Dict,
             prediction_status = f"Predicted={predicted_label}, Actual={actual_label}"
             prediction_symbol = "✗ INCORRECT"
 
-=======
->>>>>>> origin/main
     # Get first ICF
     first_bitmap = list(tests_sample[sample_id][reason_type].keys())[0]
     icf = tests_sample[sample_id][reason_type][first_bitmap]["icf"]
@@ -871,7 +822,6 @@ def visualize_sample_with_icf(sample_id: str, tests_sample: Dict,
 
     # Determine color based on reason type
     colors = {
-<<<<<<< HEAD
         'reasons': ('rgba(0, 255, 0, 0.15)', 'green', 'darkgreen'),
         'non_reasons': ('rgba(255, 165, 0, 0.15)', 'orange', 'darkorange'),
         'anti_reasons': ('rgba(255, 0, 0, 0.15)', 'red', 'darkred')
@@ -892,7 +842,7 @@ def visualize_sample_with_icf(sample_id: str, tests_sample: Dict,
                     'upper': upper_bound if not np.isinf(upper_bound) else series[idx] + 1.5,
                     'lower_inf': np.isinf(lower_bound),
                     'upper_inf': np.isinf(upper_bound),
-                    'feature': f
+                    'feature': display_feature_names[idx]
                 }
 
     # Identify contiguous temporal intervals
@@ -910,18 +860,10 @@ def visualize_sample_with_icf(sample_id: str, tests_sample: Dict,
                 start_idx = constrained_indices[i]
                 end_idx = constrained_indices[i]
         temporal_intervals.append((start_idx, end_idx))
-=======
-        'reasons': ('green', 'darkgreen'),
-        'non_reasons': ('orange', 'darkorange'),
-        'anti_reasons': ('red', 'darkred')
-    }
-    color, dark_color = colors.get(reason_type, ('blue', 'darkblue'))
->>>>>>> origin/main
 
     # Create figure
     fig = go.Figure()
 
-<<<<<<< HEAD
     # Add colored rectangles for temporal intervals (background) - NO annotations
     for interval_idx, (start, end) in enumerate(temporal_intervals):
         fig.add_vrect(
@@ -945,7 +887,7 @@ def visualize_sample_with_icf(sample_id: str, tests_sample: Dict,
         constraint_info = constraint_values[idx]
         lower_bound = constraint_info['lower']
         upper_bound = constraint_info['upper']
-        feature = constraint_info['feature']
+        feature_label = constraint_info['feature']
 
         fig.add_trace(go.Scatter(
             x=[idx, idx],
@@ -954,33 +896,8 @@ def visualize_sample_with_icf(sample_id: str, tests_sample: Dict,
             line=dict(color=line_color, width=3),
             marker=dict(size=6, color=dark_color, symbol='line-ew-open'),
             showlegend=False,
-            hovertemplate=f'<b>{feature}</b><br>Y-Constraint: [{lower_bound:.3f}, {upper_bound:.3f}]<br>Value: {series[idx]:.3f}<extra></extra>'
+            hovertemplate=f'<b>{feature_label}</b><br>Y-Constraint: [{lower_bound:.3f}, {upper_bound:.3f}]<br>Value: {series[idx]:.3f}<extra></extra>'
         ))
-
-    def _numeric_label(feature_label: str, fallback_idx: int) -> str:
-        digits = ''.join(ch for ch in feature_label if ch.isdigit())
-        if digits:
-            try:
-                return str(int(digits))
-            except ValueError:
-                pass
-        return str(fallback_idx)
-
-    # Create legend entries for temporal intervals
-    legend_entries = []
-    for interval_idx, (start, end) in enumerate(temporal_intervals):
-        start_feature = _numeric_label(feature_names[start], start)
-        end_feature = _numeric_label(feature_names[end], end)
-        interval_text = f"{start_feature} to {end_feature}" if start != end else start_feature
-
-        # Calculate Y-constraint range for this interval
-        y_lowers = [constraint_values[idx]['lower'] for idx in range(start, end + 1) if idx in constraint_values]
-        y_uppers = [constraint_values[idx]['upper'] for idx in range(start, end + 1) if idx in constraint_values]
-
-        if y_lowers and y_uppers:
-            avg_lower = np.mean(y_lowers)
-            avg_upper = np.mean(y_uppers)
-            legend_entries.append(f"{interval_text}: Y∈[{avg_lower:.2f}, {avg_upper:.2f}]")
 
     reason_label = reason_type.upper().replace('_', '-')
 
@@ -1003,8 +920,8 @@ def visualize_sample_with_icf(sample_id: str, tests_sample: Dict,
     # Add interval markers (|---|) below the x-axis
     interval_annotations = []
     for interval_idx, (start, end) in enumerate(temporal_intervals):
-        start_feature = _numeric_label(feature_names[start], start)
-        end_feature = _numeric_label(feature_names[end], end)
+        start_feature = display_feature_names[start]
+        end_feature = display_feature_names[end]
 
         # Add vertical bars at start and end
         fig.add_trace(go.Scatter(
@@ -1067,73 +984,6 @@ def visualize_sample_with_icf(sample_id: str, tests_sample: Dict,
     print(f"  Cost: {cost:.6f}")
     print(f"  Constrained features: {len(constrained_indices)}/{len(feature_names)}")
     print(f"  Temporal intervals: {len(temporal_intervals)}")
-    print(f"\n  Temporal Intervals (X-axis ranges with Y-constraints):")
-    for entry in legend_entries:
-        print(f"    • {entry}")
-=======
-    # Add time series line
-    fig.add_trace(go.Scatter(
-        x=x_axis, y=series,
-        mode='lines',
-        name='Test Sample',
-        line=dict(color='blue', width=2)
-    ))
-
-    # Add constraint intervals
-    constrained_count = 0
-    for idx, f in enumerate(feature_names):
-        if f in icf:
-            lower_bound, upper_bound = icf[f]
-
-            # Skip if unbounded
-            if np.isinf(lower_bound) and np.isinf(upper_bound):
-                continue
-
-            constrained_count += 1
-
-            # Replace inf with reasonable bounds
-            if np.isinf(lower_bound):
-                lower_bound = series[idx] - 1.5
-            if np.isinf(upper_bound):
-                upper_bound = series[idx] + 1.5
-
-            # Add vertical bar
-            fig.add_trace(go.Scatter(
-                x=[idx, idx],
-                y=[lower_bound, upper_bound],
-                mode='lines+markers',
-                line=dict(color=color, width=4),
-                marker=dict(size=8, color=dark_color, symbol='line-ew-open'),
-                name=f'Constraint {f}' if constrained_count == 1 else None,
-                legendgroup='constraints',
-                showlegend=(constrained_count == 1),
-                hovertemplate=f'Feature: {f}<br>Interval: [{lower_bound:.3f}, {upper_bound:.3f}]<extra></extra>'
-            ))
-
-            # Add sample value marker
-            fig.add_trace(go.Scatter(
-                x=[idx],
-                y=[series[idx]],
-                mode='markers',
-                marker=dict(size=6, color='blue', symbol='circle'),
-                showlegend=False,
-                hovertemplate=f'Sample value: {series[idx]:.3f}<extra></extra>'
-            ))
-
-    reason_label = reason_type.upper().replace('_', '-')
-    fig.update_layout(
-        title=f'Time Series with Maximal {reason_label} - Sample {sample_id}<br><sub>Cost: {cost:.4f} | Constrained features: {constrained_count}/{len(feature_names)}</sub>',
-        xaxis_title='Feature Index',
-        yaxis_title='Value',
-        template='plotly_white',
-        height=500,
-        showlegend=True,
-        hovermode='closest'
-    )
-
-    print(f"{reason_label} - Cost: {cost:.6f}")
-    print(f"{reason_label} - Constrained features: {constrained_count}/{len(feature_names)}")
->>>>>>> origin/main
 
     return fig
 
@@ -1170,8 +1020,10 @@ def visualize_sample_comparison(sample_id: str, tests_sample: Dict, feature_name
     sample_dict = tests_sample[sample_id]["features"]
     series = np.array([sample_dict[f] for f in feature_names])
     x_axis = np.arange(len(series))
+    display_feature_names = [
+        _format_feature_label(name, idx) for idx, name in enumerate(feature_names)
+    ]
 
-<<<<<<< HEAD
     # Get prediction info
     sample_meta = tests_sample.get(sample_id, {})
     predicted_label = sample_meta.get('predicted_label', 'N/A')
@@ -1185,8 +1037,6 @@ def visualize_sample_comparison(sample_id: str, tests_sample: Dict, feature_name
         else:
             prediction_status = f"✗ INCORRECT: Predicted={predicted_label}, Actual={actual_label}"
 
-=======
->>>>>>> origin/main
     # Get reason data
     first_reason_bitmap = list(tests_sample[sample_id]["reasons"].keys())[0]
     reason_icf = tests_sample[sample_id]["reasons"][first_reason_bitmap]["icf"]
@@ -1197,7 +1047,6 @@ def visualize_sample_comparison(sample_id: str, tests_sample: Dict, feature_name
     ar_icf = tests_sample[sample_id]["anti_reasons"][first_ar_bitmap]["icf"]
     ar_cost = tests_sample[sample_id]["anti_reasons"][first_ar_bitmap]["cost"]
 
-<<<<<<< HEAD
     # Helper function to find contiguous intervals
     def find_contiguous_intervals(icf_data, feature_names_list, series_data):
         constrained_indices = []
@@ -1211,7 +1060,7 @@ def visualize_sample_comparison(sample_id: str, tests_sample: Dict, feature_name
                     constraint_values[idx] = {
                         'lower': lower_bound if not np.isinf(lower_bound) else series_data[idx] - 1.5,
                         'upper': upper_bound if not np.isinf(upper_bound) else series_data[idx] + 1.5,
-                        'feature': f
+                        'feature': display_feature_names[idx]
                     }
 
         temporal_intervals = []
@@ -1275,7 +1124,7 @@ def visualize_sample_comparison(sample_id: str, tests_sample: Dict, feature_name
         constraint_info = reason_constraints[idx]
         lower_bound = constraint_info['lower']
         upper_bound = constraint_info['upper']
-        feature = constraint_info['feature']
+        feature_label = constraint_info['feature']
 
         fig.add_trace(go.Scatter(
             x=[idx, idx],
@@ -1284,7 +1133,7 @@ def visualize_sample_comparison(sample_id: str, tests_sample: Dict, feature_name
             line=dict(color='green', width=3),
             marker=dict(size=6, color='darkgreen', symbol='line-ew-open'),
             showlegend=False,
-            hovertemplate=f'<b>{feature}</b><br>Y-Constraint: [{lower_bound:.3f}, {upper_bound:.3f}]<extra></extra>'
+            hovertemplate=f'<b>{feature_label}</b><br>Y-Constraint: [{lower_bound:.3f}, {upper_bound:.3f}]<extra></extra>'
         ), row=1, col=1)
 
     # Bottom plot: Anti-Reason with temporal intervals
@@ -1311,7 +1160,7 @@ def visualize_sample_comparison(sample_id: str, tests_sample: Dict, feature_name
         constraint_info = ar_constraints[idx]
         lower_bound = constraint_info['lower']
         upper_bound = constraint_info['upper']
-        feature = constraint_info['feature']
+        feature_label = constraint_info['feature']
 
         fig.add_trace(go.Scatter(
             x=[idx, idx],
@@ -1320,7 +1169,7 @@ def visualize_sample_comparison(sample_id: str, tests_sample: Dict, feature_name
             line=dict(color='red', width=3),
             marker=dict(size=6, color='darkred', symbol='line-ew-open'),
             showlegend=False,
-            hovertemplate=f'<b>{feature}</b><br>Y-Constraint: [{lower_bound:.3f}, {upper_bound:.3f}]<extra></extra>'
+            hovertemplate=f'<b>{feature_label}</b><br>Y-Constraint: [{lower_bound:.3f}, {upper_bound:.3f}]<extra></extra>'
         ), row=2, col=1)
 
     # Calculate y-range for positioning interval markers
@@ -1332,8 +1181,8 @@ def visualize_sample_comparison(sample_id: str, tests_sample: Dict, feature_name
     marker_y_top = y_min - 0.15 * y_range
     reason_annotations = []
     for start, end in reason_intervals:
-        start_feature = feature_names[start]
-        end_feature = feature_names[end]
+        start_feature = display_feature_names[start]
+        end_feature = display_feature_names[end]
 
         # Vertical bars
         fig.add_trace(go.Scatter(
@@ -1384,8 +1233,8 @@ def visualize_sample_comparison(sample_id: str, tests_sample: Dict, feature_name
     marker_y_bottom = y_min - 0.15 * y_range
     ar_annotations = []
     for start, end in ar_intervals:
-        start_feature = feature_names[start]
-        end_feature = feature_names[end]
+        start_feature = display_feature_names[start]
+        end_feature = display_feature_names[end]
 
         # Vertical bars
         fig.add_trace(go.Scatter(
@@ -1434,88 +1283,10 @@ def visualize_sample_comparison(sample_id: str, tests_sample: Dict, feature_name
 
     fig.update_xaxes(title_text="Feature Index (Time Points)", row=1, col=1)
     fig.update_xaxes(title_text="Feature Index (Time Points)", row=2, col=1)
-=======
-    # Create subplots
-    fig = make_subplots(
-        rows=2, cols=1,
-        subplot_titles=(
-            f'Maximal REASON - Sample {sample_id} (cost={reason_cost:.4f})',
-            f'Maximal ANTI-REASON - Sample {sample_id} (cost={ar_cost:.4f})'
-        ),
-        vertical_spacing=0.12
-    )
-
-    # Top plot: Reason
-    fig.add_trace(go.Scatter(
-        x=x_axis, y=series,
-        mode='lines',
-        name='Test Sample',
-        line=dict(color='blue', width=2),
-        showlegend=True
-    ), row=1, col=1)
-
-    reason_constrained_count = 0
-    for idx, f in enumerate(feature_names):
-        if f in reason_icf:
-            lower_bound, upper_bound = reason_icf[f]
-            if not (np.isinf(lower_bound) and np.isinf(upper_bound)):
-                reason_constrained_count += 1
-                if np.isinf(lower_bound):
-                    lower_bound = series[idx] - 1.5
-                if np.isinf(upper_bound):
-                    upper_bound = series[idx] + 1.5
-
-                fig.add_trace(go.Scatter(
-                    x=[idx, idx],
-                    y=[lower_bound, upper_bound],
-                    mode='lines+markers',
-                    line=dict(color='green', width=4),
-                    marker=dict(size=8, color='darkgreen', symbol='line-ew-open'),
-                    name='Reason Constraints' if reason_constrained_count == 1 else None,
-                    legendgroup='reason_constraints',
-                    showlegend=(reason_constrained_count == 1),
-                    hovertemplate=f'Feature: {f}<br>Interval: [{lower_bound:.3f}, {upper_bound:.3f}]<extra></extra>'
-                ), row=1, col=1)
-
-    # Bottom plot: Anti-Reason
-    fig.add_trace(go.Scatter(
-        x=x_axis, y=series,
-        mode='lines',
-        name='Test Sample',
-        line=dict(color='blue', width=2),
-        showlegend=False
-    ), row=2, col=1)
-
-    ar_constrained_count = 0
-    for idx, f in enumerate(feature_names):
-        if f in ar_icf:
-            lower_bound, upper_bound = ar_icf[f]
-            if not (np.isinf(lower_bound) and np.isinf(upper_bound)):
-                ar_constrained_count += 1
-                if np.isinf(lower_bound):
-                    lower_bound = series[idx] - 1.5
-                if np.isinf(upper_bound):
-                    upper_bound = series[idx] + 1.5
-
-                fig.add_trace(go.Scatter(
-                    x=[idx, idx],
-                    y=[lower_bound, upper_bound],
-                    mode='lines+markers',
-                    line=dict(color='red', width=4),
-                    marker=dict(size=8, color='darkred', symbol='line-ew-open'),
-                    name='Anti-Reason Constraints' if ar_constrained_count == 1 else None,
-                    legendgroup='ar_constraints',
-                    showlegend=(ar_constrained_count == 1),
-                    hovertemplate=f'Feature: {f}<br>Interval: [{lower_bound:.3f}, {upper_bound:.3f}]<extra></extra>'
-                ), row=2, col=1)
-
-    fig.update_xaxes(title_text="Feature Index", row=2, col=1)
->>>>>>> origin/main
     fig.update_yaxes(title_text="Value", row=1, col=1)
     fig.update_yaxes(title_text="Value", row=2, col=1)
 
     fig.update_layout(
-<<<<<<< HEAD
         title=title_main,
         height=950,
         template='plotly_white',
@@ -1533,20 +1304,5 @@ def visualize_sample_comparison(sample_id: str, tests_sample: Dict, feature_name
     print(f"  ANTI-REASON:")
     print(f"    Constrained features: {len(ar_indices)}")
     print(f"    Temporal intervals: {len(ar_intervals)}")
-=======
-        height=900,
-        template='plotly_white',
-        showlegend=True,
-        hovermode='closest'
-    )
-
-    print(f"\nReason: {reason_constrained_count} constrained features")
-    print(f"Anti-Reason: {ar_constrained_count} constrained features")
->>>>>>> origin/main
 
     return fig
-
-
-
-
-
