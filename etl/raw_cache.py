@@ -7,6 +7,7 @@ import json
 import pickle
 from pathlib import Path
 from typing import Dict, Any, Optional
+import gzip
 
 
 class RawDataCache:
@@ -52,8 +53,32 @@ class RawDataCache:
         return dataset_name
 
     def _get_cache_path(self, cache_key: str) -> Path:
-        """Get path to raw data cache file"""
+        """Get path to compressed raw data cache file"""
+        return self.cache_dir / f"raw_{cache_key}.pkl.gz"
+
+    def _get_legacy_cache_path(self, cache_key: str) -> Path:
+        """Legacy uncompressed cache path"""
         return self.cache_dir / f"raw_{cache_key}.pkl"
+
+    def _locate_cache_file(self, cache_key: str) -> Optional[Path]:
+        """Return existing cache file path, preferring compressed version"""
+        cache_path = self._get_cache_path(cache_key)
+        if cache_path.exists():
+            return cache_path
+        legacy_path = self._get_legacy_cache_path(cache_key)
+        if legacy_path.exists():
+            return legacy_path
+        return None
+
+    def _open_for_read(self, cache_path: Path):
+        if cache_path.suffix == '.gz':
+            return gzip.open(cache_path, 'rb')
+        return open(cache_path, 'rb')
+
+    def _open_for_write(self, cache_path: Path):
+        if cache_path.suffix == '.gz':
+            return gzip.open(cache_path, 'wb', compresslevel=5)
+        return open(cache_path, 'wb')
 
     def exists(self, dataset_name: str) -> bool:
         """
@@ -70,8 +95,7 @@ class RawDataCache:
             True if cache exists
         """
         cache_key = self._get_cache_key(dataset_name)
-        cache_path = self._get_cache_path(cache_key)
-        return cache_path.exists()
+        return self._locate_cache_file(cache_key) is not None
 
     def save(self, dataset_name: str, db_data: Dict[str, Any]):
         """
@@ -95,6 +119,7 @@ class RawDataCache:
 
         cache_key = self._get_cache_key(dataset_name)
         cache_path = self._get_cache_path(cache_key)
+        legacy_path = self._get_legacy_cache_path(cache_key)
 
         # Check available disk space
         stat = shutil.disk_usage(self.cache_dir)
@@ -103,9 +128,15 @@ class RawDataCache:
         if available_mb < 100:  # Less than 100 MB available
             raise OSError(f"Not enough disk space to save cache (only {available_mb:.0f} MB available)")
 
-        # Save data using pickle
-        with open(cache_path, 'wb') as f:
+        # Save data using compressed pickle
+        with self._open_for_write(cache_path) as f:
             pickle.dump(db_data, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+        if legacy_path.exists() and legacy_path != cache_path:
+            try:
+                legacy_path.unlink()
+            except OSError:
+                pass
 
         # Update metadata
         self.metadata[cache_key] = {
@@ -136,10 +167,13 @@ class RawDataCache:
             return None
 
         cache_key = self._get_cache_key(dataset_name)
-        cache_path = self._get_cache_path(cache_key)
+        cache_path = self._locate_cache_file(cache_key)
+
+        if cache_path is None:
+            return None
 
         try:
-            with open(cache_path, 'rb') as f:
+            with self._open_for_read(cache_path) as f:
                 data = pickle.load(f)
 
             num_dbs = len(data)
@@ -177,20 +211,26 @@ class RawDataCache:
             If provided, clear cache only for this dataset.
             If None, clear all raw data cache.
         """
+        def _delete_all(pattern: str):
+            for cache_file in self.cache_dir.glob(pattern):
+                try:
+                    cache_file.unlink()
+                except FileNotFoundError:
+                    pass
+
         if dataset_name is None:
             # Clear all raw data cache
-            for cache_file in self.cache_dir.glob("raw_*.pkl"):
-                cache_file.unlink()
+            _delete_all("raw_*.pkl")
+            _delete_all("raw_*.pkl.gz")
             self.metadata = {}
             self._save_metadata()
             print("✓ Cleared all raw data cache")
         else:
             # Clear specific cache
             cache_key = self._get_cache_key(dataset_name)
-            cache_path = self._get_cache_path(cache_key)
-
-            if cache_path.exists():
-                cache_path.unlink()
+            for path in (self._get_cache_path(cache_key), self._get_legacy_cache_path(cache_key)):
+                if path.exists():
+                    path.unlink()
 
             if cache_key in self.metadata:
                 del self.metadata[cache_key]
@@ -225,4 +265,3 @@ class RawDataCache:
         """
         cache_key = self._get_cache_key(dataset_name)
         return self.metadata.get(cache_key)
-

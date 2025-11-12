@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 import hashlib
 import time
+import gzip
 
 
 def _make_pickleable(obj: Any) -> Any:
@@ -92,8 +93,35 @@ class ETLCache:
         return zip_name
 
     def _get_cache_path(self, cache_key: str) -> Path:
-        """Get path to cache file"""
+        """Get path to compressed cache file"""
+        return self.cache_dir / f"{cache_key}.pkl.gz"
+
+    def _get_legacy_cache_path(self, cache_key: str) -> Path:
+        """Get path to legacy (uncompressed) cache file"""
         return self.cache_dir / f"{cache_key}.pkl"
+
+    def _locate_cache_file(self, cache_key: str) -> Optional[Path]:
+        """Return existing cache file path, preferring compressed version"""
+        cache_path = self._get_cache_path(cache_key)
+        if cache_path.exists():
+            return cache_path
+
+        legacy_path = self._get_legacy_cache_path(cache_key)
+        if legacy_path.exists():
+            return legacy_path
+        return None
+
+    def _open_for_read(self, cache_path: Path):
+        """Open cache file for reading with or without compression"""
+        if cache_path.suffix == '.gz':
+            return gzip.open(cache_path, 'rb')
+        return open(cache_path, 'rb')
+
+    def _open_for_write(self, cache_path: Path):
+        """Open cache file for writing (compressed)"""
+        if cache_path.suffix == '.gz':
+            return gzip.open(cache_path, 'wb', compresslevel=5)
+        return open(cache_path, 'wb')
 
     def _get_lock_path(self, cache_key: str) -> Path:
         """Get path to lock file for a cache key"""
@@ -168,9 +196,9 @@ class ETLCache:
             True if cache is valid, False otherwise
         """
         cache_key = self._get_cache_key(zip_path.name)
-        cache_path = self._get_cache_path(cache_key)
+        cache_path = self._locate_cache_file(cache_key)
 
-        if not cache_path.exists():
+        if cache_path is None:
             return False
 
         # Check if hash matches
@@ -200,6 +228,7 @@ class ETLCache:
 
         cache_key = self._get_cache_key(zip_path.name)
         cache_path = self._get_cache_path(cache_key)
+        legacy_path = self._get_legacy_cache_path(cache_key)
         file_hash = self._get_file_hash(zip_path)
 
         # Check available disk space
@@ -218,9 +247,16 @@ class ETLCache:
             raise RuntimeError(f"Failed to acquire lock for {zip_path.name} after waiting")
 
         try:
-            # Save data using pickle for speed
-            with open(cache_path, 'wb') as f:
+            # Save data using compressed pickle for better disk usage
+            with self._open_for_write(cache_path) as f:
                 pickle.dump(safe_data, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+            # Remove legacy uncompressed cache if it exists to keep one file per dataset
+            if legacy_path.exists() and legacy_path != cache_path:
+                try:
+                    legacy_path.unlink()
+                except OSError:
+                    pass
 
             # Update metadata
             self.metadata[cache_key] = {
@@ -255,10 +291,13 @@ class ETLCache:
             return None
 
         cache_key = self._get_cache_key(zip_path.name)
-        cache_path = self._get_cache_path(cache_key)
+        cache_path = self._locate_cache_file(cache_key)
+
+        if cache_path is None:
+            return None
 
         try:
-            with open(cache_path, 'rb') as f:
+            with self._open_for_read(cache_path) as f:
                 data = pickle.load(f)
             print(f"[OK] Loaded cached data for {zip_path.name}")
             return data
@@ -289,20 +328,26 @@ class ETLCache:
             If provided, clear cache only for this dataset.
             If None, clear all cache.
         """
+        def _delete_files(pattern: str):
+            for cache_file in self.cache_dir.glob(pattern):
+                try:
+                    cache_file.unlink()
+                except FileNotFoundError:
+                    pass
+
         if zip_name is None:
             # Clear all cache
-            for cache_file in self.cache_dir.glob("*.pkl"):
-                cache_file.unlink()
+            _delete_files("*.pkl")
+            _delete_files("*.pkl.gz")
             self.metadata = {}
             self._save_metadata()
             print("✓ Cleared all cache")
         else:
             # Clear specific cache
             cache_key = self._get_cache_key(zip_name)
-            cache_path = self._get_cache_path(cache_key)
-
-            if cache_path.exists():
-                cache_path.unlink()
+            for path in (self._get_cache_path(cache_key), self._get_legacy_cache_path(cache_key)):
+                if path.exists():
+                    path.unlink()
 
             if cache_key in self.metadata:
                 del self.metadata[cache_key]
@@ -337,15 +382,16 @@ class ETLCache:
             List of reason types that were calculated
         """
         cache_key = self._get_cache_key(zip_path.name)
-        cache_path = self._get_cache_path(cache_key)
+        existing_path = self._locate_cache_file(cache_key)
+        target_path = self._get_cache_path(cache_key)
 
         # Load existing cache
-        if not cache_path.exists():
+        if existing_path is None:
             print(f"Warning: No cache exists for {zip_path.name}, cannot save costs")
             return
 
         try:
-            with open(cache_path, 'rb') as f:
+            with self._open_for_read(existing_path) as f:
                 cached_data = pickle.load(f)
         except Exception as e:
             print(f"Warning: Could not load existing cache for {zip_path.name}: {e}")
@@ -367,8 +413,14 @@ class ETLCache:
             raise RuntimeError(f"Failed to acquire lock for {zip_path.name} after waiting")
 
         try:
-            with open(cache_path, 'wb') as f:
+            with self._open_for_write(target_path) as f:
                 pickle.dump(safe_data, f, protocol=pickle.HIGHEST_PROTOCOL)
+            legacy_path = self._get_legacy_cache_path(cache_key)
+            if legacy_path.exists() and legacy_path != target_path:
+                try:
+                    legacy_path.unlink()
+                except OSError:
+                    pass
             print(f"✓ Saved costs to cache for {zip_path.name} ({len(cost_df)} entries)")
         except Exception as e:
             print(f"Warning: Could not save costs to cache: {e}")
@@ -393,13 +445,13 @@ class ETLCache:
             Dictionary with 'cost_df' and 'tests_sample' if available, None otherwise
         """
         cache_key = self._get_cache_key(zip_path.name)
-        cache_path = self._get_cache_path(cache_key)
+        cache_path = self._locate_cache_file(cache_key)
 
-        if not cache_path.exists():
+        if cache_path is None:
             return None
 
         try:
-            with open(cache_path, 'rb') as f:
+            with self._open_for_read(cache_path) as f:
                 cached_data = pickle.load(f)
 
             # Check if costs are present
@@ -438,13 +490,13 @@ class ETLCache:
             True if costs are cached, False otherwise
         """
         cache_key = self._get_cache_key(zip_path.name)
-        cache_path = self._get_cache_path(cache_key)
+        cache_path = self._locate_cache_file(cache_key)
 
-        if not cache_path.exists():
+        if cache_path is None:
             return False
 
         try:
-            with open(cache_path, 'rb') as f:
+            with self._open_for_read(cache_path) as f:
                 cached_data = pickle.load(f)
             return 'costs' in cached_data and cached_data['costs'] is not None
         except Exception:
@@ -471,10 +523,11 @@ class ETLCache:
         import pandas as pd
 
         cache_key = self._get_cache_key(zip_path.name)
-        cache_path = self._get_cache_path(cache_key)
+        target_path = self._get_cache_path(cache_key)
+        existing_path = self._locate_cache_file(cache_key)
 
         # Load existing cache
-        if not cache_path.exists():
+        if existing_path is None:
             print(f"Warning: No cache exists for {zip_path.name}, cannot save costs incrementally")
             return
 
@@ -486,7 +539,7 @@ class ETLCache:
 
         try:
             # Load existing cache inside lock
-            with open(cache_path, 'rb') as f:
+            with self._open_for_read(existing_path) as f:
                 cached_data = pickle.load(f)
 
             # Initialize costs structure if first batch
@@ -527,8 +580,14 @@ class ETLCache:
             # Make pickleable and save
             safe_data = _make_pickleable(cached_data)
 
-            with open(cache_path, 'wb') as f:
+            with self._open_for_write(target_path) as f:
                 pickle.dump(safe_data, f, protocol=pickle.HIGHEST_PROTOCOL)
+            legacy_path = self._get_legacy_cache_path(cache_key)
+            if legacy_path.exists() and legacy_path != target_path:
+                try:
+                    legacy_path.unlink()
+                except OSError:
+                    pass
 
         except Exception as e:
             print(f"Warning: Could not save incremental costs: {e}")

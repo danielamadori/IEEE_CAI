@@ -42,7 +42,7 @@ def show_info():
     print("=" * 70)
 
     # Full cache info
-    full_cache_files = list(cache_dir.glob("*.pkl"))
+    full_cache_files = list(cache_dir.glob("*.pkl")) + list(cache_dir.glob("*.pkl.gz"))
     full_cache_files = [f for f in full_cache_files if not f.name.startswith("raw_")]
     full_cache_size = sum(f.stat().st_size for f in full_cache_files) if full_cache_files else 0
 
@@ -52,7 +52,7 @@ def show_info():
     print(f"  Total size: {format_size(full_cache_size)}")
 
     # Raw cache info
-    raw_cache_files = list(cache_dir.glob("raw_*.pkl"))
+    raw_cache_files = list(cache_dir.glob("raw_*.pkl")) + list(cache_dir.glob("raw_*.pkl.gz"))
     raw_cache_size = sum(f.stat().st_size for f in raw_cache_files) if raw_cache_files else 0
 
     print(f"\nRaw Cache:")
@@ -414,4 +414,3 @@ Examples:
 
 if __name__ == '__main__':
     main()
-
