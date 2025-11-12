@@ -123,20 +123,22 @@ def extract_all_models_accuracy_parallel(zip_paths: list, n_workers=None, verbos
     accuracy_map = {}
     success_count = 0
     error_count = 0
+    error_datasets = []
 
     for result in results:
         dataset_name = result['dataset_name']
         accuracy_map[dataset_name] = result
-
+        
         if result['error']:
             error_count += 1
+            error_datasets.append(dataset_name)
         elif result['test_accuracy'] is not None:
             success_count += 1
 
     if verbose:
         print(f"\n✓ Extraction complete:")
         print(f"  - Success: {success_count}/{len(zip_paths)}")
-        print(f"  - Errors: {error_count}/{len(zip_paths)}")
+        print(f"  - Errors: {error_count}/{len(zip_paths)}, datasets errors {error_datasets}")
         print(f"{'='*80}\n")
 
     return accuracy_map
