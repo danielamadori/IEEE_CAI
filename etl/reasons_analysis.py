@@ -988,6 +988,236 @@ def visualize_sample_with_icf(sample_id: str, tests_sample: Dict,
     return fig
 
 
+def visualize_anti_reason_corridor(sample_id: str, tests_sample: Dict, feature_names: List[str]):
+    """
+    Visualize only the anti-reason with a two-color corridor system:
+    - Green when sample is within the constraint corridor
+    - Red when sample is outside the constraint corridor
+
+    Parameters
+    ----------
+    sample_id : str
+        Sample ID to visualize
+    tests_sample : dict
+        Dictionary with sample data
+    feature_names : list
+        List of feature names
+
+    Returns
+    -------
+    plotly.Figure or None
+        Figure with anti-reason corridor colored by constraint satisfaction, or None if missing data
+    """
+    import plotly.graph_objects as go
+    import numpy as np
+
+    # Check if anti_reasons exist
+    if ("anti_reasons" not in tests_sample[sample_id] or len(tests_sample[sample_id]["anti_reasons"]) == 0):
+        print("No anti_reasons found for this sample")
+        return None
+
+    # Get sample data
+    sample_dict = tests_sample[sample_id]["features"]
+    series = np.array([sample_dict[f] for f in feature_names])
+    x_axis = np.arange(len(series))
+    display_feature_names = [
+        _format_feature_label(name, idx) for idx, name in enumerate(feature_names)
+    ]
+
+    # Get prediction info
+    sample_meta = tests_sample.get(sample_id, {})
+    predicted_label = sample_meta.get('predicted_label', 'N/A')
+    actual_label = sample_meta.get('actual_label', 'N/A')
+    is_correct = sample_meta.get('prediction_correct', None)
+
+    prediction_status = ""
+    if is_correct is not None:
+        if is_correct:
+            prediction_status = f"✓ CORRECT: Predicted={predicted_label}, Actual={actual_label}"
+        else:
+            prediction_status = f"✗ INCORRECT: Predicted={predicted_label}, Actual={actual_label}"
+
+    # Get anti-reason data
+    first_ar_bitmap = list(tests_sample[sample_id]["anti_reasons"].keys())[0]
+    ar_icf = tests_sample[sample_id]["anti_reasons"][first_ar_bitmap]["icf"]
+    ar_cost = tests_sample[sample_id]["anti_reasons"][first_ar_bitmap]["cost"]
+
+    # Create constraint bounds and check satisfaction for each point
+    upper_bounds = []
+    lower_bounds = []
+    within_constraints = []
+    constrained_features = []
+    
+    for idx, f in enumerate(feature_names):
+        if f in ar_icf:
+            lower_bound, upper_bound = ar_icf[f]
+            if not (np.isinf(lower_bound) and np.isinf(upper_bound)):
+                # Use actual constraint bounds
+                lower_val = lower_bound if not np.isinf(lower_bound) else series[idx] - 1.0
+                upper_val = upper_bound if not np.isinf(upper_bound) else series[idx] + 1.0
+                constrained_features.append(True)
+                
+                # Check if sample point is within constraints
+                is_within = lower_val <= series[idx] <= upper_val
+                within_constraints.append(is_within)
+            else:
+                # Unconstrained - always within
+                lower_val = series[idx] - 0.5
+                upper_val = series[idx] + 0.5
+                constrained_features.append(False)
+                within_constraints.append(True)
+        else:
+            # Unconstrained - always within
+            lower_val = series[idx] - 0.5
+            upper_val = series[idx] + 0.5
+            constrained_features.append(False)
+            within_constraints.append(True)
+        
+        lower_bounds.append(lower_val)
+        upper_bounds.append(upper_val)
+    
+    upper_bounds = np.array(upper_bounds)
+    lower_bounds = np.array(lower_bounds)
+    within_constraints = np.array(within_constraints)
+    constrained_features = np.array(constrained_features)
+
+    # Calculate statistics
+    total_constrained = np.sum(constrained_features)
+    within_count = np.sum(within_constraints & constrained_features)
+    violation_count = np.sum(~within_constraints & constrained_features)
+    satisfaction_rate = (within_count / total_constrained * 100) if total_constrained > 0 else 100
+
+    # Create figure
+    fig = go.Figure()
+
+    # Create segments for different colors based on constraint satisfaction
+    # We'll create small segments between each point to color them appropriately
+    
+    for i in range(len(x_axis) - 1):
+        # Create a small segment between point i and i+1
+        x_segment = [x_axis[i], x_axis[i+1]]
+        upper_segment = [upper_bounds[i], upper_bounds[i+1]]
+        lower_segment = [lower_bounds[i], lower_bounds[i+1]]
+        
+        # Determine color based on constraint satisfaction of the current point
+        # Use the more restrictive condition (if either point violates, color it red)
+        is_within_segment = within_constraints[i] and within_constraints[i+1]
+        is_constrained_segment = constrained_features[i] or constrained_features[i+1]
+        
+        if is_constrained_segment:
+            if is_within_segment:
+                # Green for within constraints
+                fill_color = 'rgba(0, 255, 0, 0.3)'
+                line_color = 'green'
+            else:
+                # Red for constraint violations
+                fill_color = 'rgba(255, 0, 0, 0.3)'
+                line_color = 'red'
+        else:
+            # Light gray for unconstrained regions
+            fill_color = 'rgba(66, 66, 66, 0.1)'
+            line_color = 'gray'
+        
+        # Add filled area for this segment
+        fig.add_trace(go.Scatter(
+            x=[x_segment[0], x_segment[1], x_segment[1], x_segment[0]],
+            y=[lower_segment[0], lower_segment[1], upper_segment[1], upper_segment[0]],
+            fill='toself',
+            fillcolor=fill_color,
+            line=dict(color='rgba(255,255,255,0)', width=0),
+            hoverinfo="skip",
+            showlegend=False
+        ))
+
+    # Add legend entries for corridor colors
+    # Add dummy traces for legend
+    fig.add_trace(go.Scatter(
+        x=[None], y=[None],
+        mode='markers',
+        marker=dict(size=10, color='rgba(0, 255, 0, 0.6)'),
+        name='Sample in ICF',
+        showlegend=True
+    ))
+    
+    fig.add_trace(go.Scatter(
+        x=[None], y=[None],
+        mode='markers', 
+        marker=dict(size=10, color='rgba(255, 0, 0, 0.6)'),
+        name='Sample out of ICF',
+        showlegend=True
+    ))
+    
+    fig.add_trace(go.Scatter(
+        x=[None], y=[None],
+        mode='markers',
+        marker=dict(size=10, color='rgba(66, 66, 66, 0.3)'),
+        name='Do not care (Unconstrained)',
+        showlegend=True
+    ))
+
+    # Add the sample time series line (dark gray)
+    fig.add_trace(go.Scatter(
+        x=x_axis, 
+        y=series,
+        mode='lines+markers',
+        line=dict(color='blue', width=3),
+        marker=dict(size=5, color='blue'),
+        name='Test Sample',
+        hovertemplate='Feature %{x}<br>Value: %{y:.3f}<extra></extra>'
+    ))
+
+    # Build title with comprehensive information
+    title_main = f'Anti-Reason Constraint Analysis - Sample {sample_id}'
+    if prediction_status:
+        title_main += f'<br><sub>{prediction_status}</sub>'
+    
+    subtitle_parts = [
+        f'Cost: {ar_cost:.4f}',
+        f'Constrained Features: {total_constrained}/{len(feature_names)}',
+        f'Satisfaction Rate: {satisfaction_rate:.1f}% ({within_count}/{total_constrained})',
+        f'Violations: {violation_count}'
+    ]
+    title_main += f'<br><sub>{" | ".join(subtitle_parts)}</sub>'
+
+    # Update layout
+    fig.update_layout(
+        title=title_main,
+        xaxis_title="Feature Index (Time Points)",
+        yaxis_title="Value",
+        template='plotly_white',
+        height=700,
+        showlegend=True,
+        hovermode='closest',
+        legend=dict(
+            yanchor="top",
+            y=0.99,
+            xanchor="left",
+            x=1.02
+        )
+    )
+
+    # Print detailed summary
+    print(f"\nAnti-Reason Constraint Analysis for Sample {sample_id}:")
+    if prediction_status:
+        print(f"  {prediction_status}")
+    print(f"\n  CONSTRAINT SATISFACTION:")
+    print(f"    Cost: {ar_cost:.6f}")
+    print(f"    Total features: {len(feature_names)}")
+    print(f"    Constrained features: {total_constrained}")
+    print(f"    Unconstrained features: {len(feature_names) - total_constrained}")
+    print(f"    ✓ Within constraints: {within_count}/{total_constrained} ({satisfaction_rate:.1f}%)")
+    print(f"    ✗ Constraint violations: {violation_count}/{total_constrained}")
+    
+    if violation_count > 0:
+        violation_indices = np.where(~within_constraints & constrained_features)[0]
+        violation_features = [display_feature_names[i] for i in violation_indices]
+        print(f"    Violated features: {', '.join(violation_features[:5])}")
+        if len(violation_features) > 5:
+            print(f"      ... and {len(violation_features) - 5} more")
+
+    return fig
+
+
 def visualize_sample_comparison_smooth(sample_id: str, tests_sample: Dict, feature_names: List[str]):
     """
     Compare reason and anti-reason for a single sample with smooth corridor visualization.
