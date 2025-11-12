@@ -988,6 +988,241 @@ def visualize_sample_with_icf(sample_id: str, tests_sample: Dict,
     return fig
 
 
+def visualize_sample_comparison_smooth(sample_id: str, tests_sample: Dict, feature_names: List[str]):
+    """
+    Compare reason and anti-reason for a single sample with smooth corridor visualization.
+    Instead of showing discrete interval points, this shows smooth constraint corridors.
+
+    Parameters
+    ----------
+    sample_id : str
+        Sample ID to visualize
+    tests_sample : dict
+        Dictionary with sample data
+    feature_names : list
+        List of feature names
+
+    Returns
+    -------
+    plotly.Figure or None
+        Combined figure with smooth reason and anti-reason corridors, or None if missing data
+    """
+    from plotly.subplots import make_subplots
+    import plotly.graph_objects as go
+    import numpy as np
+
+    # Check if both reasons and anti_reasons exist
+    if ("reasons" not in tests_sample[sample_id] or len(tests_sample[sample_id]["reasons"]) == 0 or
+        "anti_reasons" not in tests_sample[sample_id] or len(tests_sample[sample_id]["anti_reasons"]) == 0):
+        print("Need both reasons and anti_reasons for comparison")
+        return None
+
+    # Get sample data
+    sample_dict = tests_sample[sample_id]["features"]
+    series = np.array([sample_dict[f] for f in feature_names])
+    x_axis = np.arange(len(series))
+    display_feature_names = [
+        _format_feature_label(name, idx) for idx, name in enumerate(feature_names)
+    ]
+
+    # Get prediction info
+    sample_meta = tests_sample.get(sample_id, {})
+    predicted_label = sample_meta.get('predicted_label', 'N/A')
+    actual_label = sample_meta.get('actual_label', 'N/A')
+    is_correct = sample_meta.get('prediction_correct', None)
+
+    prediction_status = ""
+    if is_correct is not None:
+        if is_correct:
+            prediction_status = f"✓ CORRECT: Predicted={predicted_label}, Actual={actual_label}"
+        else:
+            prediction_status = f"✗ INCORRECT: Predicted={predicted_label}, Actual={actual_label}"
+
+    # Get reason data
+    first_reason_bitmap = list(tests_sample[sample_id]["reasons"].keys())[0]
+    reason_icf = tests_sample[sample_id]["reasons"][first_reason_bitmap]["icf"]
+    reason_cost = tests_sample[sample_id]["reasons"][first_reason_bitmap]["cost"]
+
+    # Get anti-reason data
+    first_ar_bitmap = list(tests_sample[sample_id]["anti_reasons"].keys())[0]
+    ar_icf = tests_sample[sample_id]["anti_reasons"][first_ar_bitmap]["icf"]
+    ar_cost = tests_sample[sample_id]["anti_reasons"][first_ar_bitmap]["cost"]
+
+    def create_smooth_corridor(icf_data, feature_names_list, series_data, x_values):
+        """Create smooth upper and lower bounds for the constraint corridor"""
+        upper_bounds = []
+        lower_bounds = []
+        constrained_count = 0
+        
+        for idx, f in enumerate(feature_names_list):
+            if f in icf_data:
+                lower_bound, upper_bound = icf_data[f]
+                if not (np.isinf(lower_bound) and np.isinf(upper_bound)):
+                    # Use actual constraint bounds
+                    lower_val = lower_bound if not np.isinf(lower_bound) else series_data[idx] - 1.0
+                    upper_val = upper_bound if not np.isinf(upper_bound) else series_data[idx] + 1.0
+                    constrained_count += 1
+                else:
+                    # Unconstrained - use series value with small margin
+                    lower_val = series_data[idx] - 0.1
+                    upper_val = series_data[idx] + 0.1
+            else:
+                # Unconstrained - use series value with small margin
+                lower_val = series_data[idx] - 0.1
+                upper_val = series_data[idx] + 0.1
+            
+            lower_bounds.append(lower_val)
+            upper_bounds.append(upper_val)
+        
+        return np.array(lower_bounds), np.array(upper_bounds), constrained_count
+
+    # Create smooth corridors for both reason and anti-reason
+    reason_lower, reason_upper, reason_constrained = create_smooth_corridor(reason_icf, feature_names, series, x_axis)
+    ar_lower, ar_upper, ar_constrained = create_smooth_corridor(ar_icf, feature_names, series, x_axis)
+
+    # Create subplots
+    title_main = f'Smooth Corridor Comparison: Reason vs Anti-Reason - Sample {sample_id}'
+    if prediction_status:
+        title_main += f'<br><sub>{prediction_status}</sub>'
+
+    fig = make_subplots(
+        rows=2, cols=1,
+        subplot_titles=(
+            f'Maximal REASON (cost={reason_cost:.4f}, {reason_constrained}/{len(feature_names)} constrained)',
+            f'Maximal ANTI-REASON (cost={ar_cost:.4f}, {ar_constrained}/{len(feature_names)} constrained)'
+        ),
+        vertical_spacing=0.15
+    )
+
+    # Top plot: Reason corridor
+    # Add filled area between upper and lower bounds
+    fig.add_trace(go.Scatter(
+        x=np.concatenate([x_axis, x_axis[::-1]]),
+        y=np.concatenate([reason_upper, reason_lower[::-1]]),
+        fill='toself',
+        fillcolor='rgba(0, 255, 0, 0.2)',
+        line=dict(color='rgba(255,255,255,0)'),
+        hoverinfo="skip",
+        showlegend=False,
+        name='Reason Corridor'
+    ), row=1, col=1)
+
+    # Add upper and lower bound lines for reason
+    fig.add_trace(go.Scatter(
+        x=x_axis,
+        y=reason_upper,
+        mode='lines',
+        line=dict(color='green', width=2, dash='dash'),
+        name='Upper Bound',
+        hovertemplate='Feature %{x}<br>Upper Bound: %{y:.3f}<extra></extra>',
+        showlegend=True
+    ), row=1, col=1)
+
+    fig.add_trace(go.Scatter(
+        x=x_axis,
+        y=reason_lower,
+        mode='lines',
+        line=dict(color='green', width=2, dash='dot'),
+        name='Lower Bound',
+        hovertemplate='Feature %{x}<br>Lower Bound: %{y:.3f}<extra></extra>',
+        showlegend=True
+    ), row=1, col=1)
+
+    # Add time series line for reason
+    fig.add_trace(go.Scatter(
+        x=x_axis, 
+        y=series,
+        mode='lines+markers',
+        name='Test Sample',
+        line=dict(color='blue', width=3),
+        marker=dict(size=5, color='blue'),
+        hovertemplate='Feature %{x}<br>Value: %{y:.3f}<extra></extra>',
+        showlegend=True
+    ), row=1, col=1)
+
+    # Bottom plot: Anti-Reason corridor
+    # Add filled area between upper and lower bounds
+    fig.add_trace(go.Scatter(
+        x=np.concatenate([x_axis, x_axis[::-1]]),
+        y=np.concatenate([ar_upper, ar_lower[::-1]]),
+        fill='toself',
+        fillcolor='rgba(255, 0, 0, 0.2)',
+        line=dict(color='rgba(255,255,255,0)'),
+        hoverinfo="skip",
+        showlegend=False,
+        name='Anti-Reason Corridor'
+    ), row=2, col=1)
+
+    # Add upper and lower bound lines for anti-reason
+    fig.add_trace(go.Scatter(
+        x=x_axis,
+        y=ar_upper,
+        mode='lines',
+        line=dict(color='red', width=2, dash='dash'),
+        name='Upper Bound',
+        hovertemplate='Feature %{x}<br>Upper Bound: %{y:.3f}<extra></extra>',
+        showlegend=False
+    ), row=2, col=1)
+
+    fig.add_trace(go.Scatter(
+        x=x_axis,
+        y=ar_lower,
+        mode='lines',
+        line=dict(color='red', width=2, dash='dot'),
+        name='Lower Bound',
+        hovertemplate='Feature %{x}<br>Lower Bound: %{y:.3f}<extra></extra>',
+        showlegend=False
+    ), row=2, col=1)
+
+    # Add time series line for anti-reason
+    fig.add_trace(go.Scatter(
+        x=x_axis, 
+        y=series,
+        mode='lines+markers',
+        name='Test Sample',
+        line=dict(color='blue', width=3),
+        marker=dict(size=5, color='blue'),
+        hovertemplate='Feature %{x}<br>Value: %{y:.3f}<extra></extra>',
+        showlegend=False
+    ), row=2, col=1)
+
+    # Update axes
+    fig.update_xaxes(title_text="Feature Index (Time Points)", row=1, col=1)
+    fig.update_xaxes(title_text="Feature Index (Time Points)", row=2, col=1)
+    fig.update_yaxes(title_text="Value", row=1, col=1)
+    fig.update_yaxes(title_text="Value", row=2, col=1)
+
+    # Update layout
+    fig.update_layout(
+        title=title_main,
+        height=950,
+        template='plotly_white',
+        showlegend=True,
+        hovermode='closest',
+        legend=dict(
+            yanchor="top",
+            y=0.48,
+            xanchor="left",
+            x=1.02
+        )
+    )
+
+    # Print summary
+    print(f"\nSmooth Corridor Comparison for Sample {sample_id}:")
+    if prediction_status:
+        print(f"  {prediction_status}")
+    print(f"\n  REASON CORRIDOR:")
+    print(f"    Cost: {reason_cost:.6f}")
+    print(f"    Constrained features: {reason_constrained}/{len(feature_names)}")
+    print(f"    Corridor width: avg={np.mean(reason_upper - reason_lower):.3f}")
+    print(f"\n  ANTI-REASON CORRIDOR:")
+    print(f"    Cost: {ar_cost:.6f}")
+    print(f"    Constrained features: {ar_constrained}/{len(feature_names)}")
+    print(f"    Corridor width: avg={np.mean(ar_upper - ar_lower):.3f}")
+
+    return fig
+
+
 def visualize_sample_comparison(sample_id: str, tests_sample: Dict, feature_names: List[str]):
     """
     Compare reason and anti-reason for a single sample.
