@@ -98,6 +98,8 @@ COMBINED_INT_ROWS = [
 COMBINED_FLOAT_ROWS = [
 	'Mean EU Features',
 	'EU Std',
+	'Test Accuracy',
+	'CV Score',
 ]
 COMBINED_PERCENT_ROWS = [
 	'IterGoodRadio %',
@@ -790,12 +792,13 @@ def load_results_artifacts(
 	if not log_summary and hasattr(counts_df, 'attrs'):
 		log_summary = counts_df.attrs.get('log_summary', {})
 
-	if not summary.empty and log_summary:
-		summary['Worker start (min)'] = summary['dataset'].map(lambda ds: log_summary.get(ds, {}).get('log_start_min'))
-		summary['Worker end (max)'] = summary['dataset'].map(lambda ds: log_summary.get(ds, {}).get('log_end_max'))
-		summary['Worker span (s)'] = summary['dataset'].map(lambda ds: log_summary.get(ds, {}).get('log_duration_seconds'))
-		if 'Worker span (s)' in summary.columns:
-			summary['Worker span (s)'] = pd.to_numeric(summary['Worker span (s)'], errors='coerce').round(3)
+	# Remove Worker timing columns (not needed in summary display)
+	# if not summary.empty and log_summary:
+	# 	summary['Worker start (min)'] = summary['dataset'].map(lambda ds: log_summary.get(ds, {}).get('log_start_min'))
+	# 	summary['Worker end (max)'] = summary['dataset'].map(lambda ds: log_summary.get(ds, {}).get('log_end_max'))
+	# 	summary['Worker span (s)'] = summary['dataset'].map(lambda ds: log_summary.get(ds, {}).get('log_duration_seconds'))
+	# 	if 'Worker span (s)' in summary.columns:
+	# 		summary['Worker span (s)'] = pd.to_numeric(summary['Worker span (s)'], errors='coerce').round(3)
 
 	import zipfile
 
@@ -881,6 +884,69 @@ def get_first_table(
 			'avg_nodes': to_float(statistics.get('avg_nodes')),
 		}
 
+	def extract_model_accuracy_from_db(db: dict | None, dataset_name: str) -> dict[str, Any]:
+		"""Extract model accuracy and parameters from DB0"""
+		result = {
+			'test_accuracy': None,
+			'cv_score': None,
+			'best_params': None,
+		}
+
+		if db is None or not isinstance(db, dict):
+			return result
+
+		# Try to get RF_OPTIMIZATION_RESULTS from DB0
+		db0_data = db.get('data') or db.get('DATA') or db.get(0)
+		if not isinstance(db0_data, dict):
+			return result
+
+		rf_opt_entry = db0_data.get('RF_OPTIMIZATION_RESULTS')
+		if not isinstance(rf_opt_entry, dict):
+			return result
+
+		rf_opt_data = rf_opt_entry.get('value_json')
+		if not isinstance(rf_opt_data, dict):
+			return result
+
+		# Extract accuracy metrics
+		result['test_accuracy'] = to_float(rf_opt_data.get('test_score'))
+		result['cv_score'] = to_float(rf_opt_data.get('best_cv_score'))
+		result['best_params'] = rf_opt_data.get('best_params')
+
+		return result
+
+	def extract_accuracy_map(analyzed_sources: set[str], results_dir_path: Path | None) -> dict[str, dict[str, Any]]:
+		"""Extract accuracy for all analyzed datasets from their ZIP files"""
+		accuracy_map = {}
+
+		if not analyzed_sources or not results_dir_path or not results_dir_path.exists():
+			return accuracy_map
+
+		from etl.zip_inspector import collect_archive_data
+		from etl.data_loader import load_db0
+
+		for dataset_name in analyzed_sources:
+			# Try to find the ZIP file for this dataset
+			zip_pattern = f"{dataset_name}_*.zip"
+			zip_files = list(results_dir_path.glob(zip_pattern))
+			if zip_files:
+				zip_path = zip_files[0]  # Take the first match
+				try:
+					# Load only DB0 to extract accuracy
+					archive_data = collect_archive_data(zip_path)
+					manifest = archive_data.get('manifest')
+					backups = archive_data.get('backups')
+					if manifest and backups:
+						db0_data = load_db0(manifest, backups)
+						# Create a temporary db structure
+						temp_db = {'data': db0_data}
+						accuracy_data = extract_model_accuracy_from_db(temp_db, dataset_name)
+						accuracy_map[dataset_name] = accuracy_data
+				except Exception:
+					pass  # Skip if there's any error loading the ZIP
+
+		return accuracy_map
+
 	def build_eu_metrics(entries: list[Mapping[str, Any]]) -> dict[str, dict[str, Any]]:
 		eu: dict[str, dict[str, Any]] = {}
 		for e in entries:
@@ -949,6 +1015,7 @@ def get_first_table(
 
 	summary_df = summary_df.rename(columns={'mean_eu': 'mean eu features', 'eu_std_dev': 'eu std'})
 
+
 	analyzed_sources: set[str] = {str(item).strip() for item in (results_datasets or []) if str(item).strip()}
 	analyzed_sources.update(str(item).strip() for item in (zip_dataset_prefixes or []) if str(item).strip())
 
@@ -960,6 +1027,7 @@ def get_first_table(
 		summary_df['analyzed'] = summary_df['dataset'].apply(lambda d: 'YES' if d in analyzed_sources else 'NO')
 	else:
 		summary_df['analyzed'] = 'N/A'
+
 
 	INF = float('inf')
 	summary_df['_sort_n_estimators'] = summary_df['n_estimators'].fillna(INF)
@@ -978,17 +1046,19 @@ def get_first_table(
 	counts_df_local = counts_df.copy() if isinstance(counts_df, pd.DataFrame) else pd.DataFrame()
 	log_summary = counts_df_local.attrs.get('log_summary', {}) if hasattr(counts_df_local, 'attrs') else {}
 
-	if not summary_df.empty and log_summary:
-		summary_df['Worker start (min)'] = summary_df['dataset'].map(lambda ds: log_summary.get(ds, {}).get('log_start_min'))
-		summary_df['Worker end (max)'] = summary_df['dataset'].map(lambda ds: log_summary.get(ds, {}).get('log_end_max'))
-		summary_df['Worker span (s)'] = summary_df['dataset'].map(lambda ds: log_summary.get(ds, {}).get('log_duration_seconds'))
-		if 'Worker span (s)' in summary_df.columns:
-			summary_df['Worker span (s)'] = pd.to_numeric(summary_df['Worker span (s)'], errors='coerce').round(3)
+	# Worker timing columns are not needed, skip adding them
+	# if not summary_df.empty and log_summary:
+	# 	summary_df['Worker start (min)'] = summary_df['dataset'].map(lambda ds: log_summary.get(ds, {}).get('log_start_min'))
+	# 	summary_df['Worker end (max)'] = summary_df['dataset'].map(lambda ds: log_summary.get(ds, {}).get('log_end_max'))
+	# 	summary_df['Worker span (s)'] = summary_df['dataset'].map(lambda ds: log_summary.get(ds, {}).get('log_duration_seconds'))
+	# 	if 'Worker span (s)' in summary_df.columns:
+	# 		summary_df['Worker span (s)'] = pd.to_numeric(summary_df['Worker span (s)'], errors='coerce').round(3)
 
 	columns_to_remove = [
 		'avg_depth',
 		'avg_leaves',
 		'avg_nodes',
+		# Worker columns are no longer added, but keep in list for safety
 		'Worker start (min)',
 		'Worker end (max)',
 		'Worker span (s)',
@@ -1226,6 +1296,7 @@ def build_combined_analyzed_table(
 	summary_df: pd.DataFrame | None,
 	analyzed_counts_df: pd.DataFrame | None,
 	*,
+	results_dir: Path | None = None,
 	column_colormaps: Mapping[str, str] | None = None,
 	default_cmap: str | None = None,
 ) -> tuple[pd.DataFrame, Any]:
@@ -1236,6 +1307,38 @@ def build_combined_analyzed_table(
 		analyzed_summary = summary_df[summary_df['analyzed'] == 'YES'].copy()
 	else:
 		analyzed_summary = summary_df.copy()
+
+	# Extract accuracy for analyzed datasets PARALLELY (only for combined table)
+	if not analyzed_summary.empty and results_dir is not None:
+		results_dir_path = Path(results_dir) if not isinstance(results_dir, Path) else results_dir
+		analyzed_sources = set(analyzed_summary['dataset'].astype(str).unique())
+
+		# Use PARALLEL extraction (much faster for multiple datasets)
+		from etl.parallel_models import extract_accuracy_for_analyzed_datasets
+
+		accuracy_full_map = extract_accuracy_for_analyzed_datasets(
+			analyzed_sources,
+			results_dir_path,
+			n_workers=None,  # Auto-detect CPU count
+			verbose=True
+		)
+
+		# Convert to simple format
+		accuracy_map = {}
+		for dataset_name, data in accuracy_full_map.items():
+			accuracy_map[dataset_name] = {
+				'test_accuracy': data.get('test_accuracy'),
+				'cv_score': data.get('cv_score')
+			}
+
+		# Add accuracy columns to analyzed_summary
+		if accuracy_map:
+			analyzed_summary['test_accuracy'] = analyzed_summary['dataset'].apply(
+				lambda d: accuracy_map.get(d, {}).get('test_accuracy')
+			)
+			analyzed_summary['cv_score'] = analyzed_summary['dataset'].apply(
+				lambda d: accuracy_map.get(d, {}).get('cv_score')
+			)
 
 	if not counts_df.empty:
 		counts_df = counts_df.copy()
@@ -1283,6 +1386,8 @@ def build_combined_analyzed_table(
 		'n_estimators': 'N Estimators',
 		'mean eu features': 'Mean EU Features',
 		'eu std': 'EU Std',
+		'test_accuracy': 'Test Accuracy',
+		'cv_score': 'CV Score',
 		'Total time (s) mean': 'Total Time (ms)',
 		'ICF checks': 'ICF Checks',
 		'Reason check iteration total': 'Reason Check Iteration',
@@ -1300,6 +1405,8 @@ def build_combined_analyzed_table(
 		'N Estimators',
 		'Mean EU Features',
 		'EU Std',
+		'Test Accuracy',
+		'CV Score',
 		'Total Time (ms)',
 		'ICF Checks',
 		'Reason Check Iteration',
@@ -1381,6 +1488,10 @@ def prepare_summary_display(
 		columns = ['dataset', *display_categories] if display_categories else ['dataset']
 		summary_to_show = pd.DataFrame(columns=columns)
 
+	# Remove Worker timing columns (not needed in display)
+	worker_columns = ['Worker start (min)', 'Worker end (max)', 'Worker span (s)']
+	summary_to_show = summary_to_show.drop(columns=worker_columns, errors='ignore')
+
 	# Definisci le colonne che devono essere sempre intere
 	# Usa i nomi completi (dopo il rename) dalle DISPLAY_LABELS
 	int_columns = [
@@ -1420,7 +1531,11 @@ def prepare_models_analysis(
 		db=db,
 	)
 	analyzed_counts_df, analyzed_counts_styler = build_analyzed_counts_table(first_table)
-	combined_analyzed_df, combined_analyzed_styler = build_combined_analyzed_table(first_table.summary_df, analyzed_counts_df)
+	combined_analyzed_df, combined_analyzed_styler = build_combined_analyzed_table(
+		first_table.summary_df,
+		analyzed_counts_df,
+		results_dir=artifacts.results_dir
+	)
 	summary_to_show, summary_styler = prepare_summary_display(artifacts.summary)
 
 	print(f'Base dir           : {artifacts.base_dir}')

@@ -14,6 +14,11 @@ _cache = ETLCache()
 _raw_cache = RawDataCache()
 
 
+def get_etl_cache():
+    """Get the global ETL cache instance"""
+    return _cache
+
+
 def etl(zip_paths, results_dir, use_cache=True, force_refresh=False, auto_select=False, skip_workers_report=False, load_only_db10=False, verbose=True):
     """
     Extract, Transform, Load data from ZIP archives with 2-level caching
@@ -79,8 +84,6 @@ def etl(zip_paths, results_dir, use_cache=True, force_refresh=False, auto_select
     if use_cache and not force_refresh and selected_zip_path:
         cached_data = _cache.load(selected_zip_path)
         if cached_data is not None:
-            if verbose:
-                print(f"Using cached DB" + (", skipping workers report..." if skip_workers_report else ", regenerating workers/plots..."))
             db = cached_data['db']
 
             # Regenerate workers and plots (not cacheable due to unpicklable objects)
@@ -267,4 +270,3 @@ def clear_cache(dataset_name=None):
 def list_cache():
     """List cached datasets"""
     return _cache.list_cached()
-
