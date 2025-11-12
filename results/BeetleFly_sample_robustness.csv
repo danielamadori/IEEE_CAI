@@ -1,0 +1,14 @@
+sample_id,robustness,predicted_label,actual_label,correct_prediction
+BeetleFly_1_0,0.8162592861885936,1,1,True
+BeetleFly_1_10,0.8176042121037261,1,2,False
+BeetleFly_1_11,0.7957105756555889,1,2,False
+BeetleFly_1_12,0.8276822000738808,1,2,False
+BeetleFly_1_1,0.8158173487542211,1,1,True
+BeetleFly_1_2,0.8152100880590357,1,1,True
+BeetleFly_1_3,0.8153073926184641,1,1,True
+BeetleFly_1_4,0.8495547979243341,1,1,True
+BeetleFly_1_5,0.8240394398170144,1,1,True
+BeetleFly_1_6,0.8176469991925144,1,1,True
+BeetleFly_1_7,0.8245973735798018,1,1,True
+BeetleFly_1_8,0.8188225826955491,1,1,True
+BeetleFly_1_9,0.8241963471976191,1,1,True

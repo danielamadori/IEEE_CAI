@@ -1,0 +1,11 @@
+sample_id,robustness,predicted_label,actual_label,correct_prediction
+BirdChicken_1_3,0.8425991636877147,1,1,True
+BirdChicken_1_0,0.8443144052989116,1,1,True
+BirdChicken_1_1,0.8424380237939202,1,1,True
+BirdChicken_1_2,0.8434990165113456,1,1,True
+BirdChicken_1_7,0.8421399855546282,1,2,False
+BirdChicken_1_4,0.8434619798609031,1,1,True
+BirdChicken_1_5,0.8356962181900878,1,2,False
+BirdChicken_1_6,0.833822044701634,1,2,False
+BirdChicken_1_8,0.7996558405020165,1,2,False
+BirdChicken_1_9,0.8290951207908673,1,2,False
