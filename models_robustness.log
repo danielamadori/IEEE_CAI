@@ -919,3 +919,1567 @@ Processing 26 samples...
 
 📊 Dataset Overview:
    • Total samples:        26
+   • Correct predictions:  19 (73.1%)
+   • Incorrect predictions: 7 (26.9%)
+
+📈 Robustness Statistics (All Samples):
+   • Mean:      0.518554 +/- 0.025490
+   • Median:    0.520378
+   • Min/Max:   0.446866 / 0.555458
+   • Range:     0.108592
+   • IQR:       0.025052 (Q1=0.510283, Q3=0.535335)
+
+🔍 Robustness by Prediction Correctness:
+--------------------------------------------------------------------------------
+
+  ✓ CORRECT Predictions (19 samples):
+     Mean:      0.521989 +/- 0.027529
+     Median:    0.527440
+     Range:     [0.446866, 0.555458]
+
+  ✗ INCORRECT Predictions (7 samples):
+     Mean:      0.509230 +/- 0.017171
+     Median:    0.515952
+     Range:     [0.476132, 0.522461]
+
+  📊 Difference (Correct - Incorrect): +0.012759
+
+--------------------------------------------------------------------------------
+
+✅ Results saved to: results/Lightning2_sample_robustness.csv
+
+
+================================================================================
+MODEL ACCURACY VS ROBUSTNESS
+================================================================================
+  • Test accuracy (RF optimization): 0.7377 (73.77%)
+  • Best CV score: 0.8833
+
+Robustness summary (anti-reasons)
+  • Mean robustness:   0.5186
+  • Median robustness: 0.5204
+  • Min / Max:        0.4469 / 0.5555
+
+Accuracy vs robustness deltas
+  • 1 - mean robustness: 0.4814
+  • Test accuracy - mean robustness: 0.2192
+
+DB0 exposes 8 RF optimization metrics (table below).
+Total test samples available: 26
+Number of features per sample: 637
+
+================================================================================
+Detailed analysis will use Sample ID: Lightning2_-1_3
+================================================================================
+
+REASONS Analysis for Sample Lightning2_-1_3:
+  ✓ CORRECT: Predicted=-1, Actual=-1
+  Cost: 324.809182
+  Constrained features: 344/637
+  Temporal intervals: 108
+
+ANTI-REASONS Analysis for Sample Lightning2_-1_3:
+  ✓ CORRECT: Predicted=-1, Actual=-1
+  Cost: 324.353433
+  Constrained features: 343/637
+  Temporal intervals: 110
+
+Comparison for Sample Lightning2_-1_3:
+  ✓ CORRECT: Predicted=-1, Actual=-1
+
+  REASON:
+    Constrained features: 344
+    Temporal intervals: 108
+  ANTI-REASON:
+    Constrained features: 343
+    Temporal intervals: 110
+
+================================================================================
+ROBUSTNESS PER ICF (Anti-Reasons Only)
+================================================================================
+
+Total anti-reason ICFs analyzed: 49
+
+Top 10 ICFs by max_cost (hardest to reach):
+  max_cost  robustness  mean_cost  n_samples
+352.346501    0.446866 304.464593         26
+351.355207    0.448422 302.834160         26
+351.284075    0.448534 302.375912         26
+350.633978    0.449554 301.843348         26
+350.490377    0.449780 301.674089         26
+350.363934    0.449978 302.306428         26
+350.338658    0.450018 303.074469         26
+350.323357    0.450042 302.136395         26
+350.121196    0.450359 302.086156         26
+349.850479    0.450784 300.742965         26
+
+
+ANTI-REASONS with LOWEST robustness (most vulnerable - easiest to perturb):
+  max_cost  robustness  mean_cost  n_samples
+352.346501    0.446866 304.464593         26
+351.355207    0.448422 302.834160         26
+351.284075    0.448534 302.375912         26
+350.633978    0.449554 301.843348         26
+350.490377    0.449780 301.674089         26
+
+
+Results saved to: results/anti_reasons_robustness.csv
+
+Smooth Corridor Comparison for Sample Lightning2_-1_3:
+  ✓ CORRECT: Predicted=-1, Actual=-1
+
+  REASON CORRIDOR:
+    Cost: 324.809182
+    Constrained features: 344/637
+    Corridor width: avg=0.777
+
+  ANTI-REASON CORRIDOR:
+    Cost: 324.353433
+    Constrained features: 343/637
+    Corridor width: avg=0.760
+? BASE_DIR     : /media/DATA/emanuelechini/IEEE_CAI
+? RESULTS_DIR  : /media/DATA/emanuelechini/IEEE_CAI/results
+Dataset: BeetleFly, BirdChicken, CinCECGTorso, Coffee, ECG200, FaceFour, GunPoint, HandOutlines, ItalyPowerDemand, Lightning2, Meat, MiddlePhalanxOutlineCorrect, MoteStrain, SonyAIBORobotSurface1, SonyAIBORobotSurface2, ToeSegmentation2, TwoLeadECG, Wine
+Processing dataset ZIP: Meat_1_false_0.zip
+Extracting databases from Meat_1_false_0.zip...
+Cached raw data for Meat_1_false_0.zip (10 databases)
+Report built for 32 workers.
+✓ Cached data for Meat_1_false_0.zip
+Using unified database (db parameter) for DB10 data sharing
+Resuming from cache: 18 datasets already processed
+Processing 141/144: _cache...Manifest not found in directory: /media/DATA/emanuelechini/IEEE_CAI/results/_cache
+
+Processed 0 new datasets (18 total)
+Saved redis summary cache at /media/DATA/emanuelechini/IEEE_CAI/results/redis_reason_counts.csv
+
+================================================================================
+PARALLEL ACCURACY EXTRACTION
+================================================================================
+Processing 18 ZIP files with 9 workers...
+
+✓ Extraction complete:
+  - Success: 17/18
+  - Errors: 1/18, datasets errors ['HandOutlines']
+================================================================================
+
+Base dir           : /media/DATA/emanuelechini/IEEE_CAI
+Loaded 88 rows from /media/DATA/emanuelechini/IEEE_CAI/forest_report.json
+Results directory  : /media/DATA/emanuelechini/IEEE_CAI/results (exists=True)
+Extracted 18 test samples
+Features: 448
+Calculating costs for anti_reasons...
+================================================================================
+
+→ Computing costs for Meat (not in cache)...
+Using PARALLEL computation with INCREMENTAL cache to reduce RAM usage
+
+🚀 TRUE MULTIPROCESSING MODE - Using 30 SEPARATE PROCESSES
+   Batch size: 50 ICFs | Save every: 10 batches
+
+================================================================================
+Processing REASONS
+================================================================================
+  Total ICFs: 38
+  Adjusted batches 1 -> 30 to evenly spread work across 30 processes (~2 ICFs each)
+  Created 30 batches
+  Submitting ALL batches to 30 parallel processes...
+[Meat ICF] Monitor
+  -      reasons: 0/30 batches | 0/38 ICFs (0.0%) | 0.0 ICF/s | running
+[Meat ICF] Monitor
+  -      reasons: 1/30 batches | 1/38 ICFs (2.6%) | 1.0 ICF/s | running
+  ✓ Batch 1/30 complete | 1 ICFs | 1.0 ICF/sec
+  ✓ Batch 2/30 complete | 2 ICFs | 1.8 ICF/sec
+  ✓ Batch 3/30 complete | 3 ICFs | 2.7 ICF/sec
+  ✓ Batch 4/30 complete | 4 ICFs | 3.5 ICF/sec
+  ✓ Batch 5/30 complete | 5 ICFs | 4.3 ICF/sec
+  ✓ Batch 6/30 complete | 6 ICFs | 5.2 ICF/sec
+  ✓ Batch 7/30 complete | 7 ICFs | 6.1 ICF/sec
+  ✓ Batch 8/30 complete | 8 ICFs | 6.9 ICF/sec
+  ✓ Batch 9/30 complete | 9 ICFs | 7.7 ICF/sec
+  ✓ Batch 10/30 complete | 10 ICFs | 8.6 ICF/sec
+  💾 Saved 180 costs to cache (checkpoint at batch 10/30)
+  ✓ Batch 11/30 complete | 11 ICFs | 9.2 ICF/sec
+  ✓ Batch 12/30 complete | 12 ICFs | 10.0 ICF/sec
+  ✓ Batch 13/30 complete | 14 ICFs | 11.5 ICF/sec
+  ✓ Batch 14/30 complete | 15 ICFs | 12.0 ICF/sec
+  ✓ Batch 15/30 complete | 16 ICFs | 12.8 ICF/sec
+  ✓ Batch 16/30 complete | 17 ICFs | 13.5 ICF/sec
+  ✓ Batch 17/30 complete | 18 ICFs | 14.1 ICF/sec
+  ✓ Batch 18/30 complete | 19 ICFs | 14.9 ICF/sec
+  ✓ Batch 19/30 complete | 20 ICFs | 15.5 ICF/sec
+  ✓ Batch 20/30 complete | 21 ICFs | 16.2 ICF/sec
+  💾 Saved 198 costs to cache (checkpoint at batch 20/30)
+  ✓ Batch 21/30 complete | 22 ICFs | 16.9 ICF/sec
+  ✓ Batch 22/30 complete | 23 ICFs | 17.6 ICF/sec
+  ✓ Batch 23/30 complete | 24 ICFs | 18.2 ICF/sec
+  ✓ Batch 24/30 complete | 26 ICFs | 19.3 ICF/sec
+  ✓ Batch 25/30 complete | 28 ICFs | 20.4 ICF/sec
+  ✓ Batch 26/30 complete | 30 ICFs | 21.6 ICF/sec
+  ✓ Batch 27/30 complete | 32 ICFs | 22.3 ICF/sec
+  ✓ Batch 28/30 complete | 34 ICFs | 22.7 ICF/sec
+  ✓ Batch 29/30 complete | 36 ICFs | 23.9 ICF/sec
+  ✓ Batch 30/30 complete | 38 ICFs | 24.8 ICF/sec
+  💾 Saved 306 costs to cache (checkpoint at batch 30/30)
+
+  ✅ Completed reasons in 1.5s
+     Average: 24.8 ICF/sec (38 ICFs total)
+[Meat ICF] Monitor
+  -      reasons: 30/30 batches | 38/38 ICFs (100.0%) | 24.8 ICF/s | done
+
+================================================================================
+Processing NON_REASONS
+================================================================================
+  Total ICFs: 6
+  Created 1 batches
+  Submitting ALL batches to 30 parallel processes...
+[Meat ICF] Monitor
+  -      reasons: 30/30 batches | 38/38 ICFs (100.0%) | 24.8 ICF/s | done
+  -  non_reasons: 0/1 batches | 0/6 ICFs (0.0%) | 0.0 ICF/s | running
+[Meat ICF] Monitor
+  -      reasons: 30/30 batches | 38/38 ICFs (100.0%) | 14.2 ICF/s | done
+  -  non_reasons: 1/1 batches | 6/6 ICFs (100.0%) | 5.2 ICF/s | running
+  ✓ Batch 1/1 complete | 6 ICFs | 5.2 ICF/sec
+  💾 Saved 108 costs to cache (checkpoint at batch 1/1)
+
+  ✅ Completed non_reasons in 1.1s
+     Average: 5.2 ICF/sec (6 ICFs total)
+[Meat ICF] Monitor
+  -      reasons: 30/30 batches | 38/38 ICFs (100.0%) | 14.2 ICF/s | done
+  -  non_reasons: 1/1 batches | 6/6 ICFs (100.0%) | 5.2 ICF/s | done
+
+================================================================================
+Processing ANTI_REASONS
+================================================================================
+  Total ICFs: 36
+  Adjusted batches 1 -> 30 to evenly spread work across 30 processes (~2 ICFs each)
+  Created 30 batches
+  Submitting ALL batches to 30 parallel processes...
+[Meat ICF] Monitor
+  -      reasons: 30/30 batches | 38/38 ICFs (100.0%) | 14.2 ICF/s | done
+  -  non_reasons: 1/1 batches | 6/6 ICFs (100.0%) | 5.2 ICF/s | done
+  - anti_reasons: 0/30 batches | 0/36 ICFs (0.0%) | 0.0 ICF/s | running
+  ✓ Batch 1/30 complete | 1 ICFs | 5.2 ICF/sec
+  ✓ Batch 2/30 complete | 2 ICFs | 7.2 ICF/sec
+  ✓ Batch 3/30 complete | 3 ICFs | 10.6 ICF/sec
+  ✓ Batch 4/30 complete | 4 ICFs | 12.8 ICF/sec
+  ✓ Batch 5/30 complete | 5 ICFs | 14.9 ICF/sec
+  ✓ Batch 6/30 complete | 6 ICFs | 17.2 ICF/sec
+  ✓ Batch 7/30 complete | 7 ICFs | 19.9 ICF/sec
+  ✓ Batch 8/30 complete | 8 ICFs | 22.5 ICF/sec
+  ✓ Batch 9/30 complete | 9 ICFs | 25.2 ICF/sec
+  ✓ Batch 10/30 complete | 10 ICFs | 27.7 ICF/sec
+  💾 Saved 180 costs to cache (checkpoint at batch 10/30)
+  ✓ Batch 11/30 complete | 11 ICFs | 25.5 ICF/sec
+  ✓ Batch 12/30 complete | 12 ICFs | 26.5 ICF/sec
+  ✓ Batch 13/30 complete | 13 ICFs | 28.2 ICF/sec
+  ✓ Batch 14/30 complete | 14 ICFs | 29.5 ICF/sec
+  ✓ Batch 15/30 complete | 15 ICFs | 31.1 ICF/sec
+  ✓ Batch 16/30 complete | 16 ICFs | 32.3 ICF/sec
+  ✓ Batch 17/30 complete | 17 ICFs | 33.9 ICF/sec
+  ✓ Batch 18/30 complete | 19 ICFs | 37.7 ICF/sec
+  ✓ Batch 19/30 complete | 21 ICFs | 41.2 ICF/sec
+  ✓ Batch 20/30 complete | 22 ICFs | 43.1 ICF/sec
+  💾 Saved 216 costs to cache (checkpoint at batch 20/30)
+  ✓ Batch 21/30 complete | 23 ICFs | 45.0 ICF/sec
+  ✓ Batch 22/30 complete | 24 ICFs | 46.9 ICF/sec
+  ✓ Batch 23/30 complete | 25 ICFs | 48.7 ICF/sec
+  ✓ Batch 24/30 complete | 26 ICFs | 50.7 ICF/sec
+  ✓ Batch 25/30 complete | 27 ICFs | 52.5 ICF/sec
+  ✓ Batch 26/30 complete | 28 ICFs | 54.3 ICF/sec
+  ✓ Batch 27/30 complete | 30 ICFs | 58.0 ICF/sec
+  ✓ Batch 28/30 complete | 32 ICFs | 58.8 ICF/sec
+  ✓ Batch 29/30 complete | 34 ICFs | 58.3 ICF/sec
+  ✓ Batch 30/30 complete | 36 ICFs | 50.0 ICF/sec
+  💾 Saved 252 costs to cache (checkpoint at batch 30/30)
+
+  ✅ Completed anti_reasons in 0.7s
+     Average: 50.0 ICF/sec (36 ICFs total)
+[Meat ICF] Monitor
+  -      reasons: 30/30 batches | 38/38 ICFs (100.0%) | 11.2 ICF/s | done
+  -  non_reasons: 1/1 batches | 6/6 ICFs (100.0%) | 3.2 ICF/s | done
+  - anti_reasons: 30/30 batches | 36/36 ICFs (100.0%) | 50.0 ICF/s | done
+
+================================================================================
+🎉 ALL PROCESSING COMPLETE
+================================================================================
+Total costs calculated: 1440
+
+✓ Parallel computation complete: 1440 costs calculated
+
+================================================================================
+COST CALCULATION COMPLETE
+================================================================================
+Total costs calculated: 1440
+
+
+================================================================================
+  ROBUSTNESS CALCULATION (Anti-Reasons Only)
+================================================================================
+
+📐 Configuration:
+   • Number of features: 448
+
+📝 Formula:
+   r(C,x) = 1 - max{ICF ∈ AR{C,y}} cost_x(ICF) / |features|
+
+   where AR{C,y} = set of Anti-Reasons for class y
+
+
+================================================================================
+  ICF-LEVEL ROBUSTNESS ANALYSIS (Anti-Reasons)
+================================================================================
+
+📋 ICF Summary:
+   • Total anti-reason ICFs: 36
+
+📊 Cost Statistics:
+   • Max cost:      110.671233
+   • Mean max cost: 106.994889
+   • Min max cost:  103.224097
+
+🎯 Robustness Statistics:
+   • Max:  0.769589
+   • Mean: 0.761172
+   • Min:  0.752966
+Processing 18 samples...
+✓ All 18 samples processed
+
+
+================================================================================
+  SAMPLE-LEVEL ROBUSTNESS ANALYSIS
+================================================================================
+
+📊 Dataset Overview:
+   • Total samples:        18
+   • Correct predictions:  17 (94.4%)
+   • Incorrect predictions: 1 (5.6%)
+
+📈 Robustness Statistics (All Samples):
+   • Mean:      0.760424 +/- 0.003785
+   • Median:    0.759982
+   • Min/Max:   0.752966 / 0.768219
+   • Range:     0.015253
+   • IQR:       0.002651 (Q1=0.758831, Q3=0.761482)
+
+🔍 Robustness by Prediction Correctness:
+--------------------------------------------------------------------------------
+
+  ✓ CORRECT Predictions (17 samples):
+     Mean:      0.760524 +/- 0.003877
+     Median:    0.760136
+     Range:     [0.752966, 0.768219]
+
+  ✗ INCORRECT Predictions (1 samples):
+     Mean:      0.758731 +/- 0.000000
+     Median:    0.758731
+     Range:     [0.758731, 0.758731]
+
+  📊 Difference (Correct - Incorrect): +0.001793
+
+--------------------------------------------------------------------------------
+
+✅ Results saved to: results/Meat_sample_robustness.csv
+
+
+================================================================================
+MODEL ACCURACY VS ROBUSTNESS
+================================================================================
+  • Test accuracy (RF optimization): 0.9333 (93.33%)
+  • Best CV score: 1.0000
+
+Robustness summary (anti-reasons)
+  • Mean robustness:   0.7604
+  • Median robustness: 0.7600
+  • Min / Max:        0.7530 / 0.7682
+
+Accuracy vs robustness deltas
+  • 1 - mean robustness: 0.2396
+  • Test accuracy - mean robustness: 0.1729
+
+DB0 exposes 8 RF optimization metrics (table below).
+Total test samples available: 18
+Number of features per sample: 448
+
+================================================================================
+Detailed analysis will use Sample ID: Meat_1_4
+================================================================================
+
+REASONS Analysis for Sample Meat_1_4:
+  ✓ CORRECT: Predicted=1, Actual=1
+  Cost: 131.087948
+  Constrained features: 109/448
+  Temporal intervals: 39
+
+ANTI-REASONS Analysis for Sample Meat_1_4:
+  ✓ CORRECT: Predicted=1, Actual=1
+  Cost: 84.059814
+  Constrained features: 128/448
+  Temporal intervals: 45
+
+Comparison for Sample Meat_1_4:
+  ✓ CORRECT: Predicted=1, Actual=1
+
+  REASON:
+    Constrained features: 109
+    Temporal intervals: 39
+  ANTI-REASON:
+    Constrained features: 128
+    Temporal intervals: 45
+
+================================================================================
+ROBUSTNESS PER ICF (Anti-Reasons Only)
+================================================================================
+
+Total anti-reason ICFs analyzed: 36
+
+Top 10 ICFs by max_cost (hardest to reach):
+  max_cost  robustness  mean_cost  n_samples
+110.671233    0.752966 105.608925         18
+109.188590    0.756275 104.285838         18
+108.088625    0.758731  85.604070         18
+107.913584    0.759121  85.138136         18
+107.815699    0.759340  85.052454         18
+107.687900    0.759625  84.455610         18
+107.564698    0.759900  84.573488         18
+107.535981    0.759964  84.822020         18
+107.501147    0.760042  84.520585         18
+107.493229    0.760060  83.846299         18
+
+
+ANTI-REASONS with LOWEST robustness (most vulnerable - easiest to perturb):
+  max_cost  robustness  mean_cost  n_samples
+110.671233    0.752966 105.608925         18
+109.188590    0.756275 104.285838         18
+108.088625    0.758731  85.604070         18
+107.913584    0.759121  85.138136         18
+107.815699    0.759340  85.052454         18
+
+
+Results saved to: results/anti_reasons_robustness.csv
+
+Smooth Corridor Comparison for Sample Meat_1_4:
+  ✓ CORRECT: Predicted=1, Actual=1
+
+  REASON CORRIDOR:
+    Cost: 131.087948
+    Constrained features: 109/448
+    Corridor width: avg=0.394
+
+  ANTI-REASON CORRIDOR:
+    Cost: 84.059814
+    Constrained features: 128/448
+    Corridor width: avg=0.409
+? BASE_DIR     : /media/DATA/emanuelechini/IEEE_CAI
+? RESULTS_DIR  : /media/DATA/emanuelechini/IEEE_CAI/results
+Dataset: BeetleFly, BirdChicken, CinCECGTorso, Coffee, ECG200, FaceFour, GunPoint, HandOutlines, ItalyPowerDemand, Lightning2, Meat, MiddlePhalanxOutlineCorrect, MoteStrain, SonyAIBORobotSurface1, SonyAIBORobotSurface2, ToeSegmentation2, TwoLeadECG, Wine
+Processing dataset ZIP: MiddlePhalanxOutlineCorrect_0_false_0.zip
+Extracting databases from MiddlePhalanxOutlineCorrect_0_false_0.zip...
+Cached raw data for MiddlePhalanxOutlineCorrect_0_false_0.zip (10 databases)
+Report built for 32 workers.
+✓ Cached data for MiddlePhalanxOutlineCorrect_0_false_0.zip
+Using unified database (db parameter) for DB10 data sharing
+Resuming from cache: 18 datasets already processed
+Processing 153/156: _cache...Manifest not found in directory: /media/DATA/emanuelechini/IEEE_CAI/results/_cache
+
+Processed 0 new datasets (18 total)
+Saved redis summary cache at /media/DATA/emanuelechini/IEEE_CAI/results/redis_reason_counts.csv
+
+================================================================================
+PARALLEL ACCURACY EXTRACTION
+================================================================================
+Processing 18 ZIP files with 9 workers...
+
+✓ Extraction complete:
+  - Success: 17/18
+  - Errors: 1/18, datasets errors ['HandOutlines']
+================================================================================
+
+Base dir           : /media/DATA/emanuelechini/IEEE_CAI
+Loaded 88 rows from /media/DATA/emanuelechini/IEEE_CAI/forest_report.json
+Results directory  : /media/DATA/emanuelechini/IEEE_CAI/results (exists=True)
+Extracted 110 test samples
+Features: 80
+Calculating costs for anti_reasons...
+================================================================================
+
+→ Computing costs for MiddlePhalanxOutlineCorrect (not in cache)...
+Using PARALLEL computation with INCREMENTAL cache to reduce RAM usage
+
+🚀 TRUE MULTIPROCESSING MODE - Using 30 SEPARATE PROCESSES
+   Batch size: 50 ICFs | Save every: 10 batches
+
+================================================================================
+Processing REASONS
+================================================================================
+  Total ICFs: 132
+  Adjusted batches 3 -> 30 to evenly spread work across 30 processes (~5 ICFs each)
+  Created 30 batches
+  Submitting ALL batches to 30 parallel processes...
+[MiddlePhalanxOutlineCorrect ICF] Monitor
+  -      reasons: 0/30 batches | 0/132 ICFs (0.0%) | 0.0 ICF/s | running
+[MiddlePhalanxOutlineCorrect ICF] Monitor
+  -      reasons: 1/30 batches | 4/132 ICFs (3.0%) | 1.0 ICF/s | running
+  ✓ Batch 1/30 complete | 4 ICFs | 1.0 ICF/sec
+  ✓ Batch 2/30 complete | 9 ICFs | 2.0 ICF/sec
+[MiddlePhalanxOutlineCorrect ICF] Monitor
+  -      reasons: 3/30 batches | 13/132 ICFs (9.8%) | 2.4 ICF/s | running
+  ✓ Batch 3/30 complete | 13 ICFs | 2.4 ICF/sec
+  ✓ Batch 4/30 complete | 17 ICFs | 3.0 ICF/sec
+  ✓ Batch 5/30 complete | 21 ICFs | 3.6 ICF/sec
+  ✓ Batch 6/30 complete | 25 ICFs | 4.3 ICF/sec
+  ✓ Batch 7/30 complete | 29 ICFs | 4.8 ICF/sec
+  ✓ Batch 8/30 complete | 33 ICFs | 5.4 ICF/sec
+  ✓ Batch 9/30 complete | 37 ICFs | 6.0 ICF/sec
+  ✓ Batch 10/30 complete | 41 ICFs | 6.6 ICF/sec
+  💾 Saved 4510 costs to cache (checkpoint at batch 10/30)
+  ✓ Batch 11/30 complete | 45 ICFs | 7.2 ICF/sec
+  ✓ Batch 12/30 complete | 49 ICFs | 7.8 ICF/sec
+  ✓ Batch 13/30 complete | 53 ICFs | 8.4 ICF/sec
+  ✓ Batch 14/30 complete | 57 ICFs | 9.0 ICF/sec
+  ✓ Batch 15/30 complete | 61 ICFs | 9.6 ICF/sec
+[MiddlePhalanxOutlineCorrect ICF] Monitor
+  -      reasons: 16/30 batches | 65/132 ICFs (49.2%) | 8.9 ICF/s | running
+  ✓ Batch 16/30 complete | 65 ICFs | 8.9 ICF/sec
+  ✓ Batch 17/30 complete | 69 ICFs | 9.4 ICF/sec
+  ✓ Batch 18/30 complete | 74 ICFs | 9.2 ICF/sec
+  ✓ Batch 19/30 complete | 79 ICFs | 9.7 ICF/sec
+  ✓ Batch 20/30 complete | 84 ICFs | 10.3 ICF/sec
+  💾 Saved 4730 costs to cache (checkpoint at batch 20/30)
+  ✓ Batch 21/30 complete | 89 ICFs | 10.7 ICF/sec
+[MiddlePhalanxOutlineCorrect ICF] Monitor
+  -      reasons: 22/30 batches | 94/132 ICFs (71.2%) | 11.1 ICF/s | running
+  ✓ Batch 22/30 complete | 94 ICFs | 11.1 ICF/sec
+  ✓ Batch 23/30 complete | 98 ICFs | 11.5 ICF/sec
+  ✓ Batch 24/30 complete | 102 ICFs | 11.7 ICF/sec
+  ✓ Batch 25/30 complete | 107 ICFs | 11.9 ICF/sec
+  ✓ Batch 26/30 complete | 112 ICFs | 12.5 ICF/sec
+  ✓ Batch 27/30 complete | 117 ICFs | 12.8 ICF/sec
+  ✓ Batch 28/30 complete | 122 ICFs | 13.0 ICF/sec
+[MiddlePhalanxOutlineCorrect ICF] Monitor
+  -      reasons: 29/30 batches | 127/132 ICFs (96.2%) | 13.3 ICF/s | running
+  ✓ Batch 29/30 complete | 127 ICFs | 13.3 ICF/sec
+  ✓ Batch 30/30 complete | 132 ICFs | 13.8 ICF/sec
+  💾 Saved 5280 costs to cache (checkpoint at batch 30/30)
+
+  ✅ Completed reasons in 9.6s
+     Average: 13.8 ICF/sec (132 ICFs total)
+[MiddlePhalanxOutlineCorrect ICF] Monitor
+  -      reasons: 30/30 batches | 132/132 ICFs (100.0%) | 13.8 ICF/s | done
+
+================================================================================
+Processing NON_REASONS
+================================================================================
+  Total ICFs: 8
+  Created 1 batches
+  Submitting ALL batches to 30 parallel processes...
+[MiddlePhalanxOutlineCorrect ICF] Monitor
+  -      reasons: 30/30 batches | 132/132 ICFs (100.0%) | 13.8 ICF/s | done
+  -  non_reasons: 0/1 batches | 0/8 ICFs (0.0%) | 0.0 ICF/s | running
+[MiddlePhalanxOutlineCorrect ICF] Monitor
+  -      reasons: 30/30 batches | 132/132 ICFs (100.0%) | 8.6 ICF/s | done
+  -  non_reasons: 1/1 batches | 8/8 ICFs (100.0%) | 1.4 ICF/s | running
+  ✓ Batch 1/1 complete | 8 ICFs | 1.4 ICF/sec
+  💾 Saved 880 costs to cache (checkpoint at batch 1/1)
+
+  ✅ Completed non_reasons in 5.7s
+     Average: 1.4 ICF/sec (8 ICFs total)
+[MiddlePhalanxOutlineCorrect ICF] Monitor
+  -      reasons: 30/30 batches | 132/132 ICFs (100.0%) | 8.6 ICF/s | done
+  -  non_reasons: 1/1 batches | 8/8 ICFs (100.0%) | 1.4 ICF/s | done
+
+================================================================================
+Processing ANTI_REASONS
+================================================================================
+  Total ICFs: 39
+  Adjusted batches 1 -> 30 to evenly spread work across 30 processes (~2 ICFs each)
+  Created 30 batches
+  Submitting ALL batches to 30 parallel processes...
+[MiddlePhalanxOutlineCorrect ICF] Monitor
+  -      reasons: 30/30 batches | 132/132 ICFs (100.0%) | 8.6 ICF/s | done
+  -  non_reasons: 1/1 batches | 8/8 ICFs (100.0%) | 1.4 ICF/s | done
+  - anti_reasons: 0/30 batches | 0/39 ICFs (0.0%) | 0.0 ICF/s | running
+[MiddlePhalanxOutlineCorrect ICF] Monitor
+  -      reasons: 30/30 batches | 132/132 ICFs (100.0%) | 8.1 ICF/s | done
+  -  non_reasons: 1/1 batches | 8/8 ICFs (100.0%) | 1.2 ICF/s | done
+  - anti_reasons: 1/30 batches | 1/39 ICFs (2.6%) | 1.0 ICF/s | running
+  ✓ Batch 1/30 complete | 1 ICFs | 1.0 ICF/sec
+  ✓ Batch 2/30 complete | 2 ICFs | 1.7 ICF/sec
+  ✓ Batch 3/30 complete | 3 ICFs | 2.1 ICF/sec
+  ✓ Batch 4/30 complete | 4 ICFs | 2.8 ICF/sec
+  ✓ Batch 5/30 complete | 5 ICFs | 3.4 ICF/sec
+  ✓ Batch 6/30 complete | 6 ICFs | 4.1 ICF/sec
+  ✓ Batch 7/30 complete | 7 ICFs | 4.3 ICF/sec
+  ✓ Batch 8/30 complete | 9 ICFs | 4.5 ICF/sec
+[MiddlePhalanxOutlineCorrect ICF] Monitor
+  -      reasons: 30/30 batches | 132/132 ICFs (100.0%) | 7.6 ICF/s | done
+  -  non_reasons: 1/1 batches | 8/8 ICFs (100.0%) | 1.0 ICF/s | done
+  - anti_reasons: 9/30 batches | 10/39 ICFs (25.6%) | 4.7 ICF/s | running
+  ✓ Batch 9/30 complete | 10 ICFs | 4.7 ICF/sec
+  ✓ Batch 10/30 complete | 12 ICFs | 5.4 ICF/sec
+  💾 Saved 1320 costs to cache (checkpoint at batch 10/30)
+  ✓ Batch 11/30 complete | 13 ICFs | 5.8 ICF/sec
+  ✓ Batch 12/30 complete | 14 ICFs | 6.2 ICF/sec
+  ✓ Batch 13/30 complete | 15 ICFs | 6.7 ICF/sec
+  ✓ Batch 14/30 complete | 16 ICFs | 7.1 ICF/sec
+  ✓ Batch 15/30 complete | 17 ICFs | 7.5 ICF/sec
+  ✓ Batch 16/30 complete | 18 ICFs | 7.9 ICF/sec
+  ✓ Batch 17/30 complete | 19 ICFs | 8.4 ICF/sec
+  ✓ Batch 18/30 complete | 20 ICFs | 8.8 ICF/sec
+  ✓ Batch 19/30 complete | 21 ICFs | 9.2 ICF/sec
+  ✓ Batch 20/30 complete | 22 ICFs | 9.6 ICF/sec
+  💾 Saved 1100 costs to cache (checkpoint at batch 20/30)
+  ✓ Batch 21/30 complete | 23 ICFs | 10.0 ICF/sec
+  ✓ Batch 22/30 complete | 24 ICFs | 10.5 ICF/sec
+  ✓ Batch 23/30 complete | 25 ICFs | 10.8 ICF/sec
+  ✓ Batch 24/30 complete | 27 ICFs | 11.4 ICF/sec
+  ✓ Batch 25/30 complete | 29 ICFs | 12.2 ICF/sec
+  ✓ Batch 26/30 complete | 31 ICFs | 12.6 ICF/sec
+  ✓ Batch 27/30 complete | 33 ICFs | 13.4 ICF/sec
+  ✓ Batch 28/30 complete | 35 ICFs | 14.0 ICF/sec
+  ✓ Batch 29/30 complete | 37 ICFs | 14.6 ICF/sec
+  ✓ Batch 30/30 complete | 39 ICFs | 12.8 ICF/sec
+  💾 Saved 1870 costs to cache (checkpoint at batch 30/30)
+
+  ✅ Completed anti_reasons in 3.1s
+     Average: 12.8 ICF/sec (39 ICFs total)
+[MiddlePhalanxOutlineCorrect ICF] Monitor
+  -      reasons: 30/30 batches | 132/132 ICFs (100.0%) | 7.2 ICF/s | done
+  -  non_reasons: 1/1 batches | 8/8 ICFs (100.0%) | 0.9 ICF/s | done
+  - anti_reasons: 30/30 batches | 39/39 ICFs (100.0%) | 12.8 ICF/s | done
+
+================================================================================
+🎉 ALL PROCESSING COMPLETE
+================================================================================
+Total costs calculated: 19690
+
+✓ Parallel computation complete: 19690 costs calculated
+
+================================================================================
+COST CALCULATION COMPLETE
+================================================================================
+Total costs calculated: 19690
+
+
+================================================================================
+  ROBUSTNESS CALCULATION (Anti-Reasons Only)
+================================================================================
+
+📐 Configuration:
+   • Number of features: 80
+
+📝 Formula:
+   r(C,x) = 1 - max{ICF ∈ AR{C,y}} cost_x(ICF) / |features|
+
+   where AR{C,y} = set of Anti-Reasons for class y
+
+
+================================================================================
+  ICF-LEVEL ROBUSTNESS ANALYSIS (Anti-Reasons)
+================================================================================
+
+📋 ICF Summary:
+   • Total anti-reason ICFs: 39
+
+📊 Cost Statistics:
+   • Max cost:      27.869761
+   • Mean max cost: 17.838719
+   • Min max cost:  14.402993
+
+🎯 Robustness Statistics:
+   • Max:  0.819963
+   • Mean: 0.777016
+   • Min:  0.651628
+Processing 110 samples...
+  Processed 50/110 samples...
+  Processed 100/110 samples...
+✓ All 110 samples processed
+
+
+================================================================================
+  SAMPLE-LEVEL ROBUSTNESS ANALYSIS
+================================================================================
+
+📊 Dataset Overview:
+   • Total samples:        110
+   • Correct predictions:  90 (81.8%)
+   • Incorrect predictions: 20 (18.2%)
+
+📈 Robustness Statistics (All Samples):
+   • Mean:      0.791559 +/- 0.039444
+   • Median:    0.797135
+   • Min/Max:   0.651628 / 0.881385
+   • Range:     0.229757
+   • IQR:       0.050166 (Q1=0.766578, Q3=0.816744)
+
+🔍 Robustness by Prediction Correctness:
+--------------------------------------------------------------------------------
+
+  ✓ CORRECT Predictions (90 samples):
+     Mean:      0.792123 +/- 0.037320
+     Median:    0.797135
+     Range:     [0.685215, 0.881385]
+
+  ✗ INCORRECT Predictions (20 samples):
+     Mean:      0.789021 +/- 0.048922
+     Median:    0.795969
+     Range:     [0.651628, 0.859553]
+
+  📊 Difference (Correct - Incorrect): +0.003103
+
+--------------------------------------------------------------------------------
+
+✅ Results saved to: results/MiddlePhalanxOutlineCorrect_sample_robustness.csv
+
+
+================================================================================
+MODEL ACCURACY VS ROBUSTNESS
+================================================================================
+  • Test accuracy (RF optimization): 0.8213 (82.13%)
+  • Best CV score: 0.7767
+
+Robustness summary (anti-reasons)
+  • Mean robustness:   0.7916
+  • Median robustness: 0.7971
+  • Min / Max:        0.6516 / 0.8814
+
+Accuracy vs robustness deltas
+  • 1 - mean robustness: 0.2084
+  • Test accuracy - mean robustness: 0.0297
+
+DB0 exposes 8 RF optimization metrics (table below).
+Total test samples available: 110
+Number of features per sample: 80
+
+================================================================================
+Detailed analysis will use Sample ID: MiddlePhalanxOutlineCorrect_0_0
+================================================================================
+
+REASONS Analysis for Sample MiddlePhalanxOutlineCorrect_0_0:
+  ✓ CORRECT: Predicted=0, Actual=0
+  Cost: 21.450951
+  Constrained features: 79/80
+  Temporal intervals: 2
+
+ANTI-REASONS Analysis for Sample MiddlePhalanxOutlineCorrect_0_0:
+  ✓ CORRECT: Predicted=0, Actual=0
+  Cost: 17.445806
+  Constrained features: 80/80
+  Temporal intervals: 1
+
+Comparison for Sample MiddlePhalanxOutlineCorrect_0_0:
+  ✓ CORRECT: Predicted=0, Actual=0
+
+  REASON:
+    Constrained features: 79
+    Temporal intervals: 2
+  ANTI-REASON:
+    Constrained features: 80
+    Temporal intervals: 1
+
+================================================================================
+ROBUSTNESS PER ICF (Anti-Reasons Only)
+================================================================================
+
+Total anti-reason ICFs analyzed: 39
+
+Top 10 ICFs by max_cost (hardest to reach):
+ max_cost  robustness  mean_cost  n_samples
+27.869761    0.651628  16.277402        110
+19.593937    0.755076  12.519708        110
+19.295767    0.758803  12.320166        110
+18.278405    0.771520  13.693083        110
+18.213441    0.772332  11.630467        110
+18.175071    0.772812  13.453947        110
+18.120973    0.773488  13.583848        110
+17.963927    0.775451  13.374395        110
+17.961820    0.775477  13.155486        110
+17.871506    0.776606  13.016594        110
+
+
+ANTI-REASONS with LOWEST robustness (most vulnerable - easiest to perturb):
+ max_cost  robustness  mean_cost  n_samples
+27.869761    0.651628  16.277402        110
+19.593937    0.755076  12.519708        110
+19.295767    0.758803  12.320166        110
+18.278405    0.771520  13.693083        110
+18.213441    0.772332  11.630467        110
+
+
+Results saved to: results/anti_reasons_robustness.csv
+
+Smooth Corridor Comparison for Sample MiddlePhalanxOutlineCorrect_0_0:
+  ✓ CORRECT: Predicted=0, Actual=0
+
+  REASON CORRIDOR:
+    Cost: 21.450951
+    Constrained features: 79/80
+    Corridor width: avg=0.342
+
+  ANTI-REASON CORRIDOR:
+    Cost: 17.445806
+    Constrained features: 80/80
+    Corridor width: avg=0.189
+? BASE_DIR     : /media/DATA/emanuelechini/IEEE_CAI
+? RESULTS_DIR  : /media/DATA/emanuelechini/IEEE_CAI/results
+Dataset: BeetleFly, BirdChicken, CinCECGTorso, Coffee, ECG200, FaceFour, GunPoint, HandOutlines, ItalyPowerDemand, Lightning2, Meat, MiddlePhalanxOutlineCorrect, MoteStrain, SonyAIBORobotSurface1, SonyAIBORobotSurface2, ToeSegmentation2, TwoLeadECG, Wine
+Processing dataset ZIP: MoteStrain_1_false_0.zip
+Extracting databases from MoteStrain_1_false_0.zip...
+Cached raw data for MoteStrain_1_false_0.zip (10 databases)
+Report built for 32 workers.
+✓ Cached data for MoteStrain_1_false_0.zip
+Using unified database (db parameter) for DB10 data sharing
+Resuming from cache: 18 datasets already processed
+Processing 165/168: _cache...Manifest not found in directory: /media/DATA/emanuelechini/IEEE_CAI/results/_cache
+
+Processed 0 new datasets (18 total)
+Saved redis summary cache at /media/DATA/emanuelechini/IEEE_CAI/results/redis_reason_counts.csv
+
+================================================================================
+PARALLEL ACCURACY EXTRACTION
+================================================================================
+Processing 18 ZIP files with 9 workers...
+
+✓ Extraction complete:
+  - Success: 17/18
+  - Errors: 1/18, datasets errors ['HandOutlines']
+================================================================================
+
+Base dir           : /media/DATA/emanuelechini/IEEE_CAI
+Loaded 88 rows from /media/DATA/emanuelechini/IEEE_CAI/forest_report.json
+Results directory  : /media/DATA/emanuelechini/IEEE_CAI/results (exists=True)
+Extracted 699 test samples
+Features: 84
+Calculating costs for anti_reasons...
+================================================================================
+
+→ Computing costs for MoteStrain (not in cache)...
+Using PARALLEL computation with INCREMENTAL cache to reduce RAM usage
+
+🚀 TRUE MULTIPROCESSING MODE - Using 30 SEPARATE PROCESSES
+   Batch size: 50 ICFs | Save every: 10 batches
+
+================================================================================
+Processing REASONS
+================================================================================
+  Total ICFs: 718
+  Adjusted batches 15 -> 30 to evenly spread work across 30 processes (~24 ICFs each)
+  Created 30 batches
+  Submitting ALL batches to 30 parallel processes...
+[MoteStrain ICF] Monitor
+  -      reasons: 0/30 batches | 0/718 ICFs (0.0%) | 0.0 ICF/s | running
+[MoteStrain ICF] Monitor
+  -      reasons: 1/30 batches | 24/718 ICFs (3.3%) | 0.2 ICF/s | running
+  ✓ Batch 1/30 complete | 24 ICFs | 0.2 ICF/sec
+[MoteStrain ICF] Monitor
+  -      reasons: 2/30 batches | 48/718 ICFs (6.7%) | 0.3 ICF/s | running
+  ✓ Batch 2/30 complete | 48 ICFs | 0.3 ICF/sec
+[MoteStrain ICF] Monitor
+  -      reasons: 3/30 batches | 72/718 ICFs (10.0%) | 0.4 ICF/s | running
+  ✓ Batch 3/30 complete | 72 ICFs | 0.4 ICF/sec
+[MoteStrain ICF] Monitor
+  -      reasons: 4/30 batches | 96/718 ICFs (13.4%) | 0.6 ICF/s | running
+  ✓ Batch 4/30 complete | 96 ICFs | 0.6 ICF/sec
+[MoteStrain ICF] Monitor
+  -      reasons: 5/30 batches | 120/718 ICFs (16.7%) | 0.7 ICF/s | running
+  ✓ Batch 5/30 complete | 120 ICFs | 0.7 ICF/sec
+[MoteStrain ICF] Monitor
+  -      reasons: 6/30 batches | 143/718 ICFs (19.9%) | 0.8 ICF/s | running
+  ✓ Batch 6/30 complete | 143 ICFs | 0.8 ICF/sec
+  ✓ Batch 7/30 complete | 166 ICFs | 0.9 ICF/sec
+[MoteStrain ICF] Monitor
+  -      reasons: 8/30 batches | 190/718 ICFs (26.5%) | 1.0 ICF/s | running
+  ✓ Batch 8/30 complete | 190 ICFs | 1.0 ICF/sec
+  ✓ Batch 9/30 complete | 214 ICFs | 1.1 ICF/sec
+  ✓ Batch 10/30 complete | 238 ICFs | 1.2 ICF/sec
+  💾 Saved 166362 costs to cache (checkpoint at batch 10/30)
+[MoteStrain ICF] Monitor
+  -      reasons: 11/30 batches | 262/718 ICFs (36.5%) | 1.3 ICF/s | running
+  ✓ Batch 11/30 complete | 262 ICFs | 1.3 ICF/sec
+[MoteStrain ICF] Monitor
+  -      reasons: 12/30 batches | 286/718 ICFs (39.8%) | 1.4 ICF/s | running
+  ✓ Batch 12/30 complete | 286 ICFs | 1.4 ICF/sec
+[MoteStrain ICF] Monitor
+  -      reasons: 13/30 batches | 310/718 ICFs (43.2%) | 1.5 ICF/s | running
+  ✓ Batch 13/30 complete | 310 ICFs | 1.5 ICF/sec
+[MoteStrain ICF] Monitor
+  -      reasons: 14/30 batches | 334/718 ICFs (46.5%) | 1.6 ICF/s | running
+  ✓ Batch 14/30 complete | 334 ICFs | 1.6 ICF/sec
+[MoteStrain ICF] Monitor
+  -      reasons: 15/30 batches | 358/718 ICFs (49.9%) | 1.6 ICF/s | running
+  ✓ Batch 15/30 complete | 358 ICFs | 1.6 ICF/sec
+[MoteStrain ICF] Monitor
+  -      reasons: 16/30 batches | 382/718 ICFs (53.2%) | 1.6 ICF/s | running
+  ✓ Batch 16/30 complete | 382 ICFs | 1.6 ICF/sec
+[MoteStrain ICF] Monitor
+  -      reasons: 17/30 batches | 406/718 ICFs (56.5%) | 1.7 ICF/s | running
+  ✓ Batch 17/30 complete | 406 ICFs | 1.7 ICF/sec
+[MoteStrain ICF] Monitor
+  -      reasons: 18/30 batches | 430/718 ICFs (59.9%) | 1.8 ICF/s | running
+  ✓ Batch 18/30 complete | 430 ICFs | 1.8 ICF/sec
+  ✓ Batch 19/30 complete | 454 ICFs | 1.9 ICF/sec
+[MoteStrain ICF] Monitor
+  -      reasons: 20/30 batches | 478/718 ICFs (66.6%) | 2.0 ICF/s | running
+  ✓ Batch 20/30 complete | 478 ICFs | 2.0 ICF/sec
+  💾 Saved 167760 costs to cache (checkpoint at batch 20/30)
+[MoteStrain ICF] Monitor
+  -      reasons: 21/30 batches | 502/718 ICFs (69.9%) | 2.0 ICF/s | running
+  ✓ Batch 21/30 complete | 502 ICFs | 2.0 ICF/sec
+[MoteStrain ICF] Monitor
+  -      reasons: 22/30 batches | 526/718 ICFs (73.3%) | 2.1 ICF/s | running
+  ✓ Batch 22/30 complete | 526 ICFs | 2.1 ICF/sec
+[MoteStrain ICF] Monitor
+  -      reasons: 23/30 batches | 550/718 ICFs (76.6%) | 2.2 ICF/s | running
+  ✓ Batch 23/30 complete | 550 ICFs | 2.2 ICF/sec
+[MoteStrain ICF] Monitor
+  -      reasons: 24/30 batches | 574/718 ICFs (79.9%) | 2.2 ICF/s | running
+  ✓ Batch 24/30 complete | 574 ICFs | 2.2 ICF/sec
+[MoteStrain ICF] Monitor
+  -      reasons: 25/30 batches | 598/718 ICFs (83.3%) | 2.3 ICF/s | running
+  ✓ Batch 25/30 complete | 598 ICFs | 2.3 ICF/sec
+[MoteStrain ICF] Monitor
+  -      reasons: 26/30 batches | 622/718 ICFs (86.6%) | 2.3 ICF/s | running
+  ✓ Batch 26/30 complete | 622 ICFs | 2.3 ICF/sec
+  ✓ Batch 27/30 complete | 646 ICFs | 2.4 ICF/sec
+[MoteStrain ICF] Monitor
+  -      reasons: 28/30 batches | 670/718 ICFs (93.3%) | 2.5 ICF/s | running
+  ✓ Batch 28/30 complete | 670 ICFs | 2.5 ICF/sec
+[MoteStrain ICF] Monitor
+  -      reasons: 29/30 batches | 694/718 ICFs (96.7%) | 2.6 ICF/s | running
+  ✓ Batch 29/30 complete | 694 ICFs | 2.6 ICF/sec
+[MoteStrain ICF] Monitor
+  -      reasons: 30/30 batches | 718/718 ICFs (100.0%) | 2.6 ICF/s | running
+  ✓ Batch 30/30 complete | 718 ICFs | 2.6 ICF/sec
+  💾 Saved 167760 costs to cache (checkpoint at batch 30/30)
+
+  ✅ Completed reasons in 274.6s
+     Average: 2.6 ICF/sec (718 ICFs total)
+[MoteStrain ICF] Monitor
+  -      reasons: 30/30 batches | 718/718 ICFs (100.0%) | 2.6 ICF/s | done
+
+================================================================================
+Processing NON_REASONS
+================================================================================
+  Total ICFs: 8
+  Created 1 batches
+  Submitting ALL batches to 30 parallel processes...
+[MoteStrain ICF] Monitor
+  -      reasons: 30/30 batches | 718/718 ICFs (100.0%) | 2.6 ICF/s | done
+  -  non_reasons: 0/1 batches | 0/8 ICFs (0.0%) | 0.0 ICF/s | running
+[MoteStrain ICF] Monitor
+  -      reasons: 30/30 batches | 718/718 ICFs (100.0%) | 2.3 ICF/s | done
+  -  non_reasons: 1/1 batches | 8/8 ICFs (100.0%) | 0.2 ICF/s | running
+  ✓ Batch 1/1 complete | 8 ICFs | 0.2 ICF/sec
+  💾 Saved 5592 costs to cache (checkpoint at batch 1/1)
+
+  ✅ Completed non_reasons in 34.0s
+     Average: 0.2 ICF/sec (8 ICFs total)
+[MoteStrain ICF] Monitor
+  -      reasons: 30/30 batches | 718/718 ICFs (100.0%) | 2.3 ICF/s | done
+  -  non_reasons: 1/1 batches | 8/8 ICFs (100.0%) | 0.2 ICF/s | done
+
+================================================================================
+Processing ANTI_REASONS
+================================================================================
+  Total ICFs: 39
+  Adjusted batches 1 -> 30 to evenly spread work across 30 processes (~2 ICFs each)
+  Created 30 batches
+  Submitting ALL batches to 30 parallel processes...
+[MoteStrain ICF] Monitor
+  -      reasons: 30/30 batches | 718/718 ICFs (100.0%) | 2.3 ICF/s | done
+  -  non_reasons: 1/1 batches | 8/8 ICFs (100.0%) | 0.2 ICF/s | done
+  - anti_reasons: 0/30 batches | 0/39 ICFs (0.0%) | 0.0 ICF/s | running
+[MoteStrain ICF] Monitor
+  -      reasons: 30/30 batches | 718/718 ICFs (100.0%) | 2.3 ICF/s | done
+  -  non_reasons: 1/1 batches | 8/8 ICFs (100.0%) | 0.2 ICF/s | done
+  - anti_reasons: 1/30 batches | 1/39 ICFs (2.6%) | 0.2 ICF/s | running
+  ✓ Batch 1/30 complete | 1 ICFs | 0.2 ICF/sec
+[MoteStrain ICF] Monitor
+  -      reasons: 30/30 batches | 718/718 ICFs (100.0%) | 2.3 ICF/s | done
+  -  non_reasons: 1/1 batches | 8/8 ICFs (100.0%) | 0.2 ICF/s | done
+  - anti_reasons: 2/30 batches | 2/39 ICFs (5.1%) | 0.2 ICF/s | running
+  ✓ Batch 2/30 complete | 2 ICFs | 0.2 ICF/sec
+  ✓ Batch 3/30 complete | 3 ICFs | 0.3 ICF/sec
+[MoteStrain ICF] Monitor
+  -      reasons: 30/30 batches | 718/718 ICFs (100.0%) | 2.3 ICF/s | done
+  -  non_reasons: 1/1 batches | 8/8 ICFs (100.0%) | 0.2 ICF/s | done
+  - anti_reasons: 4/30 batches | 4/39 ICFs (10.3%) | 0.4 ICF/s | running
+  ✓ Batch 4/30 complete | 4 ICFs | 0.4 ICF/sec
+  ✓ Batch 5/30 complete | 5 ICFs | 0.5 ICF/sec
+  ✓ Batch 6/30 complete | 6 ICFs | 0.6 ICF/sec
+  ✓ Batch 7/30 complete | 7 ICFs | 0.7 ICF/sec
+  ✓ Batch 8/30 complete | 8 ICFs | 0.8 ICF/sec
+  ✓ Batch 9/30 complete | 9 ICFs | 0.9 ICF/sec
+  ✓ Batch 10/30 complete | 11 ICFs | 1.1 ICF/sec
+  💾 Saved 7689 costs to cache (checkpoint at batch 10/30)
+[MoteStrain ICF] Monitor
+  -      reasons: 30/30 batches | 718/718 ICFs (100.0%) | 2.2 ICF/s | done
+  -  non_reasons: 1/1 batches | 8/8 ICFs (100.0%) | 0.2 ICF/s | done
+  - anti_reasons: 11/30 batches | 12/39 ICFs (30.8%) | 1.1 ICF/s | running
+  ✓ Batch 11/30 complete | 12 ICFs | 1.1 ICF/sec
+[MoteStrain ICF] Monitor
+  -      reasons: 30/30 batches | 718/718 ICFs (100.0%) | 2.2 ICF/s | done
+  -  non_reasons: 1/1 batches | 8/8 ICFs (100.0%) | 0.2 ICF/s | done
+  - anti_reasons: 12/30 batches | 13/39 ICFs (33.3%) | 1.0 ICF/s | running
+  ✓ Batch 12/30 complete | 13 ICFs | 1.0 ICF/sec
+  ✓ Batch 13/30 complete | 14 ICFs | 1.1 ICF/sec
+  ✓ Batch 14/30 complete | 15 ICFs | 1.1 ICF/sec
+  ✓ Batch 15/30 complete | 16 ICFs | 1.2 ICF/sec
+  ✓ Batch 16/30 complete | 17 ICFs | 1.3 ICF/sec
+[MoteStrain ICF] Monitor
+  -      reasons: 30/30 batches | 718/718 ICFs (100.0%) | 2.2 ICF/s | done
+  -  non_reasons: 1/1 batches | 8/8 ICFs (100.0%) | 0.2 ICF/s | done
+  - anti_reasons: 17/30 batches | 18/39 ICFs (46.2%) | 1.3 ICF/s | running
+  ✓ Batch 17/30 complete | 18 ICFs | 1.3 ICF/sec
+  ✓ Batch 18/30 complete | 19 ICFs | 1.4 ICF/sec
+  ✓ Batch 19/30 complete | 20 ICFs | 1.5 ICF/sec
+  ✓ Batch 20/30 complete | 21 ICFs | 1.6 ICF/sec
+  💾 Saved 6990 costs to cache (checkpoint at batch 20/30)
+  ✓ Batch 21/30 complete | 22 ICFs | 1.6 ICF/sec
+  ✓ Batch 22/30 complete | 23 ICFs | 1.7 ICF/sec
+  ✓ Batch 23/30 complete | 25 ICFs | 1.8 ICF/sec
+  ✓ Batch 24/30 complete | 27 ICFs | 1.9 ICF/sec
+  ✓ Batch 25/30 complete | 29 ICFs | 2.1 ICF/sec
+  ✓ Batch 26/30 complete | 31 ICFs | 2.2 ICF/sec
+  ✓ Batch 27/30 complete | 33 ICFs | 2.3 ICF/sec
+[MoteStrain ICF] Monitor
+  -      reasons: 30/30 batches | 718/718 ICFs (100.0%) | 2.2 ICF/s | done
+  -  non_reasons: 1/1 batches | 8/8 ICFs (100.0%) | 0.2 ICF/s | done
+  - anti_reasons: 28/30 batches | 35/39 ICFs (89.7%) | 2.2 ICF/s | running
+  ✓ Batch 28/30 complete | 35 ICFs | 2.2 ICF/sec
+  ✓ Batch 29/30 complete | 37 ICFs | 2.3 ICF/sec
+[MoteStrain ICF] Monitor
+  -      reasons: 30/30 batches | 718/718 ICFs (100.0%) | 2.2 ICF/s | done
+  -  non_reasons: 1/1 batches | 8/8 ICFs (100.0%) | 0.2 ICF/s | done
+  - anti_reasons: 30/30 batches | 39/39 ICFs (100.0%) | 2.3 ICF/s | running
+  ✓ Batch 30/30 complete | 39 ICFs | 2.3 ICF/sec
+  💾 Saved 12582 costs to cache (checkpoint at batch 30/30)
+
+  ✅ Completed anti_reasons in 17.1s
+     Average: 2.3 ICF/sec (39 ICFs total)
+[MoteStrain ICF] Monitor
+  -      reasons: 30/30 batches | 718/718 ICFs (100.0%) | 2.2 ICF/s | done
+  -  non_reasons: 1/1 batches | 8/8 ICFs (100.0%) | 0.2 ICF/s | done
+  - anti_reasons: 30/30 batches | 39/39 ICFs (100.0%) | 2.3 ICF/s | done
+
+================================================================================
+🎉 ALL PROCESSING COMPLETE
+================================================================================
+Total costs calculated: 534735
+
+✓ Parallel computation complete: 534735 costs calculated
+
+================================================================================
+COST CALCULATION COMPLETE
+================================================================================
+Total costs calculated: 534735
+
+
+================================================================================
+  ROBUSTNESS CALCULATION (Anti-Reasons Only)
+================================================================================
+
+📐 Configuration:
+   • Number of features: 84
+
+📝 Formula:
+   r(C,x) = 1 - max{ICF ∈ AR{C,y}} cost_x(ICF) / |features|
+
+   where AR{C,y} = set of Anti-Reasons for class y
+
+
+================================================================================
+  ICF-LEVEL ROBUSTNESS ANALYSIS (Anti-Reasons)
+================================================================================
+
+📋 ICF Summary:
+   • Total anti-reason ICFs: 39
+
+📊 Cost Statistics:
+   • Max cost:      45.154860
+   • Mean max cost: 42.085900
+   • Min max cost:  29.633220
+
+🎯 Robustness Statistics:
+   • Max:  0.647224
+   • Mean: 0.498977
+   • Min:  0.462442
+Processing 699 samples...
+  Processed 50/699 samples...
+  Processed 100/699 samples...
+  Processed 150/699 samples...
+  Processed 200/699 samples...
+  Processed 250/699 samples...
+  Processed 300/699 samples...
+  Processed 350/699 samples...
+  Processed 400/699 samples...
+  Processed 450/699 samples...
+  Processed 500/699 samples...
+  Processed 550/699 samples...
+  Processed 600/699 samples...
+  Processed 650/699 samples...
+✓ All 699 samples processed
+
+
+================================================================================
+  SAMPLE-LEVEL ROBUSTNESS ANALYSIS
+================================================================================
+
+📊 Dataset Overview:
+   • Total samples:        699
+   • Correct predictions:  615 (88.0%)
+   • Incorrect predictions: 84 (12.0%)
+
+📈 Robustness Statistics (All Samples):
+   • Mean:      0.609465 +/- 0.030197
+   • Median:    0.610535
+   • Min/Max:   0.462442 / 0.690457
+   • Range:     0.228015
+   • IQR:       0.037378 (Q1=0.590623, Q3=0.628001)
+
+🔍 Robustness by Prediction Correctness:
+--------------------------------------------------------------------------------
+
+  ✓ CORRECT Predictions (615 samples):
+     Mean:      0.608136 +/- 0.029702
+     Median:    0.610535
+     Range:     [0.462442, 0.690457]
+
+  ✗ INCORRECT Predictions (84 samples):
+     Mean:      0.619195 +/- 0.032147
+     Median:    0.612602
+     Range:     [0.548697, 0.676502]
+
+  📊 Difference (Correct - Incorrect): -0.011059
+
+--------------------------------------------------------------------------------
+
+✅ Results saved to: results/MoteStrain_sample_robustness.csv
+
+
+================================================================================
+MODEL ACCURACY VS ROBUSTNESS
+================================================================================
+  • Test accuracy (RF optimization): 0.8842 (88.42%)
+  • Best CV score: 0.8500
+
+Robustness summary (anti-reasons)
+  • Mean robustness:   0.6095
+  • Median robustness: 0.6105
+  • Min / Max:        0.4624 / 0.6905
+
+Accuracy vs robustness deltas
+  • 1 - mean robustness: 0.3905
+  • Test accuracy - mean robustness: 0.2747
+
+DB0 exposes 8 RF optimization metrics (table below).
+Total test samples available: 699
+Number of features per sample: 84
+
+================================================================================
+Detailed analysis will use Sample ID: MoteStrain_1_43
+================================================================================
+
+REASONS Analysis for Sample MoteStrain_1_43:
+  ✓ CORRECT: Predicted=1, Actual=1
+  Cost: 41.928550
+  Constrained features: 81/84
+  Temporal intervals: 4
+
+ANTI-REASONS Analysis for Sample MoteStrain_1_43:
+  ✓ CORRECT: Predicted=1, Actual=1
+  Cost: 23.175795
+  Constrained features: 83/84
+  Temporal intervals: 2
+
+Comparison for Sample MoteStrain_1_43:
+  ✓ CORRECT: Predicted=1, Actual=1
+
+  REASON:
+    Constrained features: 81
+    Temporal intervals: 4
+  ANTI-REASON:
+    Constrained features: 83
+    Temporal intervals: 2
+
+================================================================================
+ROBUSTNESS PER ICF (Anti-Reasons Only)
+================================================================================
+
+Total anti-reason ICFs analyzed: 39
+
+Top 10 ICFs by max_cost (hardest to reach):
+ max_cost  robustness  mean_cost  n_samples
+45.154860    0.462442  32.132476        699
+44.629636    0.468695  32.494812        699
+44.617824    0.468835  32.541553        699
+44.402983    0.471393  31.750698        699
+44.373985    0.471738  31.662632        699
+44.258245    0.473116  31.743185        699
+44.152388    0.474376  31.396372        699
+44.122843    0.474728  31.761061        699
+44.050442    0.475590  32.025851        699
+44.011508    0.476053  31.249886        699
+
+
+ANTI-REASONS with LOWEST robustness (most vulnerable - easiest to perturb):
+ max_cost  robustness  mean_cost  n_samples
+45.154860    0.462442  32.132476        699
+44.629636    0.468695  32.494812        699
+44.617824    0.468835  32.541553        699
+44.402983    0.471393  31.750698        699
+44.373985    0.471738  31.662632        699
+
+
+Results saved to: results/anti_reasons_robustness.csv
+
+Smooth Corridor Comparison for Sample MoteStrain_1_43:
+  ✓ CORRECT: Predicted=1, Actual=1
+
+  REASON CORRIDOR:
+    Cost: 41.928550
+    Constrained features: 81/84
+    Corridor width: avg=0.954
+
+  ANTI-REASON CORRIDOR:
+    Cost: 23.175795
+    Constrained features: 83/84
+    Corridor width: avg=0.628
+? BASE_DIR     : /media/DATA/emanuelechini/IEEE_CAI
+? RESULTS_DIR  : /media/DATA/emanuelechini/IEEE_CAI/results
+Dataset: BeetleFly, BirdChicken, CinCECGTorso, Coffee, ECG200, FaceFour, GunPoint, HandOutlines, ItalyPowerDemand, Lightning2, Meat, MiddlePhalanxOutlineCorrect, MoteStrain, SonyAIBORobotSurface1, SonyAIBORobotSurface2, ToeSegmentation2, TwoLeadECG, Wine
+Processing dataset ZIP: SonyAIBORobotSurface1_1_false_0.zip
+Extracting databases from SonyAIBORobotSurface1_1_false_0.zip...
+Cached raw data for SonyAIBORobotSurface1_1_false_0.zip (10 databases)
+Report built for 32 workers.
+✓ Cached data for SonyAIBORobotSurface1_1_false_0.zip
+Using unified database (db parameter) for DB10 data sharing
+Resuming from cache: 18 datasets already processed
+Processing 177/180: _cache...Manifest not found in directory: /media/DATA/emanuelechini/IEEE_CAI/results/_cache
+
+Processed 0 new datasets (18 total)
+Saved redis summary cache at /media/DATA/emanuelechini/IEEE_CAI/results/redis_reason_counts.csv
+
+================================================================================
+PARALLEL ACCURACY EXTRACTION
+================================================================================
+Processing 18 ZIP files with 9 workers...
+
+✓ Extraction complete:
+  - Success: 17/18
+  - Errors: 1/18, datasets errors ['HandOutlines']
+================================================================================
+
+Base dir           : /media/DATA/emanuelechini/IEEE_CAI
+Loaded 88 rows from /media/DATA/emanuelechini/IEEE_CAI/forest_report.json
+Results directory  : /media/DATA/emanuelechini/IEEE_CAI/results (exists=True)
+Extracted 163 test samples
+Features: 70
+Calculating costs for anti_reasons...
+================================================================================
+
+→ Computing costs for SonyAIBORobotSurface1 (not in cache)...
+Using PARALLEL computation with INCREMENTAL cache to reduce RAM usage
+
+🚀 TRUE MULTIPROCESSING MODE - Using 30 SEPARATE PROCESSES
+   Batch size: 50 ICFs | Save every: 10 batches
+
+================================================================================
+Processing REASONS
+================================================================================
+  Total ICFs: 4902
+  Adjusted batches 99 -> 90 to evenly spread work across 30 processes (~55 ICFs each)
+  Created 90 batches
+  Submitting ALL batches to 30 parallel processes...
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 0/90 batches | 0/4902 ICFs (0.0%) | 0.0 ICF/s | running
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 1/90 batches | 55/4902 ICFs (1.1%) | 3.3 ICF/s | running
+  ✓ Batch 1/90 complete | 55 ICFs | 3.3 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 2/90 batches | 110/4902 ICFs (2.2%) | 5.2 ICF/s | running
+  ✓ Batch 2/90 complete | 110 ICFs | 5.2 ICF/sec
+  ✓ Batch 3/90 complete | 165 ICFs | 7.7 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 4/90 batches | 220/4902 ICFs (4.5%) | 7.4 ICF/s | running
+  ✓ Batch 4/90 complete | 220 ICFs | 7.4 ICF/sec
+  ✓ Batch 5/90 complete | 275 ICFs | 9.2 ICF/sec
+  ✓ Batch 6/90 complete | 330 ICFs | 11.0 ICF/sec
+  ✓ Batch 7/90 complete | 385 ICFs | 12.9 ICF/sec
+  ✓ Batch 8/90 complete | 440 ICFs | 14.6 ICF/sec
+  ✓ Batch 9/90 complete | 495 ICFs | 16.3 ICF/sec
+  ✓ Batch 10/90 complete | 550 ICFs | 18.0 ICF/sec
+  💾 Saved 89650 costs to cache (checkpoint at batch 10/90)
+  ✓ Batch 11/90 complete | 605 ICFs | 19.6 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 12/90 batches | 660/4902 ICFs (13.5%) | 21.4 ICF/s | running
+  ✓ Batch 12/90 complete | 660 ICFs | 21.4 ICF/sec
+  ✓ Batch 13/90 complete | 715 ICFs | 23.2 ICF/sec
+  ✓ Batch 14/90 complete | 770 ICFs | 24.6 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 15/90 batches | 825/4902 ICFs (16.8%) | 22.5 ICF/s | running
+  ✓ Batch 15/90 complete | 825 ICFs | 22.5 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 16/90 batches | 880/4902 ICFs (18.0%) | 23.3 ICF/s | running
+  ✓ Batch 16/90 complete | 880 ICFs | 23.3 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 17/90 batches | 935/4902 ICFs (19.1%) | 22.3 ICF/s | running
+  ✓ Batch 17/90 complete | 935 ICFs | 22.3 ICF/sec
+  ✓ Batch 18/90 complete | 990 ICFs | 23.4 ICF/sec
+  ✓ Batch 19/90 complete | 1045 ICFs | 24.5 ICF/sec
+  ✓ Batch 20/90 complete | 1100 ICFs | 25.8 ICF/sec
+  💾 Saved 89650 costs to cache (checkpoint at batch 20/90)
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 21/90 batches | 1155/4902 ICFs (23.6%) | 26.9 ICF/s | running
+  ✓ Batch 21/90 complete | 1155 ICFs | 26.9 ICF/sec
+  ✓ Batch 22/90 complete | 1210 ICFs | 28.2 ICF/sec
+  ✓ Batch 23/90 complete | 1265 ICFs | 29.4 ICF/sec
+  ✓ Batch 24/90 complete | 1320 ICFs | 30.7 ICF/sec
+  ✓ Batch 25/90 complete | 1375 ICFs | 32.0 ICF/sec
+  ✓ Batch 26/90 complete | 1430 ICFs | 33.3 ICF/sec
+  ✓ Batch 27/90 complete | 1485 ICFs | 34.5 ICF/sec
+  ✓ Batch 28/90 complete | 1540 ICFs | 35.8 ICF/sec
+  ✓ Batch 29/90 complete | 1595 ICFs | 37.0 ICF/sec
+  ✓ Batch 30/90 complete | 1650 ICFs | 38.2 ICF/sec
+  💾 Saved 89650 costs to cache (checkpoint at batch 30/90)
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 31/90 batches | 1705/4902 ICFs (34.8%) | 38.5 ICF/s | running
+  ✓ Batch 31/90 complete | 1705 ICFs | 38.5 ICF/sec
+  ✓ Batch 32/90 complete | 1760 ICFs | 39.0 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 33/90 batches | 1814/4902 ICFs (37.0%) | 37.9 ICF/s | running
+  ✓ Batch 33/90 complete | 1814 ICFs | 37.9 ICF/sec
+  ✓ Batch 34/90 complete | 1869 ICFs | 39.0 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 35/90 batches | 1924/4902 ICFs (39.2%) | 36.0 ICF/s | running
+  ✓ Batch 35/90 complete | 1924 ICFs | 36.0 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 36/90 batches | 1979/4902 ICFs (40.4%) | 35.7 ICF/s | running
+  ✓ Batch 36/90 complete | 1979 ICFs | 35.7 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 37/90 batches | 2034/4902 ICFs (41.5%) | 35.0 ICF/s | running
+  ✓ Batch 37/90 complete | 2034 ICFs | 35.0 ICF/sec
+  ✓ Batch 38/90 complete | 2089 ICFs | 35.5 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 39/90 batches | 2144/4902 ICFs (43.7%) | 36.2 ICF/s | running
+  ✓ Batch 39/90 complete | 2144 ICFs | 36.2 ICF/sec
+  ✓ Batch 40/90 complete | 2199 ICFs | 37.0 ICF/sec
+  💾 Saved 89487 costs to cache (checkpoint at batch 40/90)
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 41/90 batches | 2254/4902 ICFs (46.0%) | 34.3 ICF/s | running
+  ✓ Batch 41/90 complete | 2254 ICFs | 34.3 ICF/sec
+  ✓ Batch 42/90 complete | 2309 ICFs | 34.7 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 43/90 batches | 2363/4902 ICFs (48.2%) | 35.4 ICF/s | running
+  ✓ Batch 43/90 complete | 2363 ICFs | 35.4 ICF/sec
+  ✓ Batch 44/90 complete | 2418 ICFs | 36.3 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 45/90 batches | 2472/4902 ICFs (50.4%) | 35.3 ICF/s | running
+  ✓ Batch 45/90 complete | 2472 ICFs | 35.3 ICF/sec
+  ✓ Batch 46/90 complete | 2526 ICFs | 35.7 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 47/90 batches | 2580/4902 ICFs (52.6%) | 36.0 ICF/s | running
+  ✓ Batch 47/90 complete | 2580 ICFs | 36.0 ICF/sec
+  ✓ Batch 48/90 complete | 2634 ICFs | 36.7 ICF/sec
+  ✓ Batch 49/90 complete | 2688 ICFs | 37.3 ICF/sec
+  ✓ Batch 50/90 complete | 2742 ICFs | 38.0 ICF/sec
+  💾 Saved 88509 costs to cache (checkpoint at batch 50/90)
+  ✓ Batch 51/90 complete | 2796 ICFs | 38.7 ICF/sec
+  ✓ Batch 52/90 complete | 2850 ICFs | 39.3 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 53/90 batches | 2904/4902 ICFs (59.2%) | 39.6 ICF/s | running
+  ✓ Batch 53/90 complete | 2904 ICFs | 39.6 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 54/90 batches | 2958/4902 ICFs (60.3%) | 38.8 ICF/s | running
+  ✓ Batch 54/90 complete | 2958 ICFs | 38.8 ICF/sec
+  ✓ Batch 55/90 complete | 3012 ICFs | 39.2 ICF/sec
+  ✓ Batch 56/90 complete | 3066 ICFs | 39.7 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 57/90 batches | 3120/4902 ICFs (63.6%) | 39.1 ICF/s | running
+  ✓ Batch 57/90 complete | 3120 ICFs | 39.1 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 58/90 batches | 3174/4902 ICFs (64.7%) | 39.1 ICF/s | running
+  ✓ Batch 58/90 complete | 3174 ICFs | 39.1 ICF/sec
+  ✓ Batch 59/90 complete | 3228 ICFs | 39.7 ICF/sec
+  ✓ Batch 60/90 complete | 3282 ICFs | 40.0 ICF/sec
+  💾 Saved 88020 costs to cache (checkpoint at batch 60/90)
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 61/90 batches | 3336/4902 ICFs (68.1%) | 40.4 ICF/s | running
+  ✓ Batch 61/90 complete | 3336 ICFs | 40.4 ICF/sec
+  ✓ Batch 62/90 complete | 3390 ICFs | 40.6 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 63/90 batches | 3444/4902 ICFs (70.3%) | 40.9 ICF/s | running
+  ✓ Batch 63/90 complete | 3444 ICFs | 40.9 ICF/sec
+  ✓ Batch 64/90 complete | 3498 ICFs | 41.5 ICF/sec
+  ✓ Batch 65/90 complete | 3552 ICFs | 41.8 ICF/sec
+  ✓ Batch 66/90 complete | 3606 ICFs | 42.5 ICF/sec
+  ✓ Batch 67/90 complete | 3660 ICFs | 43.1 ICF/sec
+  ✓ Batch 68/90 complete | 3714 ICFs | 43.7 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 69/90 batches | 3768/4902 ICFs (76.9%) | 43.9 ICF/s | running
+  ✓ Batch 69/90 complete | 3768 ICFs | 43.9 ICF/sec
+  ✓ Batch 70/90 complete | 3822 ICFs | 44.2 ICF/sec
+  💾 Saved 88020 costs to cache (checkpoint at batch 70/90)
+  ✓ Batch 71/90 complete | 3876 ICFs | 44.8 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 72/90 batches | 3930/4902 ICFs (80.2%) | 42.2 ICF/s | running
+  ✓ Batch 72/90 complete | 3930 ICFs | 42.2 ICF/sec
+  ✓ Batch 73/90 complete | 3984 ICFs | 42.6 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 74/90 batches | 4038/4902 ICFs (82.4%) | 42.9 ICF/s | running
+  ✓ Batch 74/90 complete | 4038 ICFs | 42.9 ICF/sec
+  ✓ Batch 75/90 complete | 4092 ICFs | 43.4 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 76/90 batches | 4146/4902 ICFs (84.6%) | 43.1 ICF/s | running
+  ✓ Batch 76/90 complete | 4146 ICFs | 43.1 ICF/sec
+  ✓ Batch 77/90 complete | 4200 ICFs | 43.6 ICF/sec
+  ✓ Batch 78/90 complete | 4254 ICFs | 44.0 ICF/sec
+  ✓ Batch 79/90 complete | 4308 ICFs | 44.5 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 80/90 batches | 4362/4902 ICFs (89.0%) | 44.5 ICF/s | running
+  ✓ Batch 80/90 complete | 4362 ICFs | 44.5 ICF/sec
+  💾 Saved 88020 costs to cache (checkpoint at batch 80/90)
+  ✓ Batch 81/90 complete | 4416 ICFs | 44.8 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 82/90 batches | 4470/4902 ICFs (91.2%) | 45.1 ICF/s | running
+  ✓ Batch 82/90 complete | 4470 ICFs | 45.1 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 83/90 batches | 4524/4902 ICFs (92.3%) | 45.2 ICF/s | running
+  ✓ Batch 83/90 complete | 4524 ICFs | 45.2 ICF/sec
+  ✓ Batch 84/90 complete | 4578 ICFs | 45.7 ICF/sec
+  ✓ Batch 85/90 complete | 4632 ICFs | 45.9 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 86/90 batches | 4686/4902 ICFs (95.6%) | 46.1 ICF/s | running
+  ✓ Batch 86/90 complete | 4686 ICFs | 46.1 ICF/sec
+  ✓ Batch 87/90 complete | 4740 ICFs | 46.6 ICF/sec
+  ✓ Batch 88/90 complete | 4794 ICFs | 46.8 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 89/90 batches | 4848/4902 ICFs (98.9%) | 46.9 ICF/s | running
+  ✓ Batch 89/90 complete | 4848 ICFs | 46.9 ICF/sec
+  ✓ Batch 90/90 complete | 4902 ICFs | 47.4 ICF/sec
+  💾 Saved 88020 costs to cache (checkpoint at batch 90/90)
+
+  ✅ Completed reasons in 103.5s
+     Average: 47.4 ICF/sec (4902 ICFs total)
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 90/90 batches | 4902/4902 ICFs (100.0%) | 47.4 ICF/s | done
+
+================================================================================
+Processing NON_REASONS
+================================================================================
+  Total ICFs: 727
+  Adjusted batches 15 -> 30 to evenly spread work across 30 processes (~25 ICFs each)
+  Created 30 batches
+  Submitting ALL batches to 30 parallel processes...
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 90/90 batches | 4902/4902 ICFs (100.0%) | 47.4 ICF/s | done
+  -  non_reasons: 0/30 batches | 0/727 ICFs (0.0%) | 0.0 ICF/s | running
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 90/90 batches | 4902/4902 ICFs (100.0%) | 44.2 ICF/s | done
+  -  non_reasons: 1/30 batches | 25/727 ICFs (3.4%) | 3.4 ICF/s | running
+  ✓ Batch 1/30 complete | 25 ICFs | 3.4 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 90/90 batches | 4902/4902 ICFs (100.0%) | 43.7 ICF/s | done
+  -  non_reasons: 2/30 batches | 49/727 ICFs (6.7%) | 5.7 ICF/s | running
+  ✓ Batch 2/30 complete | 49 ICFs | 5.7 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 90/90 batches | 4902/4902 ICFs (100.0%) | 42.9 ICF/s | done
+  -  non_reasons: 3/30 batches | 74/727 ICFs (10.2%) | 6.8 ICF/s | running
+  ✓ Batch 3/30 complete | 74 ICFs | 6.8 ICF/sec
+  ✓ Batch 4/30 complete | 98 ICFs | 8.7 ICF/sec
+  ✓ Batch 5/30 complete | 122 ICFs | 10.7 ICF/sec
+  ✓ Batch 6/30 complete | 146 ICFs | 12.6 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 90/90 batches | 4902/4902 ICFs (100.0%) | 42.4 ICF/s | done
+  -  non_reasons: 7/30 batches | 170/727 ICFs (23.4%) | 14.0 ICF/s | running
+  ✓ Batch 7/30 complete | 170 ICFs | 14.0 ICF/sec
+  ✓ Batch 8/30 complete | 194 ICFs | 15.8 ICF/sec
+  ✓ Batch 9/30 complete | 218 ICFs | 17.7 ICF/sec
+  ✓ Batch 10/30 complete | 242 ICFs | 19.6 ICF/sec
+  💾 Saved 39446 costs to cache (checkpoint at batch 10/30)
+  ✓ Batch 11/30 complete | 266 ICFs | 21.3 ICF/sec
+  ✓ Batch 12/30 complete | 291 ICFs | 22.7 ICF/sec
+  ✓ Batch 13/30 complete | 316 ICFs | 24.5 ICF/sec
+  ✓ Batch 14/30 complete | 341 ICFs | 26.4 ICF/sec
+  ✓ Batch 15/30 complete | 366 ICFs | 28.0 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 90/90 batches | 4902/4902 ICFs (100.0%) | 41.5 ICF/s | done
+  -  non_reasons: 16/30 batches | 390/727 ICFs (53.6%) | 26.5 ICF/s | running
+  ✓ Batch 16/30 complete | 390 ICFs | 26.5 ICF/sec
+  ✓ Batch 17/30 complete | 414 ICFs | 27.8 ICF/sec
+  ✓ Batch 18/30 complete | 438 ICFs | 29.3 ICF/sec
+  ✓ Batch 19/30 complete | 463 ICFs | 30.8 ICF/sec
+  ✓ Batch 20/30 complete | 487 ICFs | 31.8 ICF/sec
+  💾 Saved 39935 costs to cache (checkpoint at batch 20/30)
+  ✓ Batch 21/30 complete | 511 ICFs | 33.2 ICF/sec
+  ✓ Batch 22/30 complete | 535 ICFs | 34.8 ICF/sec
+  ✓ Batch 23/30 complete | 559 ICFs | 36.3 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 90/90 batches | 4902/4902 ICFs (100.0%) | 41.0 ICF/s | done
+  -  non_reasons: 24/30 batches | 583/727 ICFs (80.2%) | 35.9 ICF/s | running
+  ✓ Batch 24/30 complete | 583 ICFs | 35.9 ICF/sec
+  ✓ Batch 25/30 complete | 607 ICFs | 37.3 ICF/sec
+  ✓ Batch 26/30 complete | 631 ICFs | 38.5 ICF/sec
+  ✓ Batch 27/30 complete | 655 ICFs | 40.0 ICF/sec
+  ✓ Batch 28/30 complete | 679 ICFs | 41.1 ICF/sec
+  ✓ Batch 29/30 complete | 703 ICFs | 42.5 ICF/sec
+  ✓ Batch 30/30 complete | 727 ICFs | 43.6 ICF/sec
+  💾 Saved 39120 costs to cache (checkpoint at batch 30/30)
+
+  ✅ Completed non_reasons in 16.7s
+     Average: 43.6 ICF/sec (727 ICFs total)
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 90/90 batches | 4902/4902 ICFs (100.0%) | 40.8 ICF/s | done
+  -  non_reasons: 30/30 batches | 727/727 ICFs (100.0%) | 43.6 ICF/s | done
+
+================================================================================
+Processing ANTI_REASONS
+================================================================================
+  Total ICFs: 12237
+  Adjusted batches 245 -> 240 to evenly spread work across 30 processes (~51 ICFs each)
+  Created 240 batches
+  Submitting ALL batches to 30 parallel processes...
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 90/90 batches | 4902/4902 ICFs (100.0%) | 40.8 ICF/s | done
+  -  non_reasons: 30/30 batches | 727/727 ICFs (100.0%) | 43.6 ICF/s | done
+  - anti_reasons: 0/240 batches | 0/12237 ICFs (0.0%) | 0.0 ICF/s | running
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 90/90 batches | 4902/4902 ICFs (100.0%) | 35.7 ICF/s | done
+  -  non_reasons: 30/30 batches | 727/727 ICFs (100.0%) | 21.6 ICF/s | done
+  - anti_reasons: 1/240 batches | 51/12237 ICFs (0.4%) | 3.0 ICF/s | running
+  ✓ Batch 1/240 complete | 51 ICFs | 3.0 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 90/90 batches | 4902/4902 ICFs (100.0%) | 35.1 ICF/s | done
+  -  non_reasons: 30/30 batches | 727/727 ICFs (100.0%) | 20.1 ICF/s | done
+  - anti_reasons: 2/240 batches | 102/12237 ICFs (0.8%) | 5.3 ICF/s | running
+  ✓ Batch 2/240 complete | 102 ICFs | 5.3 ICF/sec
+  ✓ Batch 3/240 complete | 153 ICFs | 7.7 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 90/90 batches | 4902/4902 ICFs (100.0%) | 33.4 ICF/s | done
+  -  non_reasons: 30/30 batches | 727/727 ICFs (100.0%) | 16.8 ICF/s | done
+  - anti_reasons: 4/240 batches | 204/12237 ICFs (1.7%) | 7.7 ICF/s | running
+  ✓ Batch 4/240 complete | 204 ICFs | 7.7 ICF/sec
+  ✓ Batch 5/240 complete | 255 ICFs | 9.5 ICF/sec
+  ✓ Batch 6/240 complete | 306 ICFs | 11.3 ICF/sec
+  ✓ Batch 7/240 complete | 357 ICFs | 13.2 ICF/sec
+  ✓ Batch 8/240 complete | 408 ICFs | 15.1 ICF/sec
+  ✓ Batch 9/240 complete | 459 ICFs | 16.9 ICF/sec
+  ✓ Batch 10/240 complete | 510 ICFs | 18.6 ICF/sec
+  💾 Saved 83130 costs to cache (checkpoint at batch 10/240)
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 90/90 batches | 4902/4902 ICFs (100.0%) | 33.1 ICF/s | done
+  -  non_reasons: 30/30 batches | 727/727 ICFs (100.0%) | 16.3 ICF/s | done
+  - anti_reasons: 11/240 batches | 561/12237 ICFs (4.6%) | 20.2 ICF/s | running
+  ✓ Batch 11/240 complete | 561 ICFs | 20.2 ICF/sec
+  ✓ Batch 12/240 complete | 612 ICFs | 21.9 ICF/sec
+  ✓ Batch 13/240 complete | 663 ICFs | 23.6 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 90/90 batches | 4902/4902 ICFs (100.0%) | 32.4 ICF/s | done
+  -  non_reasons: 30/30 batches | 727/727 ICFs (100.0%) | 15.2 ICF/s | done
+  - anti_reasons: 14/240 batches | 714/12237 ICFs (5.8%) | 22.8 ICF/s | running
+  ✓ Batch 14/240 complete | 714 ICFs | 22.8 ICF/sec
+[SonyAIBORobotSurface1 ICF] Monitor
+  -      reasons: 90/90 batches | 4902/4902 ICFs (100.0%) | 31.7 ICF/s | done
+  -  non_reasons: 30/30 batches | 727/727 ICFs (100.0%) | 14.2 ICF/s | done
+  - anti_reasons: 15/240 batches | 765/12237 ICFs (6.3%) | 22.1 ICF/s | running
+  ✓ Batch 15/240 complete | 765 ICFs | 22.1 ICF/sec
+  ✓ Batch 16/240 complete | 816 ICFs | 23.6 ICF/sec

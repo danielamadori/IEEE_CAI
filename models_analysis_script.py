@@ -258,8 +258,8 @@ def model_analysis(db):
                 print(ar_lowest[['max_cost', 'robustness', 'mean_cost', 'n_samples']].to_string(index=False))
 
                 # Save results (including bitmap_index for reference, but not displayed)
-                bitmap_robustness.to_csv('results/anti_reasons_robustness.csv', index=False)
-                print(f"\n\nResults saved to: results/anti_reasons_robustness.csv")
+                bitmap_robustness.to_csv(f'results/{dataset_name}_anti_reasons_robustness.csv', index=False)
+                print(f"\n\nResults saved to: results/{dataset_name}_anti_reasons_robustness.csv")
             from etl.reasons_analysis import visualize_sample_comparison_smooth
 
             fig = visualize_sample_comparison_smooth(sample_id, tests_sample, feature_names)
