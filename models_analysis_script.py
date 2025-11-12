@@ -422,6 +422,16 @@ if __name__ == "__main__":
     }
     for name in zip_names:
         print(f"Processing dataset ZIP: {name}")
+        dataset_name = Path(name).stem.split('_')[0]
+        existing_csvs = list(RESULTS_DIR.glob(f"{dataset_name}_*.csv"))
+        
+        if existing_csvs:
+            print(f"Skipping dataset '{dataset_name}' - CSV files already exist:")
+            continue
+
+        if name == 'HandOutlines_0_false_0.zip':
+            print(f"Skipping dataset '{dataset_name}' as raises errors.")
+            continue
         db = etl(
             zip_paths,
             RESULTS_DIR,
@@ -433,5 +443,5 @@ if __name__ == "__main__":
             name_dataset=name,    # Set to specific dataset name if needed
         )
 #         IEEE_CAI$ nohup python models_analysis_script.py  > models_robustness.log 2>&1 & 
-# [1] 2703842
+# [1] 2717224
         model_analysis(db)
