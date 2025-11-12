@@ -19,7 +19,7 @@ def get_etl_cache():
     return _cache
 
 
-def etl(zip_paths, results_dir, use_cache=True, force_refresh=False, auto_select=False, skip_workers_report=False, load_only_db10=False, verbose=True):
+def etl(zip_paths, results_dir, use_cache=True, force_refresh=False, auto_select=False, skip_workers_report=False, load_only_db10=False, verbose=True, name_dataset=None):
     """
     Extract, Transform, Load data from ZIP archives with 2-level caching
 
@@ -48,7 +48,7 @@ def etl(zip_paths, results_dir, use_cache=True, force_refresh=False, auto_select
     dict
         Database dictionary with all extracted data
     """
-    selected_zip_name = scan_and_load(zip_paths, results_dir, auto_select=auto_select, verbose=verbose)
+    selected_zip_name = scan_and_load(zip_paths, results_dir, auto_select=auto_select, verbose=verbose, name_dataset=name_dataset)
 
     # Find the selected ZIP path
     selected_zip_path = None

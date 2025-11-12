@@ -25,7 +25,7 @@ MAX_FULL_BYTES = 999_999
 MAX_PREVIEW_BYTES = 10_000
 
 
-def scan_and_load(zip_paths, results_dir, auto_select=False, verbose=True):
+def scan_and_load(zip_paths, results_dir, auto_select=False, verbose=True, name_dataset=None):
 
     zip_names = [path.name for path in zip_paths]
     zip_inventory = {
@@ -71,7 +71,10 @@ def scan_and_load(zip_paths, results_dir, auto_select=False, verbose=True):
                 print(f"Auto-selected: [{selected_zip_index}] {selected_zip_name}")
             user_choice = ""
         else:
-            user_choice = input("Select ZIP by index or name (press Enter to keep current selection): ").strip()
+            if name_dataset is not None:
+                user_choice = name_dataset
+            else:
+                user_choice = input("Select ZIP by index or name (press Enter to keep current selection): ").strip()
 
         if user_choice:
             resolved_index = None
