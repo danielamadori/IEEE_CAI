@@ -1,13 +1,10 @@
 nohup: ignoring input
-/home/emanuelechini/.local/lib/python3.10/site-packages/matplotlib/projections/__init__.py:63: UserWarning: Unable to import Axes3D. This may be due to multiple versions of Matplotlib being installed (e.g. as a system package and as a pip package). As a result, the 3D projection is not available.
-  warnings.warn("Unable to import Axes3D. This may be due to multiple versions of "
-Found dataset ZIP: BeetleFly_1_false_0.zip
+Processing dataset ZIP: BeetleFly_1_false_0.zip
 [OK] Loaded cached data for BeetleFly_1_false_0.zip
 Report built for 32 workers.
 Using unified database (db parameter) for DB10 data sharing
 Resuming from cache: 18 datasets already processed
-Processing 44/47: _cache...
-Manifest not found in directory: /media/DATA/emanuelechini/IEEE_CAI/results/_cache
+Processing 52/55: _cache...Manifest not found in directory: /media/DATA/emanuelechini/IEEE_CAI/results/_cache
 
 Processed 0 new datasets (18 total)
 Saved redis summary cache at /media/DATA/emanuelechini/IEEE_CAI/results/redis_reason_counts.csv
@@ -122,3 +119,698 @@ Robustness summary (anti-reasons)
 Accuracy vs robustness deltas
   • 1 - mean robustness: 0.1798
   • Test accuracy - mean robustness: 0.0298
+
+DB0 exposes 8 RF optimization metrics (table below).
+Total test samples available: 13
+Number of features per sample: 512
+
+================================================================================
+Detailed analysis will use Sample ID: BeetleFly_1_0
+================================================================================
+
+REASONS Analysis for Sample BeetleFly_1_0:
+  ✓ CORRECT: Predicted=1, Actual=1
+  Cost: 95.481925
+  Constrained features: 110/512
+  Temporal intervals: 50
+
+ANTI-REASONS Analysis for Sample BeetleFly_1_0:
+  ✓ CORRECT: Predicted=1, Actual=1
+  Cost: 92.355966
+  Constrained features: 96/512
+  Temporal intervals: 44
+
+Comparison for Sample BeetleFly_1_0:
+  ✓ CORRECT: Predicted=1, Actual=1
+
+  REASON:
+    Constrained features: 110
+    Temporal intervals: 50
+  ANTI-REASON:
+    Constrained features: 96
+    Temporal intervals: 44
+
+================================================================================
+ROBUSTNESS PER ICF (Anti-Reasons Only)
+================================================================================
+
+Total anti-reason ICFs analyzed: 2066
+
+Top 10 ICFs by max_cost (hardest to reach):
+  max_cost  robustness  mean_cost  n_samples
+104.596185    0.795711  92.041927         13
+104.258046    0.796371  91.853135         13
+103.944395    0.796984  91.335159         13
+103.894416    0.797081  91.271485         13
+103.866295    0.797136  91.284700         13
+103.845156    0.797177  91.157717         13
+103.823046    0.797221  90.991234         13
+103.773067    0.797318  90.927560         13
+103.748579    0.797366  91.256744         13
+103.728547    0.797405  91.026514         13
+
+
+ANTI-REASONS with LOWEST robustness (most vulnerable - easiest to perturb):
+  max_cost  robustness  mean_cost  n_samples
+104.596185    0.795711  92.041927         13
+104.258046    0.796371  91.853135         13
+103.944395    0.796984  91.335159         13
+103.894416    0.797081  91.271485         13
+103.866295    0.797136  91.284700         13
+
+
+Results saved to: results/anti_reasons_robustness.csv
+
+Smooth Corridor Comparison for Sample BeetleFly_1_0:
+  ✓ CORRECT: Predicted=1, Actual=1
+
+  REASON CORRIDOR:
+    Cost: 95.481925
+    Constrained features: 110/512
+    Corridor width: avg=0.511
+
+  ANTI-REASON CORRIDOR:
+    Cost: 92.355966
+    Constrained features: 96/512
+    Corridor width: avg=0.421
+? BASE_DIR     : /media/DATA/emanuelechini/IEEE_CAI
+? RESULTS_DIR  : /media/DATA/emanuelechini/IEEE_CAI/results
+Dataset: BeetleFly, BirdChicken, CinCECGTorso, Coffee, ECG200, FaceFour, GunPoint, HandOutlines, ItalyPowerDemand, Lightning2, Meat, MiddlePhalanxOutlineCorrect, MoteStrain, SonyAIBORobotSurface1, SonyAIBORobotSurface2, ToeSegmentation2, TwoLeadECG, Wine
+Processing dataset ZIP: BirdChicken_1_false_0.zip
+[OK] Loaded cached data for BirdChicken_1_false_0.zip
+Report built for 32 workers.
+Using unified database (db parameter) for DB10 data sharing
+Resuming from cache: 18 datasets already processed
+Processing 52/55: _cache...Manifest not found in directory: /media/DATA/emanuelechini/IEEE_CAI/results/_cache
+
+Processed 0 new datasets (18 total)
+Saved redis summary cache at /media/DATA/emanuelechini/IEEE_CAI/results/redis_reason_counts.csv
+
+================================================================================
+PARALLEL ACCURACY EXTRACTION
+================================================================================
+Processing 18 ZIP files with 9 workers...
+
+✓ Extraction complete:
+  - Success: 17/18
+  - Errors: 1/18, datasets errors ['HandOutlines']
+================================================================================
+
+Base dir           : /media/DATA/emanuelechini/IEEE_CAI
+Loaded 88 rows from /media/DATA/emanuelechini/IEEE_CAI/forest_report.json
+Results directory  : /media/DATA/emanuelechini/IEEE_CAI/results (exists=True)
+Extracted 10 test samples
+Features: 512
+Calculating costs for anti_reasons...
+================================================================================
+
+✓ Loaded costs from cache for BirdChicken
+================================================================================
+
+================================================================================
+COST CALCULATION COMPLETE
+================================================================================
+Total costs calculated: 35790
+
+
+================================================================================
+  ROBUSTNESS CALCULATION (Anti-Reasons Only)
+================================================================================
+
+📐 Configuration:
+   • Number of features: 512
+
+📝 Formula:
+   r(C,x) = 1 - max{ICF ∈ AR{C,y}} cost_x(ICF) / |features|
+
+   where AR{C,y} = set of Anti-Reasons for class y
+
+
+================================================================================
+  ICF-LEVEL ROBUSTNESS ANALYSIS (Anti-Reasons)
+================================================================================
+
+📋 ICF Summary:
+   • Total anti-reason ICFs: 1353
+
+📊 Cost Statistics:
+   • Max cost:      102.576210
+   • Mean max cost: 79.943225
+   • Min max cost:  57.220010
+
+🎯 Robustness Statistics:
+   • Max:  0.888242
+   • Mean: 0.843861
+   • Min:  0.799656
+Processing 10 samples...
+✓ All 10 samples processed
+
+
+================================================================================
+  SAMPLE-LEVEL ROBUSTNESS ANALYSIS
+================================================================================
+
+📊 Dataset Overview:
+   • Total samples:        10
+   • Correct predictions:  5 (50.0%)
+   • Incorrect predictions: 5 (50.0%)
+
+📈 Robustness Statistics (All Samples):
+   • Mean:      0.835672 +/- 0.013647
+   • Median:    0.842289
+   • Min/Max:   0.799656 / 0.844314
+   • Range:     0.044659
+   • IQR:       0.008956 (Q1=0.834291, Q3=0.843246)
+
+🔍 Robustness by Prediction Correctness:
+--------------------------------------------------------------------------------
+
+  ✓ CORRECT Predictions (5 samples):
+     Mean:      0.843263 +/- 0.000762
+     Median:    0.843462
+     Range:     [0.842438, 0.844314]
+
+  ✗ INCORRECT Predictions (5 samples):
+     Mean:      0.828082 +/- 0.016565
+     Median:    0.833822
+     Range:     [0.799656, 0.842140]
+
+  📊 Difference (Correct - Incorrect): +0.015181
+
+--------------------------------------------------------------------------------
+
+✅ Results saved to: results/BirdChicken_sample_robustness.csv
+
+
+================================================================================
+MODEL ACCURACY VS ROBUSTNESS
+================================================================================
+  • Test accuracy (RF optimization): 0.5000 (50.00%)
+  • Best CV score: 0.8500
+
+Robustness summary (anti-reasons)
+  • Mean robustness:   0.8357
+  • Median robustness: 0.8423
+  • Min / Max:        0.7997 / 0.8443
+
+Accuracy vs robustness deltas
+  • 1 - mean robustness: 0.1643
+  • Test accuracy - mean robustness: -0.3357
+
+DB0 exposes 8 RF optimization metrics (table below).
+Total test samples available: 10
+Number of features per sample: 512
+
+================================================================================
+Detailed analysis will use Sample ID: BirdChicken_1_3
+================================================================================
+
+REASONS Analysis for Sample BirdChicken_1_3:
+  ✓ CORRECT: Predicted=1, Actual=1
+  Cost: 97.808009
+  Constrained features: 101/512
+  Temporal intervals: 72
+
+ANTI-REASONS Analysis for Sample BirdChicken_1_3:
+  ✓ CORRECT: Predicted=1, Actual=1
+  Cost: 59.733390
+  Constrained features: 136/512
+  Temporal intervals: 74
+
+Comparison for Sample BirdChicken_1_3:
+  ✓ CORRECT: Predicted=1, Actual=1
+
+  REASON:
+    Constrained features: 101
+    Temporal intervals: 72
+  ANTI-REASON:
+    Constrained features: 136
+    Temporal intervals: 74
+
+================================================================================
+ROBUSTNESS PER ICF (Anti-Reasons Only)
+================================================================================
+
+Total anti-reason ICFs analyzed: 1353
+
+Top 10 ICFs by max_cost (hardest to reach):
+  max_cost  robustness  mean_cost  n_samples
+102.576210    0.799656  84.032814         10
+102.549447    0.799708  84.075346         10
+102.446455    0.799909  83.544798         10
+102.436303    0.799929  83.681103         10
+102.265741    0.800262  83.771019         10
+102.244141    0.800304  83.298150         10
+102.137421    0.800513  83.632443         10
+102.058783    0.800666  83.605601         10
+102.025211    0.800732  83.340818         10
+101.989825    0.800801  83.232487         10
+
+
+ANTI-REASONS with LOWEST robustness (most vulnerable - easiest to perturb):
+  max_cost  robustness  mean_cost  n_samples
+102.576210    0.799656  84.032814         10
+102.549447    0.799708  84.075346         10
+102.446455    0.799909  83.544798         10
+102.436303    0.799929  83.681103         10
+102.265741    0.800262  83.771019         10
+
+
+Results saved to: results/anti_reasons_robustness.csv
+
+Smooth Corridor Comparison for Sample BirdChicken_1_3:
+  ✓ CORRECT: Predicted=1, Actual=1
+
+  REASON CORRIDOR:
+    Cost: 97.808009
+    Constrained features: 101/512
+    Corridor width: avg=0.440
+
+  ANTI-REASON CORRIDOR:
+    Cost: 59.733390
+    Constrained features: 136/512
+    Corridor width: avg=0.375
+? BASE_DIR     : /media/DATA/emanuelechini/IEEE_CAI
+? RESULTS_DIR  : /media/DATA/emanuelechini/IEEE_CAI/results
+Dataset: BeetleFly, BirdChicken, CinCECGTorso, Coffee, ECG200, FaceFour, GunPoint, HandOutlines, ItalyPowerDemand, Lightning2, Meat, MiddlePhalanxOutlineCorrect, MoteStrain, SonyAIBORobotSurface1, SonyAIBORobotSurface2, ToeSegmentation2, TwoLeadECG, Wine
+Processing dataset ZIP: CinCECGTorso_1_false_0.zip
+[OK] Loaded cached data for CinCECGTorso_1_false_0.zip
+Report built for 32 workers.
+Using unified database (db parameter) for DB10 data sharing
+Resuming from cache: 18 datasets already processed
+Processing 62/65: _cache...Manifest not found in directory: /media/DATA/emanuelechini/IEEE_CAI/results/_cache
+
+Processed 0 new datasets (18 total)
+Saved redis summary cache at /media/DATA/emanuelechini/IEEE_CAI/results/redis_reason_counts.csv
+
+================================================================================
+PARALLEL ACCURACY EXTRACTION
+================================================================================
+Processing 18 ZIP files with 9 workers...
+
+✓ Extraction complete:
+  - Success: 17/18
+  - Errors: 1/18, datasets errors ['HandOutlines']
+================================================================================
+
+Base dir           : /media/DATA/emanuelechini/IEEE_CAI
+Loaded 88 rows from /media/DATA/emanuelechini/IEEE_CAI/forest_report.json
+Results directory  : /media/DATA/emanuelechini/IEEE_CAI/results (exists=True)
+Extracted 129 test samples
+Features: 1639
+Calculating costs for anti_reasons...
+================================================================================
+
+→ Computing costs for CinCECGTorso (not in cache)...
+Using PARALLEL computation with INCREMENTAL cache to reduce RAM usage
+
+🚀 TRUE MULTIPROCESSING MODE - Using 30 SEPARATE PROCESSES
+   Batch size: 50 ICFs | Save every: 10 batches
+
+================================================================================
+Processing REASONS
+================================================================================
+  Total ICFs: 167
+  Adjusted batches 4 -> 30 to evenly spread work across 30 processes (~6 ICFs each)
+  Created 30 batches
+  Submitting ALL batches to 30 parallel processes...
+[CinCECGTorso ICF] Monitor
+  -      reasons: 0/30 batches | 0/167 ICFs (0.0%) | 0.0 ICF/s | running
+[CinCECGTorso ICF] Monitor
+  -      reasons: 1/30 batches | 6/167 ICFs (3.6%) | 0.3 ICF/s | running
+  ✓ Batch 1/30 complete | 6 ICFs | 0.3 ICF/sec
+  ✓ Batch 2/30 complete | 12 ICFs | 0.6 ICF/sec
+[CinCECGTorso ICF] Monitor
+  -      reasons: 3/30 batches | 17/167 ICFs (10.2%) | 0.7 ICF/s | running
+  ✓ Batch 3/30 complete | 17 ICFs | 0.7 ICF/sec
+[CinCECGTorso ICF] Monitor
+  -      reasons: 4/30 batches | 22/167 ICFs (13.2%) | 0.8 ICF/s | running
+  ✓ Batch 4/30 complete | 22 ICFs | 0.8 ICF/sec
+  ✓ Batch 5/30 complete | 28 ICFs | 1.1 ICF/sec
+  ✓ Batch 6/30 complete | 33 ICFs | 1.2 ICF/sec
+  ✓ Batch 7/30 complete | 39 ICFs | 1.4 ICF/sec
+  ✓ Batch 8/30 complete | 44 ICFs | 1.6 ICF/sec
+[CinCECGTorso ICF] Monitor
+  -      reasons: 9/30 batches | 49/167 ICFs (29.3%) | 1.8 ICF/s | running
+  ✓ Batch 9/30 complete | 49 ICFs | 1.8 ICF/sec
+  ✓ Batch 10/30 complete | 54 ICFs | 1.9 ICF/sec
+  💾 Saved 6966 costs to cache (checkpoint at batch 10/30)
+  ✓ Batch 11/30 complete | 59 ICFs | 2.1 ICF/sec
+  ✓ Batch 12/30 complete | 64 ICFs | 2.3 ICF/sec
+[CinCECGTorso ICF] Monitor
+  -      reasons: 13/30 batches | 70/167 ICFs (41.9%) | 2.3 ICF/s | running
+  ✓ Batch 13/30 complete | 70 ICFs | 2.3 ICF/sec
+  ✓ Batch 14/30 complete | 76 ICFs | 2.5 ICF/sec
+  ✓ Batch 15/30 complete | 82 ICFs | 2.7 ICF/sec
+[CinCECGTorso ICF] Monitor
+  -      reasons: 16/30 batches | 87/167 ICFs (52.1%) | 2.7 ICF/s | running
+  ✓ Batch 16/30 complete | 87 ICFs | 2.7 ICF/sec
+[CinCECGTorso ICF] Monitor
+  -      reasons: 17/30 batches | 93/167 ICFs (55.7%) | 2.6 ICF/s | running
+  ✓ Batch 17/30 complete | 93 ICFs | 2.6 ICF/sec
+  ✓ Batch 18/30 complete | 99 ICFs | 2.8 ICF/sec
+  ✓ Batch 19/30 complete | 105 ICFs | 3.0 ICF/sec
+  ✓ Batch 20/30 complete | 111 ICFs | 3.1 ICF/sec
+  💾 Saved 7353 costs to cache (checkpoint at batch 20/30)
+[CinCECGTorso ICF] Monitor
+  -      reasons: 21/30 batches | 117/167 ICFs (70.1%) | 3.2 ICF/s | running
+  ✓ Batch 21/30 complete | 117 ICFs | 3.2 ICF/sec
+  ✓ Batch 22/30 complete | 122 ICFs | 3.3 ICF/sec
+  ✓ Batch 23/30 complete | 128 ICFs | 3.4 ICF/sec
+  ✓ Batch 24/30 complete | 134 ICFs | 3.6 ICF/sec
+  ✓ Batch 25/30 complete | 139 ICFs | 3.7 ICF/sec
+[CinCECGTorso ICF] Monitor
+  -      reasons: 26/30 batches | 144/167 ICFs (86.2%) | 3.8 ICF/s | running
+  ✓ Batch 26/30 complete | 144 ICFs | 3.8 ICF/sec
+  ✓ Batch 27/30 complete | 150 ICFs | 3.9 ICF/sec
+  ✓ Batch 28/30 complete | 155 ICFs | 4.0 ICF/sec
+[CinCECGTorso ICF] Monitor
+  -      reasons: 29/30 batches | 161/167 ICFs (96.4%) | 4.0 ICF/s | running
+  ✓ Batch 29/30 complete | 161 ICFs | 4.0 ICF/sec
+  ✓ Batch 30/30 complete | 167 ICFs | 4.2 ICF/sec
+  💾 Saved 7224 costs to cache (checkpoint at batch 30/30)
+
+  ✅ Completed reasons in 40.0s
+     Average: 4.2 ICF/sec (167 ICFs total)
+[CinCECGTorso ICF] Monitor
+  -      reasons: 30/30 batches | 167/167 ICFs (100.0%) | 4.2 ICF/s | done
+
+================================================================================
+Processing NON_REASONS
+================================================================================
+  Total ICFs: 44
+  Adjusted batches 1 -> 30 to evenly spread work across 30 processes (~2 ICFs each)
+  Created 30 batches
+  Submitting ALL batches to 30 parallel processes...
+[CinCECGTorso ICF] Monitor
+  -      reasons: 30/30 batches | 167/167 ICFs (100.0%) | 4.2 ICF/s | done
+  -  non_reasons: 0/30 batches | 0/44 ICFs (0.0%) | 0.0 ICF/s | running
+[CinCECGTorso ICF] Monitor
+  -      reasons: 30/30 batches | 167/167 ICFs (100.0%) | 3.9 ICF/s | done
+  -  non_reasons: 1/30 batches | 1/44 ICFs (2.3%) | 0.3 ICF/s | running
+  ✓ Batch 1/30 complete | 1 ICFs | 0.3 ICF/sec
+[CinCECGTorso ICF] Monitor
+  -      reasons: 30/30 batches | 167/167 ICFs (100.0%) | 3.8 ICF/s | done
+  -  non_reasons: 2/30 batches | 2/44 ICFs (4.5%) | 0.5 ICF/s | running
+  ✓ Batch 2/30 complete | 2 ICFs | 0.5 ICF/sec
+  ✓ Batch 3/30 complete | 3 ICFs | 0.7 ICF/sec
+  ✓ Batch 4/30 complete | 4 ICFs | 0.8 ICF/sec
+  ✓ Batch 5/30 complete | 5 ICFs | 1.0 ICF/sec
+[CinCECGTorso ICF] Monitor
+  -      reasons: 30/30 batches | 167/167 ICFs (100.0%) | 3.7 ICF/s | done
+  -  non_reasons: 6/30 batches | 6/44 ICFs (13.6%) | 1.1 ICF/s | running
+  ✓ Batch 6/30 complete | 6 ICFs | 1.1 ICF/sec
+  ✓ Batch 7/30 complete | 7 ICFs | 1.3 ICF/sec
+  ✓ Batch 8/30 complete | 8 ICFs | 1.4 ICF/sec
+  ✓ Batch 9/30 complete | 9 ICFs | 1.6 ICF/sec
+[CinCECGTorso ICF] Monitor
+  -      reasons: 30/30 batches | 167/167 ICFs (100.0%) | 3.5 ICF/s | done
+  -  non_reasons: 10/30 batches | 11/44 ICFs (25.0%) | 1.4 ICF/s | running
+  ✓ Batch 10/30 complete | 11 ICFs | 1.4 ICF/sec
+  💾 Saved 1419 costs to cache (checkpoint at batch 10/30)
+  ✓ Batch 11/30 complete | 13 ICFs | 1.6 ICF/sec
+  ✓ Batch 12/30 complete | 14 ICFs | 1.7 ICF/sec
+  ✓ Batch 13/30 complete | 15 ICFs | 1.8 ICF/sec
+  ✓ Batch 14/30 complete | 16 ICFs | 1.9 ICF/sec
+  ✓ Batch 15/30 complete | 17 ICFs | 2.0 ICF/sec
+  ✓ Batch 16/30 complete | 18 ICFs | 2.1 ICF/sec
+  ✓ Batch 17/30 complete | 19 ICFs | 2.3 ICF/sec
+  ✓ Batch 18/30 complete | 20 ICFs | 2.4 ICF/sec
+  ✓ Batch 19/30 complete | 22 ICFs | 2.6 ICF/sec
+  ✓ Batch 20/30 complete | 24 ICFs | 2.8 ICF/sec
+  💾 Saved 1677 costs to cache (checkpoint at batch 20/30)
+  ✓ Batch 21/30 complete | 26 ICFs | 3.0 ICF/sec
+  ✓ Batch 22/30 complete | 28 ICFs | 3.2 ICF/sec
+[CinCECGTorso ICF] Monitor
+  -      reasons: 30/30 batches | 167/167 ICFs (100.0%) | 3.4 ICF/s | done
+  -  non_reasons: 23/30 batches | 30/44 ICFs (68.2%) | 3.2 ICF/s | running
+  ✓ Batch 23/30 complete | 30 ICFs | 3.2 ICF/sec
+  ✓ Batch 24/30 complete | 32 ICFs | 3.3 ICF/sec
+[CinCECGTorso ICF] Monitor
+  -      reasons: 30/30 batches | 167/167 ICFs (100.0%) | 3.3 ICF/s | done
+  -  non_reasons: 25/30 batches | 34/44 ICFs (77.3%) | 3.3 ICF/s | running
+  ✓ Batch 25/30 complete | 34 ICFs | 3.3 ICF/sec
+  ✓ Batch 26/30 complete | 36 ICFs | 3.3 ICF/sec
+  ✓ Batch 27/30 complete | 38 ICFs | 3.4 ICF/sec
+  ✓ Batch 28/30 complete | 40 ICFs | 3.6 ICF/sec
+  ✓ Batch 29/30 complete | 42 ICFs | 3.7 ICF/sec
+  ✓ Batch 30/30 complete | 44 ICFs | 3.9 ICF/sec
+  💾 Saved 2580 costs to cache (checkpoint at batch 30/30)
+
+  ✅ Completed non_reasons in 11.4s
+     Average: 3.9 ICF/sec (44 ICFs total)
+[CinCECGTorso ICF] Monitor
+  -      reasons: 30/30 batches | 167/167 ICFs (100.0%) | 3.3 ICF/s | done
+  -  non_reasons: 30/30 batches | 44/44 ICFs (100.0%) | 3.9 ICF/s | done
+
+================================================================================
+Processing ANTI_REASONS
+================================================================================
+  Total ICFs: 73
+  Adjusted batches 2 -> 30 to evenly spread work across 30 processes (~3 ICFs each)
+  Created 30 batches
+  Submitting ALL batches to 30 parallel processes...
+[CinCECGTorso ICF] Monitor
+  -      reasons: 30/30 batches | 167/167 ICFs (100.0%) | 3.3 ICF/s | done
+  -  non_reasons: 30/30 batches | 44/44 ICFs (100.0%) | 3.9 ICF/s | done
+  - anti_reasons: 0/30 batches | 0/73 ICFs (0.0%) | 0.0 ICF/s | running
+[CinCECGTorso ICF] Monitor
+  -      reasons: 30/30 batches | 167/167 ICFs (100.0%) | 2.8 ICF/s | done
+  -  non_reasons: 30/30 batches | 44/44 ICFs (100.0%) | 2.3 ICF/s | done
+  - anti_reasons: 1/30 batches | 2/73 ICFs (2.7%) | 0.2 ICF/s | running
+  ✓ Batch 1/30 complete | 2 ICFs | 0.2 ICF/sec
+[CinCECGTorso ICF] Monitor
+  -      reasons: 30/30 batches | 167/167 ICFs (100.0%) | 2.7 ICF/s | done
+  -  non_reasons: 30/30 batches | 44/44 ICFs (100.0%) | 1.9 ICF/s | done
+  - anti_reasons: 2/30 batches | 4/73 ICFs (5.5%) | 0.4 ICF/s | running
+  ✓ Batch 2/30 complete | 4 ICFs | 0.4 ICF/sec
+  ✓ Batch 3/30 complete | 7 ICFs | 0.6 ICF/sec
+  ✓ Batch 4/30 complete | 9 ICFs | 0.8 ICF/sec
+  ✓ Batch 5/30 complete | 11 ICFs | 0.9 ICF/sec
+  ✓ Batch 6/30 complete | 13 ICFs | 1.1 ICF/sec
+  ✓ Batch 7/30 complete | 15 ICFs | 1.3 ICF/sec
+[CinCECGTorso ICF] Monitor
+  -      reasons: 30/30 batches | 167/167 ICFs (100.0%) | 2.6 ICF/s | done
+  -  non_reasons: 30/30 batches | 44/44 ICFs (100.0%) | 1.8 ICF/s | done
+  - anti_reasons: 8/30 batches | 18/73 ICFs (24.7%) | 1.4 ICF/s | running
+  ✓ Batch 8/30 complete | 18 ICFs | 1.4 ICF/sec
+  ✓ Batch 9/30 complete | 21 ICFs | 1.6 ICF/sec
+[CinCECGTorso ICF] Monitor
+  -      reasons: 30/30 batches | 167/167 ICFs (100.0%) | 2.6 ICF/s | done
+  -  non_reasons: 30/30 batches | 44/44 ICFs (100.0%) | 1.7 ICF/s | done
+  - anti_reasons: 10/30 batches | 23/73 ICFs (31.5%) | 1.6 ICF/s | running
+  ✓ Batch 10/30 complete | 23 ICFs | 1.6 ICF/sec
+  💾 Saved 2967 costs to cache (checkpoint at batch 10/30)
+  ✓ Batch 11/30 complete | 25 ICFs | 1.8 ICF/sec
+  ✓ Batch 12/30 complete | 28 ICFs | 2.0 ICF/sec
+  ✓ Batch 13/30 complete | 31 ICFs | 2.2 ICF/sec
+  ✓ Batch 14/30 complete | 34 ICFs | 2.3 ICF/sec
+  ✓ Batch 15/30 complete | 37 ICFs | 2.5 ICF/sec
+  ✓ Batch 16/30 complete | 40 ICFs | 2.7 ICF/sec
+  ✓ Batch 17/30 complete | 43 ICFs | 2.9 ICF/sec
+  ✓ Batch 18/30 complete | 45 ICFs | 3.0 ICF/sec
+  ✓ Batch 19/30 complete | 47 ICFs | 3.1 ICF/sec
+[CinCECGTorso ICF] Monitor
+  -      reasons: 30/30 batches | 167/167 ICFs (100.0%) | 2.5 ICF/s | done
+  -  non_reasons: 30/30 batches | 44/44 ICFs (100.0%) | 1.6 ICF/s | done
+  - anti_reasons: 20/30 batches | 49/73 ICFs (67.1%) | 3.2 ICF/s | running
+  ✓ Batch 20/30 complete | 49 ICFs | 3.2 ICF/sec
+  💾 Saved 3354 costs to cache (checkpoint at batch 20/30)
+  ✓ Batch 21/30 complete | 51 ICFs | 3.3 ICF/sec
+  ✓ Batch 22/30 complete | 53 ICFs | 3.4 ICF/sec
+  ✓ Batch 23/30 complete | 55 ICFs | 3.5 ICF/sec
+  ✓ Batch 24/30 complete | 57 ICFs | 3.6 ICF/sec
+  ✓ Batch 25/30 complete | 59 ICFs | 3.7 ICF/sec
+  ✓ Batch 26/30 complete | 61 ICFs | 3.8 ICF/sec
+[CinCECGTorso ICF] Monitor
+  -      reasons: 30/30 batches | 167/167 ICFs (100.0%) | 2.4 ICF/s | done
+  -  non_reasons: 30/30 batches | 44/44 ICFs (100.0%) | 1.5 ICF/s | done
+  - anti_reasons: 27/30 batches | 64/73 ICFs (87.7%) | 3.6 ICF/s | running
+  ✓ Batch 27/30 complete | 64 ICFs | 3.6 ICF/sec
+  ✓ Batch 28/30 complete | 67 ICFs | 3.7 ICF/sec
+  ✓ Batch 29/30 complete | 70 ICFs | 3.9 ICF/sec
+  ✓ Batch 30/30 complete | 73 ICFs | 4.0 ICF/sec
+  💾 Saved 3096 costs to cache (checkpoint at batch 30/30)
+
+  ✅ Completed anti_reasons in 18.4s
+     Average: 4.0 ICF/sec (73 ICFs total)
+[CinCECGTorso ICF] Monitor
+  -      reasons: 30/30 batches | 167/167 ICFs (100.0%) | 2.4 ICF/s | done
+  -  non_reasons: 30/30 batches | 44/44 ICFs (100.0%) | 1.5 ICF/s | done
+  - anti_reasons: 30/30 batches | 73/73 ICFs (100.0%) | 4.0 ICF/s | done
+
+================================================================================
+🎉 ALL PROCESSING COMPLETE
+================================================================================
+Total costs calculated: 36636
+
+✓ Parallel computation complete: 36636 costs calculated
+
+================================================================================
+COST CALCULATION COMPLETE
+================================================================================
+Total costs calculated: 36636
+
+
+================================================================================
+  ROBUSTNESS CALCULATION (Anti-Reasons Only)
+================================================================================
+
+📐 Configuration:
+   • Number of features: 1639
+
+📝 Formula:
+   r(C,x) = 1 - max{ICF ∈ AR{C,y}} cost_x(ICF) / |features|
+
+   where AR{C,y} = set of Anti-Reasons for class y
+
+
+================================================================================
+  ICF-LEVEL ROBUSTNESS ANALYSIS (Anti-Reasons)
+================================================================================
+
+📋 ICF Summary:
+   • Total anti-reason ICFs: 73
+
+📊 Cost Statistics:
+   • Max cost:      299.554122
+   • Mean max cost: 293.721681
+   • Min max cost:  279.974741
+
+🎯 Robustness Statistics:
+   • Max:  0.829180
+   • Mean: 0.820792
+   • Min:  0.817234
+Processing 129 samples...
+  Processed 50/129 samples...
+  Processed 100/129 samples...
+✓ All 129 samples processed
+
+
+================================================================================
+  SAMPLE-LEVEL ROBUSTNESS ANALYSIS
+================================================================================
+
+📊 Dataset Overview:
+   • Total samples:        129
+   • Correct predictions:  123 (95.3%)
+   • Incorrect predictions: 6 (4.7%)
+
+📈 Robustness Statistics (All Samples):
+   • Mean:      0.822925 +/- 0.001846
+   • Median:    0.822883
+   • Min/Max:   0.817234 / 0.829324
+   • Range:     0.012090
+   • IQR:       0.001783 (Q1=0.822005, Q3=0.823789)
+
+🔍 Robustness by Prediction Correctness:
+--------------------------------------------------------------------------------
+
+  ✓ CORRECT Predictions (123 samples):
+     Mean:      0.822992 +/- 0.001779
+     Median:    0.822915
+     Range:     [0.817234, 0.829324]
+
+  ✗ INCORRECT Predictions (6 samples):
+     Mean:      0.821558 +/- 0.002760
+     Median:    0.821639
+     Range:     [0.817526, 0.825520]
+
+  📊 Difference (Correct - Incorrect): +0.001434
+
+--------------------------------------------------------------------------------
+
+✅ Results saved to: results/CinCECGTorso_sample_robustness.csv
+
+
+================================================================================
+MODEL ACCURACY VS ROBUSTNESS
+================================================================================
+  • Test accuracy (RF optimization): 0.7138 (71.38%)
+  • Best CV score: 0.7250
+
+Robustness summary (anti-reasons)
+  • Mean robustness:   0.8229
+  • Median robustness: 0.8229
+  • Min / Max:        0.8172 / 0.8293
+
+Accuracy vs robustness deltas
+  • 1 - mean robustness: 0.1771
+  • Test accuracy - mean robustness: -0.1092
+
+DB0 exposes 8 RF optimization metrics (table below).
+Total test samples available: 129
+Number of features per sample: 1639
+
+================================================================================
+Detailed analysis will use Sample ID: CinCECGTorso_1_0
+================================================================================
+
+REASONS Analysis for Sample CinCECGTorso_1_0:
+  ✓ CORRECT: Predicted=1, Actual=1
+  Cost: 262.706922
+  Constrained features: 194/1639
+  Temporal intervals: 138
+
+ANTI-REASONS Analysis for Sample CinCECGTorso_1_0:
+  ✓ CORRECT: Predicted=1, Actual=1
+  Cost: 280.864996
+  Constrained features: 172/1639
+  Temporal intervals: 126
+
+Comparison for Sample CinCECGTorso_1_0:
+  ✓ CORRECT: Predicted=1, Actual=1
+
+  REASON:
+    Constrained features: 194
+    Temporal intervals: 138
+  ANTI-REASON:
+    Constrained features: 172
+    Temporal intervals: 126
+
+================================================================================
+ROBUSTNESS PER ICF (Anti-Reasons Only)
+================================================================================
+
+Total anti-reason ICFs analyzed: 73
+
+Top 10 ICFs by max_cost (hardest to reach):
+  max_cost  robustness  mean_cost  n_samples
+299.554122    0.817234 281.249118        129
+299.074358    0.817526 283.429708        129
+298.790207    0.817700 283.524390        129
+298.761509    0.817717 283.384480        129
+298.721534    0.817742 283.028826        129
+298.697117    0.817756 282.180002        129
+298.444474    0.817911 282.583502        129
+298.436564    0.817915 282.560654        129
+298.384224    0.817947 282.696479        129
+298.355378    0.817965 282.411376        129
+
+
+ANTI-REASONS with LOWEST robustness (most vulnerable - easiest to perturb):
+  max_cost  robustness  mean_cost  n_samples
+299.554122    0.817234 281.249118        129
+299.074358    0.817526 283.429708        129
+298.790207    0.817700 283.524390        129
+298.761509    0.817717 283.384480        129
+298.721534    0.817742 283.028826        129
+
+
+Results saved to: results/anti_reasons_robustness.csv
+
+Smooth Corridor Comparison for Sample CinCECGTorso_1_0:
+  ✓ CORRECT: Predicted=1, Actual=1
+
+  REASON CORRIDOR:
+    Cost: 262.706922
+    Constrained features: 194/1639
+    Corridor width: avg=0.291
+
+  ANTI-REASON CORRIDOR:
+    Cost: 280.864996
+    Constrained features: 172/1639
+    Corridor width: avg=0.327
+? BASE_DIR     : /media/DATA/emanuelechini/IEEE_CAI
+? RESULTS_DIR  : /media/DATA/emanuelechini/IEEE_CAI/results
+Dataset: 
