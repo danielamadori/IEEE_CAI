@@ -1,0 +1,124 @@
+nohup: ignoring input
+/home/emanuelechini/.local/lib/python3.10/site-packages/matplotlib/projections/__init__.py:63: UserWarning: Unable to import Axes3D. This may be due to multiple versions of Matplotlib being installed (e.g. as a system package and as a pip package). As a result, the 3D projection is not available.
+  warnings.warn("Unable to import Axes3D. This may be due to multiple versions of "
+Found dataset ZIP: BeetleFly_1_false_0.zip
+[OK] Loaded cached data for BeetleFly_1_false_0.zip
+Report built for 32 workers.
+Using unified database (db parameter) for DB10 data sharing
+Resuming from cache: 18 datasets already processed
+Processing 44/47: _cache...
+Manifest not found in directory: /media/DATA/emanuelechini/IEEE_CAI/results/_cache
+
+Processed 0 new datasets (18 total)
+Saved redis summary cache at /media/DATA/emanuelechini/IEEE_CAI/results/redis_reason_counts.csv
+
+================================================================================
+PARALLEL ACCURACY EXTRACTION
+================================================================================
+Processing 18 ZIP files with 9 workers...
+
+✓ Extraction complete:
+  - Success: 17/18
+  - Errors: 1/18, datasets errors ['HandOutlines']
+================================================================================
+
+Base dir           : /media/DATA/emanuelechini/IEEE_CAI
+Loaded 88 rows from /media/DATA/emanuelechini/IEEE_CAI/forest_report.json
+Results directory  : /media/DATA/emanuelechini/IEEE_CAI/results (exists=True)
+Extracted 13 test samples
+Features: 512
+Calculating costs for anti_reasons...
+================================================================================
+
+✓ Loaded costs from cache for BeetleFly
+================================================================================
+
+================================================================================
+COST CALCULATION COMPLETE
+================================================================================
+Total costs calculated: 170040
+
+
+================================================================================
+  ROBUSTNESS CALCULATION (Anti-Reasons Only)
+================================================================================
+
+📐 Configuration:
+   • Number of features: 512
+
+📝 Formula:
+   r(C,x) = 1 - max{ICF ∈ AR{C,y}} cost_x(ICF) / |features|
+
+   where AR{C,y} = set of Anti-Reasons for class y
+
+
+================================================================================
+  ICF-LEVEL ROBUSTNESS ANALYSIS (Anti-Reasons)
+================================================================================
+
+📋 ICF Summary:
+   • Total anti-reason ICFs: 2066
+
+📊 Cost Statistics:
+   • Max cost:      104.596185
+   • Mean max cost: 88.387814
+   • Min max cost:  59.914328
+
+🎯 Robustness Statistics:
+   • Max:  0.882980
+   • Mean: 0.827368
+   • Min:  0.795711
+Processing 13 samples...
+✓ All 13 samples processed
+
+
+================================================================================
+  SAMPLE-LEVEL ROBUSTNESS ANALYSIS
+================================================================================
+
+📊 Dataset Overview:
+   • Total samples:        13
+   • Correct predictions:  10 (76.9%)
+   • Incorrect predictions: 3 (23.1%)
+
+📈 Robustness Statistics (All Samples):
+   • Mean:      0.820188 +/- 0.011783
+   • Median:    0.817647
+   • Min/Max:   0.795711 / 0.849555
+   • Range:     0.053844
+   • IQR:       0.008379 (Q1=0.815817, Q3=0.824196)
+
+🔍 Robustness by Prediction Correctness:
+--------------------------------------------------------------------------------
+
+  ✓ CORRECT Predictions (10 samples):
+     Mean:      0.822145 +/- 0.010360
+     Median:    0.818235
+     Range:     [0.815210, 0.849555]
+
+  ✗ INCORRECT Predictions (3 samples):
+     Mean:      0.813666 +/- 0.016346
+     Median:    0.817604
+     Range:     [0.795711, 0.827682]
+
+  📊 Difference (Correct - Incorrect): +0.008480
+
+--------------------------------------------------------------------------------
+
+✅ Results saved to: results/BeetleFly_sample_robustness.csv
+
+
+================================================================================
+MODEL ACCURACY VS ROBUSTNESS
+================================================================================
+  • Test accuracy (RF optimization): 0.8500 (85.00%)
+  • Best CV score: 0.7000
+
+Robustness summary (anti-reasons)
+  • Mean robustness:   0.8202
+  • Median robustness: 0.8176
+  • Min / Max:        0.7957 / 0.8496
+
+Accuracy vs robustness deltas
+  • 1 - mean robustness: 0.1798
+  • Test accuracy - mean robustness: 0.0298
