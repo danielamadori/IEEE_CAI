@@ -1,4 +1,5 @@
 from pathlib import Path
+from tabnanny import verbose
 from etl.loader import etl
 from cost_function import cal_sigmas
 from etl.reasons_analysis import extract_test_samples
@@ -14,25 +15,23 @@ from pathlib import Path
 from etl.progress import ICFProgressMonitor, CacheWriteCoordinator
 # Use ETL function to calculate robustness for all samples
 from etl.reasons_analysis import *
+# Import parallel cost calculation
+from etl.parallel_costs import calculate_costs_parallel_incremental
+from etl.tables import build_accuracy_vs_robustness_report
+
+def model_analysis(db, verbose=True, save_plots=False):
 
 
-def model_analysis(db):
-
-
-    analysis_context = prepare_models_analysis(db=db, verbose=True, selected_dataset=None)
-
-
+    analysis_context = prepare_models_analysis(db=db, verbose=verbose, selected_dataset=None)
 
     tests_sample, X_test, test_ids, feature_names = extract_test_samples(db)
 
     X_train = db["data"]["TRAINING_SET"]["value_json"]["X_train"]
     sigmas_all = cal_sigmas(X_train, X_test, feature_names, test_ids=test_ids)
-
-    print(f"Extracted {len(test_ids)} test samples\nFeatures: {len(feature_names)}")
-
-    print("Calculating costs for anti_reasons...")
-    print("=" * 80)
-
+    if verbose:
+        print(f"Extracted {len(test_ids)} test samples\nFeatures: {len(feature_names)}")
+        print("Calculating costs for anti_reasons...")
+        print("=" * 80)
     cache = get_etl_cache()
     dataset_name = db.get('_dataset_name', 'unknown')
 
@@ -50,8 +49,9 @@ def model_analysis(db):
         cached_data = cache.load_costs(selected_zip_path, reason_types)
 
     if cached_data is not None:
-        print(f"\n✓ Loaded costs from cache for {dataset_name}")
-        print("=" * 80)
+        if verbose:
+            print(f"\n✓ Loaded costs from cache for {dataset_name}")
+            print("=" * 80)
         cost_df = cached_data['cost_df']
         # Update tests_sample with cached data
         for sample_id in test_ids:
@@ -60,11 +60,9 @@ def model_analysis(db):
                     if reason_type in cached_data['tests_sample'][sample_id]:
                         tests_sample[sample_id][reason_type] = cached_data['tests_sample'][sample_id][reason_type]
     else:
-        print(f"\n→ Computing costs for {dataset_name} (not in cache)...")
-        print("Using PARALLEL computation with INCREMENTAL cache to reduce RAM usage")
-
-        # Import parallel cost calculation
-        from etl.parallel_costs import calculate_costs_parallel_incremental
+        if verbose:
+            print(f"\n→ Computing costs for {dataset_name} (not in cache)...")
+            print("Using PARALLEL computation with INCREMENTAL cache to reduce RAM usage")
 
         progress_monitor = ICFProgressMonitor(
             project_name=f"{dataset_name} ICF",
@@ -92,7 +90,8 @@ def model_analysis(db):
                 cache_writer=cache_writer
             )
 
-        print(f"\n✓ Parallel computation complete: {total_costs} costs calculated")
+        if verbose:
+            print(f"\n✓ Parallel computation complete: {total_costs} costs calculated")
 
         # Load cost_df from cache (already saved incrementally)
         cached_costs = cache.load_costs(selected_zip_path, reason_types)
@@ -102,22 +101,20 @@ def model_analysis(db):
             # Fallback: create empty DataFrame
             cost_df = pd.DataFrame()
 
-
-    print(f"\n{'='*80}")
-    print(f"COST CALCULATION COMPLETE")
-    print(f"{'='*80}")
-    print(f"Total costs calculated: {len(cost_df)}")
-
     num_features = len(feature_names)
-
-    print(f"\n\n{'='*80}")
-    print(f"  ROBUSTNESS CALCULATION (Anti-Reasons Only)")
-    print(f"{'='*80}\n")
-    print(f"📐 Configuration:")
-    print(f"   • Number of features: {num_features}")
-    print(f"\n📝 Formula:")
-    print(f"   r(C,x) = 1 - max{{ICF ∈ AR{{C,y}}}} cost_x(ICF) / |features|")
-    print(f"\n   where AR{{C,y}} = set of Anti-Reasons for class y")
+    if verbose:
+        print(f"\n{'='*80}")
+        print(f"COST CALCULATION COMPLETE")
+        print(f"{'='*80}")
+        print(f"Total costs calculated: {len(cost_df)}")
+        print(f"\n\n{'='*80}")
+        print(f"  ROBUSTNESS CALCULATION (Anti-Reasons Only)")
+        print(f"{'='*80}\n")
+        print(f"📐 Configuration:")
+        print(f"   • Number of features: {num_features}")
+        print(f"\n📝 Formula:")
+        print(f"   r(C,x) = 1 - max{{ICF ∈ AR{{C,y}}}} cost_x(ICF) / |features|")
+        print(f"\n   where AR{{C,y}} = set of Anti-Reasons for class y")
 
     # Check if anti_reasons exist in cost_df
     if len(cost_df) == 0 or 'reason_type' not in cost_df.columns:
@@ -134,46 +131,54 @@ def model_analysis(db):
             # Calculate robustness for each anti-reason ICF
             # This finds the maximum cost across all samples for each anti-reason
             bitmap_robustness = calculate_robustness_per_bitmap(anti_reasons_df, num_features=num_features)
-
-            print(f"\n\n{'='*80}")
-            print(f"  ICF-LEVEL ROBUSTNESS ANALYSIS (Anti-Reasons)")
-            print(f"{'='*80}\n")
-            print(f"📋 ICF Summary:")
-            print(f"   • Total anti-reason ICFs: {len(bitmap_robustness)}")
-            print(f"\n📊 Cost Statistics:")
-            print(f"   • Max cost:      {bitmap_robustness['max_cost'].max():.6f}")
-            print(f"   • Mean max cost: {bitmap_robustness['max_cost'].mean():.6f}")
-            print(f"   • Min max cost:  {bitmap_robustness['max_cost'].min():.6f}")
-            print(f"\n🎯 Robustness Statistics:")
-            print(f"   • Max:  {bitmap_robustness['robustness'].max():.6f}")
-            print(f"   • Mean: {bitmap_robustness['robustness'].mean():.6f}")
-            print(f"   • Min:  {bitmap_robustness['robustness'].min():.6f}")
+            bitmap_robustness.to_csv(f'results/{dataset_name}_anti_reasons_robustness_bitmap.csv', index=False)
+            if verbose:
+                print(f"\n\n{'='*80}")
+                print(f"  ICF-LEVEL ROBUSTNESS ANALYSIS (Anti-Reasons)")
+                print(f"{'='*80}\n")
+                print(f"📋 ICF Summary:")
+                print(f"   • Total anti-reason ICFs: {len(bitmap_robustness)}")
+                print(f"\n📊 Cost Statistics:")
+                print(f"   • Max cost:      {bitmap_robustness['max_cost'].max():.6f}")
+                print(f"   • Mean max cost: {bitmap_robustness['max_cost'].mean():.6f}")
+                print(f"   • Min max cost:  {bitmap_robustness['max_cost'].min():.6f}")
+                print(f"\n🎯 Robustness Statistics:")
+                print(f"   • Max:  {bitmap_robustness['robustness'].max():.6f}")
+                print(f"   • Mean: {bitmap_robustness['robustness'].mean():.6f}")
+                print(f"   • Min:  {bitmap_robustness['robustness'].min():.6f}")
 
             sample_robustness_df = calculate_all_samples_robustness(
                 cost_df=cost_df,
                 num_features=num_features,
                 tests_sample=tests_sample,
                 test_ids=test_ids,
-                verbose=True
+                verbose=verbose
             )
 
             # Print comprehensive statistics
-            print_robustness_statistics(sample_robustness_df)
+            if verbose:
+                print_robustness_statistics(sample_robustness_df)
 
             # Save results
             sample_robustness_df.to_csv(f'results/{dataset_name}_sample_robustness.csv', index=False)
-            print(f"\n✅ Results saved to: results/{dataset_name}_sample_robustness.csv\n")
+            if verbose:
+                print(f"\n\nSample-level robustness results saved to: results/{dataset_name}_sample_robustness.csv")
 
-            from etl.tables import build_accuracy_vs_robustness_report
+            
 
             sample_robustness_ref = locals().get('sample_robustness_df')
             report = build_accuracy_vs_robustness_report(db, dataset_name, sample_robustness_ref)
+            
+            # Save the report to a JSON file
+            import json
+            report_file_path = f'results/{dataset_name}_accuracy_vs_robustness_report.json'
+            with open(report_file_path, 'w') as f:
+                json.dump(report, f, indent=2, default=str)
+            if verbose:
+                print(f"Report saved to: {report_file_path}")
+                for line in report['lines']:
+                    print(line)
 
-            for line in report['lines']:
-                print(line)
-
-            # Statistical Visualizations for Sample Robustness
-            from etl.reasons_analysis import create_robustness_visualizations
 
             if 'sample_robustness_df' in locals() and len(sample_robustness_df) > 0:
                 # Create visualizations using ETL function
@@ -194,60 +199,52 @@ def model_analysis(db):
             else:
                 print("sample_robustness_df not available. Run previous cells first.")
 
-            # Visualize actual ICFs from the dataset
-            from etl.reasons_analysis import visualize_all_time_series
 
-            print(f"Total test samples available: {len(test_ids)}")
-            print(f"Number of features per sample: {len(feature_names)}")
-
-            # Visualize all time series (max 50 samples)
-            fig = visualize_all_time_series(tests_sample, test_ids, feature_names, max_samples=50)
-            # Save as PDF
-            pdf_path = RESULTS_DIR / f"{dataset_name}_sample_time_series.pdf"
-            fig.write_image(str(pdf_path), format='pdf', width=1200, height=700, scale=1)
-
-            # Select first sample for detailed analysis
             sample_id = test_ids[0]
+            if verbose:
+                print(f"Total test samples available: {len(test_ids)}")
+                print(f"Number of features per sample: {len(feature_names)}")
 
-            print(f"\n{'='*80}")
-            print(f"Detailed analysis will use Sample ID: {sample_id}")
-            print(f"{'='*80}")
 
-            from etl.reasons_analysis import visualize_sample_with_icf
-
-            fig = visualize_sample_with_icf(sample_id, tests_sample, feature_names, reason_type='reasons')
-            if fig is not None:
+                print(f"\n{'='*80}")
+                print(f"Detailed analysis will use Sample ID: {sample_id}")
+            if save_plots:  
                 
+                # Visualize all time series (max 50 samples)
+                fig = visualize_all_time_series(tests_sample, test_ids, feature_names, max_samples=50)
                 # Save as PDF
-                pdf_path = RESULTS_DIR / f"{dataset_name}_sample_visualize_sample_with_icf_reasons.pdf"
+                pdf_path = RESULTS_DIR / f"{dataset_name}_sample_time_series.pdf"
                 fig.write_image(str(pdf_path), format='pdf', width=1200, height=700, scale=1)
+                
+                fig = visualize_sample_with_icf(sample_id, tests_sample, feature_names, reason_type='reasons')
+                if fig is not None:
+                    
+                    # Save as PDF
+                    pdf_path = RESULTS_DIR / f"{dataset_name}_sample_visualize_sample_with_icf_reasons.pdf"
+                    fig.write_image(str(pdf_path), format='pdf', width=1200, height=700, scale=1)
 
-            fig = visualize_sample_with_icf(sample_id, tests_sample, feature_names, reason_type='anti_reasons')
-            if fig is not None:
-                # Save as PDF
-                pdf_path = RESULTS_DIR / f"{dataset_name}_sample_visualize_sample_with_icf_anti_reasons.pdf"
-                fig.write_image(str(pdf_path), format='pdf', width=1200, height=700, scale=1)
-            # Plot 4: Combined view - Reason vs Anti-Reason
-            from etl.reasons_analysis import visualize_sample_comparison
+                fig = visualize_sample_with_icf(sample_id, tests_sample, feature_names, reason_type='anti_reasons')
+                if fig is not None:
+                    # Save as PDF
+                    pdf_path = RESULTS_DIR / f"{dataset_name}_sample_visualize_sample_with_icf_anti_reasons.pdf"
+                    fig.write_image(str(pdf_path), format='pdf', width=1200, height=700, scale=1)
+                # Plot 4: Combined view - Reason vs Anti-Reason
 
-            fig = visualize_sample_comparison(sample_id, tests_sample, feature_names)
-            if fig is not None:
-                # Save as PDF
-                pdf_path = RESULTS_DIR / f"{dataset_name}_sample_visualize_sample_comparison.pdf"
-                fig.write_image(str(pdf_path), format='pdf', width=1200, height=700, scale=1)
+                fig = visualize_sample_comparison(sample_id, tests_sample, feature_names)
+                if fig is not None:
+                    # Save as PDF
+                    pdf_path = RESULTS_DIR / f"{dataset_name}_sample_visualize_sample_comparison.pdf"
+                    fig.write_image(str(pdf_path), format='pdf', width=1200, height=700, scale=1)
 
-            # Calculate robustness per bitmap (ICF) - ONLY for Anti-Reasons
+                # Calculate robustness per bitmap (ICF) - ONLY for Anti-Reasons
             
-            print("\n" + "=" * 80)
-            # Filter only anti-reasons
-            print("ROBUSTNESS PER ICF (Anti-Reasons Only)")
-            print("=" * 80)
-            if len(anti_reasons_df) == 0:
-                print("\nNo anti-reasons found in cost data.")
-            else:
+                print("\n" + "=" * 80)
+                # Filter only anti-reasons
+                print("ROBUSTNESS PER ICF (Anti-Reasons Only)")
+                print("=" * 80)
                 # Calculate with normalization
-                bitmap_robustness = calculate_robustness_per_bitmap(anti_reasons_df, num_features=num_features)
-
+            bitmap_robustness = calculate_robustness_per_bitmap(anti_reasons_df, num_features=num_features)
+            if verbose:
                 print(f"\nTotal anti-reason ICFs analyzed: {len(bitmap_robustness)}")
                 print(f"\nTop 10 ICFs by max_cost (hardest to reach):")
                 print(bitmap_robustness[['max_cost', 'robustness', 'mean_cost', 'n_samples']].head(10).to_string(index=False))
@@ -257,36 +254,31 @@ def model_analysis(db):
                 ar_lowest = bitmap_robustness.nsmallest(5, 'robustness')
                 print(ar_lowest[['max_cost', 'robustness', 'mean_cost', 'n_samples']].to_string(index=False))
 
-                # Save results (including bitmap_index for reference, but not displayed)
-                bitmap_robustness.to_csv(f'results/{dataset_name}_anti_reasons_robustness.csv', index=False)
+            # Save results (including bitmap_index for reference, but not displayed)
+            bitmap_robustness.to_csv(f'results/{dataset_name}_anti_reasons_robustness.csv', index=False)
+           
+            if verbose:
                 print(f"\n\nResults saved to: results/{dataset_name}_anti_reasons_robustness.csv")
-            from etl.reasons_analysis import visualize_sample_comparison_smooth
-
-            fig = visualize_sample_comparison_smooth(sample_id, tests_sample, feature_names)
-            if fig is not None:
-                pdf_path = RESULTS_DIR / f"{dataset_name}_sample_visualize_sample_comparison_smooth.pdf"
-                fig.write_image(str(pdf_path), format='pdf', width=1200, height=700, scale=1)
+            if save_plots:
+                fig = visualize_sample_comparison_smooth(sample_id, tests_sample, feature_names)
+                if fig is not None:
+                    pdf_path = RESULTS_DIR / f"{dataset_name}_sample_visualize_sample_comparison_smooth.pdf"
+                    fig.write_image(str(pdf_path), format='pdf', width=1200, height=700, scale=1)
 
 
 if __name__ == "__main__":
     RESULTS_DIR = Path("results")
     zip_paths = sorted(RESULTS_DIR.glob("*.zip"))
     zip_names = [path.name for path in zip_paths]
-    zip_inventory = {
-        "results_dir": str(RESULTS_DIR),
-        "count": len(zip_paths),
-        "found": bool(zip_paths),
-        "paths": [str(path) for path in zip_paths],
-        "names": zip_names,
-    }
+
     for name in zip_names:
         print(f"Processing dataset ZIP: {name}")
         dataset_name = Path(name).stem.split('_')[0]
         existing_csvs = list(RESULTS_DIR.glob(f"{dataset_name}_*.csv"))
         
-        if existing_csvs:
-            print(f"Skipping dataset '{dataset_name}' - CSV files already exist:")
-            continue
+        # if existing_csvs:
+        #     print(f"Skipping dataset '{dataset_name}' - CSV files already exist:")
+        #     continue
 
         if name == 'HandOutlines_0_false_0.zip':
             print(f"Skipping dataset '{dataset_name}' as raises errors.")
@@ -301,6 +293,7 @@ if __name__ == "__main__":
             verbose=False,
             name_dataset=name,    # Set to specific dataset name if needed
         )
+    
+        model_analysis(db, verbose=False, save_plots=False)
 #         IEEE_CAI$ nohup python models_analysis_script.py  > models_robustness.log 2>&1 & 
 # [1] 2717224
-        model_analysis(db)
