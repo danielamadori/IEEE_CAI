@@ -1134,7 +1134,7 @@ def visualize_anti_reason_corridor(sample_id: str, tests_sample: Dict, feature_n
     fig.add_trace(go.Scatter(
         x=[None], y=[None],
         mode='markers',
-        marker=dict(size=10, color='rgba(0, 255, 0, 0.6)'),
+        marker=dict(size=16, color='rgba(0, 255, 0, 0.6)'),
         name='Sample in ICF',
         showlegend=True
     ))
@@ -1142,7 +1142,7 @@ def visualize_anti_reason_corridor(sample_id: str, tests_sample: Dict, feature_n
     fig.add_trace(go.Scatter(
         x=[None], y=[None],
         mode='markers', 
-        marker=dict(size=10, color='rgba(255, 0, 0, 0.6)'),
+        marker=dict(size=16, color='rgba(255, 0, 0, 0.6)'),
         name='Sample out of ICF',
         showlegend=True
     ))
@@ -1150,7 +1150,7 @@ def visualize_anti_reason_corridor(sample_id: str, tests_sample: Dict, feature_n
     fig.add_trace(go.Scatter(
         x=[None], y=[None],
         mode='markers',
-        marker=dict(size=10, color='rgba(66, 66, 66, 0.3)'),
+        marker=dict(size=16, color='rgba(66, 66, 66, 0.3)'),
         name='Do not care (Unconstrained)',
         showlegend=True
     ))
@@ -1197,8 +1197,8 @@ def visualize_anti_reason_corridor(sample_id: str, tests_sample: Dict, feature_n
         height=700,
         showlegend=True,
         hovermode='closest',
-        font=dict(size=16, family='Arial, sans-serif'),
-        title_font_size=20,
+        font=dict(size=24, family='Arial, sans-serif'),
+        title_font_size=32,
         legend=dict(
             yanchor="bottom",
             y=0.02,
@@ -1207,15 +1207,15 @@ def visualize_anti_reason_corridor(sample_id: str, tests_sample: Dict, feature_n
             bgcolor="rgba(255,255,255,0.9)",
             bordercolor="rgba(0,0,0,0.3)",
             borderwidth=2,
-            font=dict(size=14)
+            font=dict(size=18)
         ),
         xaxis=dict(
-            title_font_size=16,
-            tickfont_size=14
+            title_font_size=32,
+            tickfont_size=28
         ),
         yaxis=dict(
-            title_font_size=16,
-            tickfont_size=14
+            title_font_size=32,
+            tickfont_size=28
         )
     )
 
