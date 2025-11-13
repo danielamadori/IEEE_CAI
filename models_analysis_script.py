@@ -131,7 +131,6 @@ def model_analysis(db, verbose=True, save_plots=False):
             # Calculate robustness for each anti-reason ICF
             # This finds the maximum cost across all samples for each anti-reason
             bitmap_robustness = calculate_robustness_per_bitmap(anti_reasons_df, num_features=num_features)
-            bitmap_robustness.to_csv(f'results/{dataset_name}_anti_reasons_robustness_bitmap.csv', index=False)
             if verbose:
                 print(f"\n\n{'='*80}")
                 print(f"  ICF-LEVEL ROBUSTNESS ANALYSIS (Anti-Reasons)")
@@ -179,23 +178,23 @@ def model_analysis(db, verbose=True, save_plots=False):
                 for line in report['lines']:
                     print(line)
 
+            if save_plots:
+                if 'sample_robustness_df' in locals() and len(sample_robustness_df) > 0:
+                    # Create visualizations using ETL function
+                    fig_main, fig_quartiles = create_robustness_visualizations(
+                        sample_robustness_df=sample_robustness_df,
+                        dataset_name=dataset_name
+                    )
+                
+                    if fig_main is not None:
+                        # Save as PDF
+                        pdf_path = RESULTS_DIR / f"{dataset_name}_sample_reasons.pdf"
+                        fig_main.write_image(str(pdf_path), format='pdf', width=1200, height=700, scale=1)
 
-            if 'sample_robustness_df' in locals() and len(sample_robustness_df) > 0:
-                # Create visualizations using ETL function
-                fig_main, fig_quartiles = create_robustness_visualizations(
-                    sample_robustness_df=sample_robustness_df,
-                    dataset_name=dataset_name
-                )
-
-                if fig_main is not None:
-                    # Save as PDF
-                    pdf_path = RESULTS_DIR / f"{dataset_name}_sample_reasons.pdf"
-                    fig_main.write_image(str(pdf_path), format='pdf', width=1200, height=700, scale=1)
-
-                if fig_quartiles is not None:
-                    # Save as PDF
-                    pdf_path = RESULTS_DIR / f"{dataset_name}_sample_reasons_quartiles.pdf"
-                    fig_quartiles.write_image(str(pdf_path), format='pdf', width=1200, height=700, scale=1)
+                    if fig_quartiles is not None:
+                        # Save as PDF
+                        pdf_path = RESULTS_DIR / f"{dataset_name}_sample_reasons_quartiles.pdf"
+                        fig_quartiles.write_image(str(pdf_path), format='pdf', width=1200, height=700, scale=1)
             else:
                 print("sample_robustness_df not available. Run previous cells first.")
 
