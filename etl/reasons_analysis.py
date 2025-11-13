@@ -1197,11 +1197,25 @@ def visualize_anti_reason_corridor(sample_id: str, tests_sample: Dict, feature_n
         height=700,
         showlegend=True,
         hovermode='closest',
+        font=dict(size=16, family='Arial, sans-serif'),
+        title_font_size=20,
         legend=dict(
-            yanchor="top",
-            y=0.99,
+            yanchor="bottom",
+            y=0.02,
             xanchor="left",
-            x=1.02
+            x=0.02,
+            bgcolor="rgba(255,255,255,0.9)",
+            bordercolor="rgba(0,0,0,0.3)",
+            borderwidth=2,
+            font=dict(size=14)
+        ),
+        xaxis=dict(
+            title_font_size=16,
+            tickfont_size=14
+        ),
+        yaxis=dict(
+            title_font_size=16,
+            tickfont_size=14
         )
     )
 
