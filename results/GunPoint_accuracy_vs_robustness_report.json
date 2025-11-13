@@ -1,0 +1,38 @@
+{
+  "lines": [
+    "",
+    "================================================================================",
+    "MODEL ACCURACY VS ROBUSTNESS",
+    "================================================================================",
+    "  \u2022 Test accuracy (RF optimization): 0.8800 (88.00%)",
+    "  \u2022 Best CV score: 0.9600",
+    "",
+    "Robustness summary (anti-reasons)",
+    "  \u2022 Mean robustness:   0.8541",
+    "  \u2022 Median robustness: 0.8538",
+    "  \u2022 Min / Max:        0.8503 / 0.8594",
+    "",
+    "Accuracy vs robustness deltas",
+    "  \u2022 1 - mean robustness: 0.1459",
+    "  \u2022 Test accuracy - mean robustness: 0.0259",
+    "",
+    "DB0 exposes 8 RF optimization metrics (table below)."
+  ],
+  "metrics_df": "                     metric                                              value\n0             best_cv_score                                               0.96\n1               best_params  {'bootstrap': True, 'ccp_alpha': 0.04981635432...\n2                  cv_folds                                                  5\n3              dataset_name                                           GunPoint\n4                    n_iter                                                 50\n5                test_score                                               0.88\n6                 timestamp                         2025-11-01T15:24:29.109980\n7  used_test_for_validation                                              False",
+  "best_params": {
+    "bootstrap": true,
+    "ccp_alpha": 0.04981635432726714,
+    "criterion": "gini",
+    "max_depth": 50,
+    "max_features": "log2",
+    "max_leaf_nodes": 100,
+    "max_samples": null,
+    "min_impurity_decrease": 0.0,
+    "min_samples_leaf": 1,
+    "min_samples_split": 2,
+    "n_estimators": 10
+  },
+  "test_accuracy": 0.88,
+  "cv_score": 0.96,
+  "robustness_stats": "mean      0.854058\nmedian    0.853782\nmin       0.850253\nmax       0.859377\nName: robustness, dtype: float64"
+}

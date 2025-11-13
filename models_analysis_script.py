@@ -1,29 +1,20 @@
 from pathlib import Path
-from tabnanny import verbose
-from etl.loader import etl
-from cost_function import cal_sigmas
-from etl.reasons_analysis import extract_test_samples
+from cost_function import cal_sigmas, cost_function
 from etl.tables import (
     prepare_models_analysis,
-    print_models_analysis_diagnostics,
+    build_accuracy_vs_robustness_report
 )
-from cost_function import cost_function
 from redis_helpers.icf import bitmap_to_icf
 import pandas as pd
-from etl.loader import get_etl_cache
-from pathlib import Path
+from etl.loader import get_etl_cache, etl
 from etl.progress import ICFProgressMonitor, CacheWriteCoordinator
 # Use ETL function to calculate robustness for all samples
 from etl.reasons_analysis import *
 # Import parallel cost calculation
 from etl.parallel_costs import calculate_costs_parallel_incremental
-from etl.tables import build_accuracy_vs_robustness_report
 
 def model_analysis(db, verbose=True, save_plots=False):
-
-
-    analysis_context = prepare_models_analysis(db=db, verbose=verbose, selected_dataset=None)
-
+    # analysis_context = prepare_models_analysis(db=db, verbose=verbose, selected_dataset=None)
     tests_sample, X_test, test_ids, feature_names = extract_test_samples(db)
 
     X_train = db["data"]["TRAINING_SET"]["value_json"]["X_train"]
@@ -294,5 +285,5 @@ if __name__ == "__main__":
         )
     
         model_analysis(db, verbose=False, save_plots=False)
-#         IEEE_CAI$ nohup python models_analysis_script.py  > models_robustness.log 2>&1 & 
-# [1] 2717224
+#         IEEE_CAI$ nohup python models_analysis_script.py  > models_robustness_def.log 2>&1 & 
+# [1] 2737293

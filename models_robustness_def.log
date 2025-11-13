@@ -1,0 +1,309 @@
+nohup: ignoring input
+Processing dataset ZIP: BeetleFly_1_false_0.zip
+[OK] Loaded cached data for BeetleFly_1_false_0.zip
+Report built for 32 workers.
+
+================================================================================
+PARALLEL ACCURACY EXTRACTION
+================================================================================
+Processing 18 ZIP files with 9 workers...
+
+✓ Extraction complete:
+  - Success: 17/18
+  - Errors: 1/18, datasets errors ['HandOutlines']
+================================================================================
+
+Base dir           : /media/DATA/emanuelechini/IEEE_CAI
+Loaded 88 rows from /media/DATA/emanuelechini/IEEE_CAI/forest_report.json
+Results directory  : /media/DATA/emanuelechini/IEEE_CAI/results (exists=True)
+sample_robustness_df not available. Run previous cells first.
+Processing dataset ZIP: BirdChicken_1_false_0.zip
+[OK] Loaded cached data for BirdChicken_1_false_0.zip
+Report built for 32 workers.
+
+================================================================================
+PARALLEL ACCURACY EXTRACTION
+================================================================================
+Processing 18 ZIP files with 9 workers...
+
+✓ Extraction complete:
+  - Success: 17/18
+  - Errors: 1/18, datasets errors ['HandOutlines']
+================================================================================
+
+Base dir           : /media/DATA/emanuelechini/IEEE_CAI
+Loaded 88 rows from /media/DATA/emanuelechini/IEEE_CAI/forest_report.json
+Results directory  : /media/DATA/emanuelechini/IEEE_CAI/results (exists=True)
+sample_robustness_df not available. Run previous cells first.
+Processing dataset ZIP: CinCECGTorso_1_false_0.zip
+[OK] Loaded cached data for CinCECGTorso_1_false_0.zip
+Report built for 32 workers.
+
+================================================================================
+PARALLEL ACCURACY EXTRACTION
+================================================================================
+Processing 18 ZIP files with 9 workers...
+
+✓ Extraction complete:
+  - Success: 17/18
+  - Errors: 1/18, datasets errors ['HandOutlines']
+================================================================================
+
+Base dir           : /media/DATA/emanuelechini/IEEE_CAI
+Loaded 88 rows from /media/DATA/emanuelechini/IEEE_CAI/forest_report.json
+Results directory  : /media/DATA/emanuelechini/IEEE_CAI/results (exists=True)
+sample_robustness_df not available. Run previous cells first.
+Processing dataset ZIP: Coffee_0_false_0.zip
+[OK] Loaded cached data for Coffee_0_false_0.zip
+Report built for 32 workers.
+
+================================================================================
+PARALLEL ACCURACY EXTRACTION
+================================================================================
+Processing 18 ZIP files with 9 workers...
+
+✓ Extraction complete:
+  - Success: 17/18
+  - Errors: 1/18, datasets errors ['HandOutlines']
+================================================================================
+
+Base dir           : /media/DATA/emanuelechini/IEEE_CAI
+Loaded 88 rows from /media/DATA/emanuelechini/IEEE_CAI/forest_report.json
+Results directory  : /media/DATA/emanuelechini/IEEE_CAI/results (exists=True)
+sample_robustness_df not available. Run previous cells first.
+Processing dataset ZIP: ECG200_-1_false_0.zip
+[OK] Loaded cached data for ECG200_-1_false_0.zip
+Report built for 32 workers.
+
+================================================================================
+PARALLEL ACCURACY EXTRACTION
+================================================================================
+Processing 18 ZIP files with 9 workers...
+
+✓ Extraction complete:
+  - Success: 17/18
+  - Errors: 1/18, datasets errors ['HandOutlines']
+================================================================================
+
+Base dir           : /media/DATA/emanuelechini/IEEE_CAI
+Loaded 88 rows from /media/DATA/emanuelechini/IEEE_CAI/forest_report.json
+Results directory  : /media/DATA/emanuelechini/IEEE_CAI/results (exists=True)
+sample_robustness_df not available. Run previous cells first.
+Processing dataset ZIP: FaceFour_1_false_0.zip
+[OK] Loaded cached data for FaceFour_1_false_0.zip
+Report built for 32 workers.
+
+================================================================================
+PARALLEL ACCURACY EXTRACTION
+================================================================================
+Processing 18 ZIP files with 9 workers...
+
+✓ Extraction complete:
+  - Success: 17/18
+  - Errors: 1/18, datasets errors ['HandOutlines']
+================================================================================
+
+Base dir           : /media/DATA/emanuelechini/IEEE_CAI
+Loaded 88 rows from /media/DATA/emanuelechini/IEEE_CAI/forest_report.json
+Results directory  : /media/DATA/emanuelechini/IEEE_CAI/results (exists=True)
+sample_robustness_df not available. Run previous cells first.
+Processing dataset ZIP: GunPoint_1_false_0.zip
+[OK] Loaded cached data for GunPoint_1_false_0.zip
+Report built for 32 workers.
+
+================================================================================
+PARALLEL ACCURACY EXTRACTION
+================================================================================
+Processing 18 ZIP files with 9 workers...
+
+✓ Extraction complete:
+  - Success: 17/18
+  - Errors: 1/18, datasets errors ['HandOutlines']
+================================================================================
+
+Base dir           : /media/DATA/emanuelechini/IEEE_CAI
+Loaded 88 rows from /media/DATA/emanuelechini/IEEE_CAI/forest_report.json
+Results directory  : /media/DATA/emanuelechini/IEEE_CAI/results (exists=True)
+sample_robustness_df not available. Run previous cells first.
+Processing dataset ZIP: HandOutlines_0_false_0.zip
+Skipping dataset 'HandOutlines' as raises errors.
+Processing dataset ZIP: ItalyPowerDemand_1_true_0.zip
+[OK] Loaded cached data for ItalyPowerDemand_1_true_0.zip
+Report built for 32 workers.
+
+================================================================================
+PARALLEL ACCURACY EXTRACTION
+================================================================================
+Processing 18 ZIP files with 9 workers...
+
+✓ Extraction complete:
+  - Success: 17/18
+  - Errors: 1/18, datasets errors ['HandOutlines']
+================================================================================
+
+Base dir           : /media/DATA/emanuelechini/IEEE_CAI
+Loaded 88 rows from /media/DATA/emanuelechini/IEEE_CAI/forest_report.json
+Results directory  : /media/DATA/emanuelechini/IEEE_CAI/results (exists=True)
+sample_robustness_df not available. Run previous cells first.
+Processing dataset ZIP: Lightning2_-1_false_0.zip
+[OK] Loaded cached data for Lightning2_-1_false_0.zip
+Report built for 32 workers.
+
+================================================================================
+PARALLEL ACCURACY EXTRACTION
+================================================================================
+Processing 18 ZIP files with 9 workers...
+
+✓ Extraction complete:
+  - Success: 17/18
+  - Errors: 1/18, datasets errors ['HandOutlines']
+================================================================================
+
+Base dir           : /media/DATA/emanuelechini/IEEE_CAI
+Loaded 88 rows from /media/DATA/emanuelechini/IEEE_CAI/forest_report.json
+Results directory  : /media/DATA/emanuelechini/IEEE_CAI/results (exists=True)
+sample_robustness_df not available. Run previous cells first.
+Processing dataset ZIP: Meat_1_false_0.zip
+[OK] Loaded cached data for Meat_1_false_0.zip
+Report built for 32 workers.
+
+================================================================================
+PARALLEL ACCURACY EXTRACTION
+================================================================================
+Processing 18 ZIP files with 9 workers...
+
+✓ Extraction complete:
+  - Success: 17/18
+  - Errors: 1/18, datasets errors ['HandOutlines']
+================================================================================
+
+Base dir           : /media/DATA/emanuelechini/IEEE_CAI
+Loaded 88 rows from /media/DATA/emanuelechini/IEEE_CAI/forest_report.json
+Results directory  : /media/DATA/emanuelechini/IEEE_CAI/results (exists=True)
+sample_robustness_df not available. Run previous cells first.
+Processing dataset ZIP: MiddlePhalanxOutlineCorrect_0_false_0.zip
+[OK] Loaded cached data for MiddlePhalanxOutlineCorrect_0_false_0.zip
+Report built for 32 workers.
+
+================================================================================
+PARALLEL ACCURACY EXTRACTION
+================================================================================
+Processing 18 ZIP files with 9 workers...
+
+✓ Extraction complete:
+  - Success: 17/18
+  - Errors: 1/18, datasets errors ['HandOutlines']
+================================================================================
+
+Base dir           : /media/DATA/emanuelechini/IEEE_CAI
+Loaded 88 rows from /media/DATA/emanuelechini/IEEE_CAI/forest_report.json
+Results directory  : /media/DATA/emanuelechini/IEEE_CAI/results (exists=True)
+sample_robustness_df not available. Run previous cells first.
+Processing dataset ZIP: MoteStrain_1_false_0.zip
+[OK] Loaded cached data for MoteStrain_1_false_0.zip
+Report built for 32 workers.
+
+================================================================================
+PARALLEL ACCURACY EXTRACTION
+================================================================================
+Processing 18 ZIP files with 9 workers...
+
+✓ Extraction complete:
+  - Success: 17/18
+  - Errors: 1/18, datasets errors ['HandOutlines']
+================================================================================
+
+Base dir           : /media/DATA/emanuelechini/IEEE_CAI
+Loaded 88 rows from /media/DATA/emanuelechini/IEEE_CAI/forest_report.json
+Results directory  : /media/DATA/emanuelechini/IEEE_CAI/results (exists=True)
+sample_robustness_df not available. Run previous cells first.
+Processing dataset ZIP: SonyAIBORobotSurface1_1_false_0.zip
+[OK] Loaded cached data for SonyAIBORobotSurface1_1_false_0.zip
+Report built for 32 workers.
+
+================================================================================
+PARALLEL ACCURACY EXTRACTION
+================================================================================
+Processing 18 ZIP files with 9 workers...
+
+✓ Extraction complete:
+  - Success: 17/18
+  - Errors: 1/18, datasets errors ['HandOutlines']
+================================================================================
+
+Base dir           : /media/DATA/emanuelechini/IEEE_CAI
+Loaded 88 rows from /media/DATA/emanuelechini/IEEE_CAI/forest_report.json
+Results directory  : /media/DATA/emanuelechini/IEEE_CAI/results (exists=True)
+sample_robustness_df not available. Run previous cells first.
+Processing dataset ZIP: SonyAIBORobotSurface2_1_false_0.zip
+[OK] Loaded cached data for SonyAIBORobotSurface2_1_false_0.zip
+Report built for 32 workers.
+
+================================================================================
+PARALLEL ACCURACY EXTRACTION
+================================================================================
+Processing 18 ZIP files with 9 workers...
+
+✓ Extraction complete:
+  - Success: 17/18
+  - Errors: 1/18, datasets errors ['HandOutlines']
+================================================================================
+
+Base dir           : /media/DATA/emanuelechini/IEEE_CAI
+Loaded 88 rows from /media/DATA/emanuelechini/IEEE_CAI/forest_report.json
+Results directory  : /media/DATA/emanuelechini/IEEE_CAI/results (exists=True)
+sample_robustness_df not available. Run previous cells first.
+Processing dataset ZIP: ToeSegmentation2_0_false_0.zip
+[OK] Loaded cached data for ToeSegmentation2_0_false_0.zip
+Report built for 32 workers.
+
+================================================================================
+PARALLEL ACCURACY EXTRACTION
+================================================================================
+Processing 18 ZIP files with 9 workers...
+
+✓ Extraction complete:
+  - Success: 17/18
+  - Errors: 1/18, datasets errors ['HandOutlines']
+================================================================================
+
+Base dir           : /media/DATA/emanuelechini/IEEE_CAI
+Loaded 88 rows from /media/DATA/emanuelechini/IEEE_CAI/forest_report.json
+Results directory  : /media/DATA/emanuelechini/IEEE_CAI/results (exists=True)
+sample_robustness_df not available. Run previous cells first.
+Processing dataset ZIP: TwoLeadECG_1_false_0.zip
+[OK] Loaded cached data for TwoLeadECG_1_false_0.zip
+Report built for 32 workers.
+
+================================================================================
+PARALLEL ACCURACY EXTRACTION
+================================================================================
+Processing 18 ZIP files with 9 workers...
+
+✓ Extraction complete:
+  - Success: 17/18
+  - Errors: 1/18, datasets errors ['HandOutlines']
+================================================================================
+
+Base dir           : /media/DATA/emanuelechini/IEEE_CAI
+Loaded 88 rows from /media/DATA/emanuelechini/IEEE_CAI/forest_report.json
+Results directory  : /media/DATA/emanuelechini/IEEE_CAI/results (exists=True)
+sample_robustness_df not available. Run previous cells first.
+Processing dataset ZIP: Wine_1_false_0.zip
+[OK] Loaded cached data for Wine_1_false_0.zip
+Report built for 32 workers.
+
+================================================================================
+PARALLEL ACCURACY EXTRACTION
+================================================================================
+Processing 18 ZIP files with 9 workers...
+
+✓ Extraction complete:
+  - Success: 17/18
+  - Errors: 1/18, datasets errors ['HandOutlines']
+================================================================================
+
+Base dir           : /media/DATA/emanuelechini/IEEE_CAI
+Loaded 88 rows from /media/DATA/emanuelechini/IEEE_CAI/forest_report.json
+Results directory  : /media/DATA/emanuelechini/IEEE_CAI/results (exists=True)
+sample_robustness_df not available. Run previous cells first.

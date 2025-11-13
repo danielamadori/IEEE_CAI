@@ -1,0 +1,38 @@
+{
+  "lines": [
+    "",
+    "================================================================================",
+    "MODEL ACCURACY VS ROBUSTNESS",
+    "================================================================================",
+    "  \u2022 Test accuracy (RF optimization): 0.8500 (85.00%)",
+    "  \u2022 Best CV score: 0.7000",
+    "",
+    "Robustness summary (anti-reasons)",
+    "  \u2022 Mean robustness:   0.8202",
+    "  \u2022 Median robustness: 0.8176",
+    "  \u2022 Min / Max:        0.7957 / 0.8496",
+    "",
+    "Accuracy vs robustness deltas",
+    "  \u2022 1 - mean robustness: 0.1798",
+    "  \u2022 Test accuracy - mean robustness: 0.0298",
+    "",
+    "DB0 exposes 8 RF optimization metrics (table below)."
+  ],
+  "metrics_df": "                     metric                                              value\n0             best_cv_score                                                0.7\n1               best_params  {'bootstrap': True, 'ccp_alpha': 0.02643238117...\n2                  cv_folds                                                  5\n3              dataset_name                                          BeetleFly\n4                    n_iter                                                 50\n5                test_score                                               0.85\n6                 timestamp                         2025-10-31T17:33:36.422056\n7  used_test_for_validation                                              False",
+  "best_params": {
+    "bootstrap": true,
+    "ccp_alpha": 0.026432381175882626,
+    "criterion": "entropy",
+    "max_depth": 6,
+    "max_features": null,
+    "max_leaf_nodes": 10,
+    "max_samples": 0.7,
+    "min_impurity_decrease": 0.035570523696164265,
+    "min_samples_leaf": 1,
+    "min_samples_split": 9,
+    "n_estimators": 295
+  },
+  "test_accuracy": 0.85,
+  "cv_score": 0.7,
+  "robustness_stats": "mean      0.820188\nmedian    0.817647\nmin       0.795711\nmax       0.849555\nName: robustness, dtype: float64"
+}
