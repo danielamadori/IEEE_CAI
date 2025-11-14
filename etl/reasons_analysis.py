@@ -1172,20 +1172,21 @@ def visualize_anti_reason_corridor(sample_id: str, tests_sample: Dict, feature_n
         dataset_name = sample_parts[0]
         class_label = sample_parts[1] 
         sample_index = sample_parts[2]
-        title_main = f'Anti-Reason Analysis - Dataset {dataset_name}, Class {class_label}, Sample Index {sample_index}'
+        title_main = f'Anti-Reason Analysis - Dataset {dataset_name}, Class {class_label}, Sample Index {sample_index}, Predicted={predicted_label}'
     else:
         # Fallback if sample ID doesn't follow expected format
         title_main = f'Anti-Reason Analysis - Sample {sample_id}'
         
-    if prediction_status:
-        title_main += f'<br><sub>{prediction_status}</sub>'
+    
     
     subtitle_parts = [
-        f'Cost: {ar_cost:.4f}',
-        f'Constrained Features: {total_constrained}/{len(feature_names)}',
+        f'Cost: {ar_cost:.2f}',
+        f'ICF Features: {total_constrained}/{len(feature_names)}',
         f'Sample in ICF Rate: {satisfaction_rate:.1f}% ({within_count}/{total_constrained})',
         f'Sample Out of ICF: {violation_count/total_constrained*100:.1f}% ({violation_count}/{total_constrained})'
     ]
+    # if prediction_status:
+    #     subtitle_parts.append(f'<br><sub>{prediction_status}</sub>')
     title_main += f'<br><sub>{" | ".join(subtitle_parts)}</sub>'
 
     # Update layout
@@ -1197,8 +1198,8 @@ def visualize_anti_reason_corridor(sample_id: str, tests_sample: Dict, feature_n
         height=700,
         showlegend=True,
         hovermode='closest',
-        font=dict(size=24, family='Arial, sans-serif'),
-        title_font_size=32,
+        font=dict(size=20, family='Arial, sans-serif'),
+        title_font_size=28,
         legend=dict(
             yanchor="bottom",
             y=0.02,
