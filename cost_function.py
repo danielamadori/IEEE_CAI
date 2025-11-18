@@ -110,6 +110,7 @@ def cost_function(sample: Dict[str, float] = None,  icf: Dict[str, Tuple[float, 
 		raise ValueError("Sample must be provided")
 	
 	cost = 0.0
+	# plots_done is deprecated; we now plot every feature when verbose is True
 
 	for key in icf.keys():
 		if verbose:
@@ -203,57 +204,74 @@ def cost_function(sample: Dict[str, float] = None,  icf: Dict[str, Tuple[float, 
 		if verbose:
 			print(f"  Area under curve in interval: {area:.4f}, Cost total: {cost:.4f}")
 
-			# Plot the curve and highlight the interval (occasionally)
-			if random() < 0.3:  # Plot only 30% of features for brevity
-				try:
-					# Define split PDF according to paper formula
-					def split_pdf(x):
-						"""PDF according to paper: weighted sum of two Gaussians"""
-						x = np.asarray(x)
-						# p^+ * N(x; 0, σ+²)
-						pdf_pos = percent_above * (1 / (sigma_pos * np.sqrt(2 * np.pi))) * np.exp(-0.5 * (x / sigma_pos) ** 2)
-						# p^- * N(x; 0, σ-²)
-						pdf_neg = percent_below * (1 / (sigma_neg * np.sqrt(2 * np.pi))) * np.exp(-0.5 * (x / sigma_neg) ** 2)
-						return pdf_pos + pdf_neg
+			# Plot the curve and highlight the interval (now one plot per feature when verbose)
+			try:
+				# Define split PDF according to paper formula (piecewise, not symmetric)
+				def split_pdf(x):
+					x = np.asarray(x)
+					pdf_pos = percent_above * (1 / (sigma_pos * np.sqrt(2 * np.pi))) * np.exp(-0.5 * (x / sigma_pos) ** 2)
+					pdf_neg = percent_below * (1 / (sigma_neg * np.sqrt(2 * np.pi))) * np.exp(-0.5 * (x / sigma_neg) ** 2)
+					return np.where(x >= 0, pdf_pos, 0.0) + np.where(x < 0, pdf_neg, 0.0)
 
-					# Calculate total areas using CDF for visualization
-					# Area from -inf to +inf should equal 1.0
-					area_total_pos = percent_above  # ∫_{-∞}^{+∞} p^+ * N(x;0,σ+²)dx = p^+
-					area_total_neg = percent_below  # ∫_{-∞}^{+∞} p^- * N(x;0,σ-²)dx = p^-
+				# Calculate total areas using CDF for visualization
+				# Area from -inf to +inf should equal 1.0
+				area_total_pos = percent_above  # ∫_{-∞}^{+∞} p^+ * N(x;0,σ+²)dx = p^+
+				area_total_neg = percent_below  # ∫_{-∞}^{+∞} p^- * N(x;0,σ-²)dx = p^-
 
-					print(f"  Area positive Gaussian: {area_total_pos:.4f}, Area negative Gaussian: {area_total_neg:.4f}, Total: {area_total_pos + area_total_neg:.4f}")
+				print(f"  Area positive Gaussian: {area_total_pos:.4f}, Area negative Gaussian: {area_total_neg:.4f}, Total: {area_total_pos + area_total_neg:.4f}")
 
-					x_vals = np.linspace(-5, 5, 400)
-					y_vals = split_pdf(x_vals)
-					plt.figure(figsize=(8, 4))
-					plt.plot(x_vals, y_vals)
-					plt.fill_between(x_vals, 0, y_vals, alpha=0.3, label=f'PDF (p+={percent_above:.2f}, p-={percent_below:.2f})')
+				# Use dynamic window like plot_cost_distribution for clarity
+				candidates = []
+				if not np.isinf(interval_min_shifted):
+					candidates.append(interval_min_shifted)
+				if not np.isinf(interval_max_shifted):
+					candidates.append(interval_max_shifted)
+				candidates.extend([-4 * sigma_neg, 4 * sigma_pos, -4 * sigma_pos, 4 * sigma_neg])
+				if len(candidates) == 0:
+					candidates = [-1.0, 1.0]
+				base_min = min(candidates)
+				base_max = max(candidates)
+				if np.isclose(base_min, base_max):
+					base_min -= 1.0
+					base_max += 1.0
+				padding = max(0.1, 0.1 * (base_max - base_min))
+				x_min = base_min - padding
+				x_max = base_max + padding
 
-					# Handle infinite intervals for plotting
-					plot_min = max(-5, interval_min_shifted if not np.isinf(interval_min_shifted) else -5)
-					plot_max = min(5, interval_max_shifted if not np.isinf(interval_max_shifted) else 5)
+				x_vals = np.linspace(x_min, x_max, 600)
+				y_vals = split_pdf(x_vals)
+				plt.figure(figsize=(8, 4))
+				plt.plot(x_vals, y_vals)
+				plt.fill_between(x_vals, 0, y_vals, alpha=0.3, label=f'PDF (p+={percent_above:.2f}, p-={percent_below:.2f})')
 
-					plt.axvspan(plot_min, plot_max, color='black', alpha=0.4, label='Interval')
+				raw_plot_min = interval_min_shifted if not np.isinf(interval_min_shifted) else x_min
+				raw_plot_max = interval_max_shifted if not np.isinf(interval_max_shifted) else x_max
+				plot_min = max(x_min, raw_plot_min)
+				plot_max = min(x_max, raw_plot_max)
 
-					# Create title with proper inf handling
-					interval_str = f"[{interval_min_shifted:.4f}, {interval_max_shifted:.4f}]"
-					if np.isinf(interval_min_shifted):
-						interval_str = f"[-∞, {interval_max_shifted:.4f}]"
-					if np.isinf(interval_max_shifted):
-						interval_str = f"[{interval_min_shifted:.4f}, ∞]"
-					if np.isinf(interval_min_shifted) and np.isinf(interval_max_shifted):
-						interval_str = "[-∞, ∞]"
+				plt.axvspan(plot_min, plot_max, color='black', alpha=0.4, label='Interval')
 
-					plt.title(f'Feature: {key} | Cost contribution: {area:.4f} | Interval: {interval_str} | Sigmas: +{sigma_pos:.2f}, -{sigma_neg:.2f}')
-					plt.axvline(0, color='black', linestyle='--')
-					plt.legend()
-					plt.savefig(f'fig/feature_{key}_cost_plot.png')
-					plt.close()
-				except Exception as e:
-					if verbose:
-						print(f"  Warning: plotting error for key {key}: {e}")
+				# Create title with proper inf handling
+				interval_str = f"[{interval_min_shifted:.4f}, {interval_max_shifted:.4f}]"
+				if np.isinf(interval_min_shifted):
+					interval_str = f"[-∞, {interval_max_shifted:.4f}]"
+				if np.isinf(interval_max_shifted):
+					interval_str = f"[{interval_min_shifted:.4f}, ∞]"
+				if np.isinf(interval_min_shifted) and np.isinf(interval_max_shifted):
+					interval_str = "[-∞, ∞]"
+
+				plt.title(f'Feature: {key} | Cost contribution: {area:.4f} | Interval: {interval_str} | Sigmas: +{sigma_pos:.2f}, -{sigma_neg:.2f}')
+				plt.axvline(0, color='black', linestyle='--')
+				plt.legend()
+				plt.savefig(f'fig/feature_{key}_cost_plot.png')
+				plt.close()
+				print(f"  Saved distribution plot for feature {key} to fig/feature_{key}_cost_plot.png")
+			except Exception as e:
+				if verbose:
+					print(f"  Warning: plotting error for key {key}: {e}")
 
 	return cost
+
 def plot_cost_distribution(sample, icf, sigmas, feature_key, output_dir='fig'):
 	"""
 	Plot the cost distribution for a specific feature showing the split Gaussian.
@@ -295,7 +313,8 @@ def plot_cost_distribution(sample, icf, sigmas, feature_key, output_dir='fig'):
 		x = np.asarray(x)
 		pdf_pos = percent_above * (1 / (sigma_pos * np.sqrt(2 * np.pi))) * np.exp(-0.5 * (x / sigma_pos) ** 2)
 		pdf_neg = percent_below * (1 / (sigma_neg * np.sqrt(2 * np.pi))) * np.exp(-0.5 * (x / sigma_neg) ** 2)
-		return pdf_pos + pdf_neg
+		# Piecewise: use σ+ for x>=0 and σ- for x<0 so the combined curve is asymmetric if weights/sigmas differ
+		return np.where(x >= 0, pdf_pos, 0.0) + np.where(x < 0, pdf_neg, 0.0)
 	# Calculate area in interval using CDF
 	if interval_max_shifted <= 0:
 		cdf_max = norm.cdf(interval_max_shifted / sigma_neg)
@@ -314,15 +333,39 @@ def plot_cost_distribution(sample, icf, sigmas, feature_key, output_dir='fig'):
 		cdf_0_pos = norm.cdf(0 / sigma_pos)
 		area_pos = percent_above * (cdf_max_pos - cdf_0_pos)
 		area = area_neg + area_pos
+	# Determine plotting window around the interval/sigmas so narrow ranges (e.g. -1..1) stay visible
+	candidates = []
+	if not np.isinf(interval_min_shifted):
+		candidates.append(interval_min_shifted)
+	if not np.isinf(interval_max_shifted):
+		candidates.append(interval_max_shifted)
+	# Add a few sigma multiples to see the tails
+	candidates.extend([-4 * sigma_neg, 4 * sigma_pos, -4 * sigma_pos, 4 * sigma_neg])
+	# Fallback if everything is inf/empty
+	if len(candidates) == 0:
+		candidates = [-1.0, 1.0]
+
+	base_min = min(candidates)
+	base_max = max(candidates)
+	if np.isclose(base_min, base_max):
+		base_min -= 1.0
+		base_max += 1.0
+
+	padding = max(0.1, 0.1 * (base_max - base_min))
+	x_min = base_min - padding
+	x_max = base_max + padding
+
 	# Plot
-	x_vals = np.linspace(-5, 5, 400)
+	x_vals = np.linspace(x_min, x_max, 600)
 	y_vals = split_pdf(x_vals)
 	plt.figure(figsize=(8, 4))
 	plt.plot(x_vals, y_vals)
 	plt.fill_between(x_vals, 0, y_vals, alpha=0.3, label=f'PDF (p+={percent_above:.2f}, p-={percent_below:.2f})')
 	# Handle infinite intervals for plotting
-	plot_min = max(-5, interval_min_shifted if not np.isinf(interval_min_shifted) else -5)
-	plot_max = min(5, interval_max_shifted if not np.isinf(interval_max_shifted) else 5)
+	raw_plot_min = interval_min_shifted if not np.isinf(interval_min_shifted) else x_min
+	raw_plot_max = interval_max_shifted if not np.isinf(interval_max_shifted) else x_max
+	plot_min = max(x_min, raw_plot_min)
+	plot_max = min(x_max, raw_plot_max)
 	plt.axvspan(plot_min, plot_max, color='black', alpha=0.4, label='Interval')
 	# Create title with proper inf handling
 	interval_str = f"[{interval_min_shifted:.4f}, {interval_max_shifted:.4f}]"
@@ -342,6 +385,7 @@ def plot_cost_distribution(sample, icf, sigmas, feature_key, output_dir='fig'):
 	plt.savefig(output_path)
 	plt.close()
 	print(f"  Saved plot to {output_path}")
+
 def plot_extreme_costs_per_category(cost_df, db, tests_sample, sigmas_all, top_n=2, output_dir='fig'):
 	"""
 	Per ogni categoria (reason_type), plotta le prime N con costo minimo e massimo.
