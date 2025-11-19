@@ -395,7 +395,7 @@ def calculate_all_samples_robustness(cost_df: 'pd.DataFrame', num_features: int,
         })
 
     if verbose:
-        print(f"✓ All {len(test_ids)} samples processed")
+        print(f" All {len(test_ids)} samples processed")
 
     return pd.DataFrame(sample_robustness_results)
 
@@ -420,7 +420,7 @@ def print_robustness_statistics(sample_robustness_df: 'pd.DataFrame') -> None:
     valid_robustness = sample_robustness_df['robustness'].dropna()
 
     if len(valid_robustness) == 0:
-        print("\n⚠ WARNING: No valid robustness values found!")
+        print("\n WARNING: No valid robustness values found!")
         return
 
     # Prediction correctness statistics
@@ -430,7 +430,7 @@ def print_robustness_statistics(sample_robustness_df: 'pd.DataFrame') -> None:
     accuracy = (correct_count / total_count * 100) if total_count > 0 else 0
 
     # Basic info
-    print(f"📊 Dataset Overview:")
+    print(f" Dataset Overview:")
     print(f"   • Total samples:        {total_count}")
     print(f"   • Correct predictions:  {correct_count} ({accuracy:.1f}%)")
     print(f"   • Incorrect predictions: {incorrect_count} ({100-accuracy:.1f}%)")
@@ -449,7 +449,7 @@ def print_robustness_statistics(sample_robustness_df: 'pd.DataFrame') -> None:
     if np.isnan(std_val) or len(valid_robustness) == 1:
         std_val = 0.0
 
-    print(f"\n📈 Robustness Statistics (All Samples):")
+    print(f"\n Robustness Statistics (All Samples):")
     print(f"   • Mean:      {mean_val:.6f} +/- {std_val:.6f}")
     print(f"   • Median:    {median_val:.6f}")
     print(f"   • Min/Max:   {min_val:.6f} / {max_val:.6f}")
@@ -468,7 +468,7 @@ def print_robustness_statistics(sample_robustness_df: 'pd.DataFrame') -> None:
     correct_rob = None
     incorrect_rob = None
 
-    print(f"\n🔍 Robustness by Prediction Correctness:")
+    print(f"\n Robustness by Prediction Correctness:")
     print(f"{'-'*80}")
 
     if len(correct_samples) > 0:
@@ -484,7 +484,7 @@ def print_robustness_statistics(sample_robustness_df: 'pd.DataFrame') -> None:
             if np.isnan(c_std) or len(correct_rob) == 1:
                 c_std = 0.0
 
-            print(f"\n  ✓ CORRECT Predictions ({len(correct_samples)} samples):")
+            print(f"\n   CORRECT Predictions ({len(correct_samples)} samples):")
             print(f"     Mean:      {c_mean:.6f} +/- {c_std:.6f}")
             print(f"     Median:    {c_median:.6f}")
             print(f"     Range:     [{c_min:.6f}, {c_max:.6f}]")
@@ -502,7 +502,7 @@ def print_robustness_statistics(sample_robustness_df: 'pd.DataFrame') -> None:
             if np.isnan(i_std) or len(incorrect_rob) == 1:
                 i_std = 0.0
 
-            print(f"\n  ✗ INCORRECT Predictions ({len(incorrect_samples)} samples):")
+            print(f"\n   INCORRECT Predictions ({len(incorrect_samples)} samples):")
             print(f"     Mean:      {i_mean:.6f} +/- {i_std:.6f}")
             print(f"     Median:    {i_median:.6f}")
             print(f"     Range:     [{i_min:.6f}, {i_max:.6f}]")
@@ -511,7 +511,7 @@ def print_robustness_statistics(sample_robustness_df: 'pd.DataFrame') -> None:
             if correct_rob is not None and len(correct_rob) > 0 and 'c_mean' in locals():
                 diff = c_mean - i_mean
                 sign = "+" if diff >= 0 else ""
-                print(f"\n  📊 Difference (Correct - Incorrect): {sign}{diff:.6f}")
+                print(f"\n   Difference (Correct - Incorrect): {sign}{diff:.6f}")
 
     print(f"\n{'-'*80}")
 
@@ -810,10 +810,10 @@ def visualize_sample_with_icf(sample_id: str, tests_sample: Dict,
     if is_correct is not None:
         if is_correct:
             prediction_status = f"Predicted={predicted_label}, Actual={actual_label}"
-            prediction_symbol = "✓ CORRECT"
+            prediction_symbol = " CORRECT"
         else:
             prediction_status = f"Predicted={predicted_label}, Actual={actual_label}"
-            prediction_symbol = "✗ INCORRECT"
+            prediction_symbol = " INCORRECT"
 
     # Get first ICF
     first_bitmap = list(tests_sample[sample_id][reason_type].keys())[0]
@@ -1033,9 +1033,9 @@ def visualize_anti_reason_corridor(sample_id: str, tests_sample: Dict, feature_n
     prediction_status = ""
     if is_correct is not None:
         if is_correct:
-            prediction_status = f"✓ CORRECT: Predicted={predicted_label}, Actual={actual_label}"
+            prediction_status = f" CORRECT: Predicted={predicted_label}, Actual={actual_label}"
         else:
-            prediction_status = f"✗ INCORRECT: Predicted={predicted_label}, Actual={actual_label}"
+            prediction_status = f" INCORRECT: Predicted={predicted_label}, Actual={actual_label}"
 
     # Get anti-reason data
     first_ar_bitmap = list(tests_sample[sample_id]["anti_reasons"].keys())[0]
@@ -1229,8 +1229,8 @@ def visualize_anti_reason_corridor(sample_id: str, tests_sample: Dict, feature_n
     print(f"    Total features: {len(feature_names)}")
     print(f"    Constrained features: {total_constrained}")
     print(f"    Unconstrained features: {len(feature_names) - total_constrained}")
-    print(f"    ✓ Within constraints: {within_count}/{total_constrained} ({satisfaction_rate:.1f}%)")
-    print(f"    ✗ Constraint violations: {violation_count}/{total_constrained}")
+    print(f"     Within constraints: {within_count}/{total_constrained} ({satisfaction_rate:.1f}%)")
+    print(f"     Constraint violations: {violation_count}/{total_constrained}")
     
     if violation_count > 0:
         violation_indices = np.where(~within_constraints & constrained_features)[0]
@@ -1288,9 +1288,9 @@ def visualize_sample_comparison_smooth(sample_id: str, tests_sample: Dict, featu
     prediction_status = ""
     if is_correct is not None:
         if is_correct:
-            prediction_status = f"✓ CORRECT: Predicted={predicted_label}, Actual={actual_label}"
+            prediction_status = f" CORRECT: Predicted={predicted_label}, Actual={actual_label}"
         else:
-            prediction_status = f"✗ INCORRECT: Predicted={predicted_label}, Actual={actual_label}"
+            prediction_status = f" INCORRECT: Predicted={predicted_label}, Actual={actual_label}"
 
     # Get reason data
     first_reason_bitmap = list(tests_sample[sample_id]["reasons"].keys())[0]
@@ -1522,9 +1522,9 @@ def visualize_sample_comparison(sample_id: str, tests_sample: Dict, feature_name
     prediction_status = ""
     if is_correct is not None:
         if is_correct:
-            prediction_status = f"✓ CORRECT: Predicted={predicted_label}, Actual={actual_label}"
+            prediction_status = f" CORRECT: Predicted={predicted_label}, Actual={actual_label}"
         else:
-            prediction_status = f"✗ INCORRECT: Predicted={predicted_label}, Actual={actual_label}"
+            prediction_status = f" INCORRECT: Predicted={predicted_label}, Actual={actual_label}"
 
     # Get reason data
     first_reason_bitmap = list(tests_sample[sample_id]["reasons"].keys())[0]

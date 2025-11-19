@@ -140,7 +140,7 @@ def calculate_costs_parallel_incremental(db, test_ids, tests_sample, sigmas_all,
         n_workers = max(1, cpu_count() - 2)
 
     if verbose:
-        print(f"\n🚀 TRUE MULTIPROCESSING MODE - Using {n_workers} SEPARATE PROCESSES")
+        print(f"\n TRUE MULTIPROCESSING MODE - Using {n_workers} SEPARATE PROCESSES")
         print(f"   Batch size: {batch_size} ICFs | Save every: {save_every_n_batches} batches")
 
     eu = db["data"]['EU']['value_json']
@@ -156,7 +156,7 @@ def calculate_costs_parallel_incremental(db, test_ids, tests_sample, sigmas_all,
         for reason_idx, reason_type in enumerate(reason_types):
             if reason_type not in db or len(db[reason_type]) == 0:
                 if verbose:
-                    print(f"\n⚠️  {reason_type} not found in database or empty, skipping...")
+                    print(f"\n  {reason_type} not found in database or empty, skipping...")
                 continue
 
             if verbose:
@@ -265,7 +265,7 @@ def calculate_costs_parallel_incremental(db, test_ids, tests_sample, sigmas_all,
                     if verbose:
                         elapsed = time.time() - overall_start
                         icf_rate = icfs_this_type / elapsed if elapsed > 0 else 0
-                        print(f"  ✓ Batch {completed}/{len(batch_args)} complete | "
+                        print(f"   Batch {completed}/{len(batch_args)} complete | "
                               f"{icfs_this_type} ICFs | "
                               f"{icf_rate:.1f} ICF/sec")
 
@@ -297,7 +297,7 @@ def calculate_costs_parallel_incremental(db, test_ids, tests_sample, sigmas_all,
 
                             if verbose:
                                 saved_count = len(costs_to_save)
-                                print(f"  💾 Saved {saved_count} costs to cache "
+                                print(f"   Saved {saved_count} costs to cache "
                                       f"(checkpoint at batch {completed}/{len(batch_args)})")
 
                             total_costs += saved_count
@@ -313,19 +313,19 @@ def calculate_costs_parallel_incremental(db, test_ids, tests_sample, sigmas_all,
 
                 except Exception as e:
                     if verbose:
-                        print(f"  ⚠️  Error in batch {batch_id}: {e}")
+                        print(f"    Error in batch {batch_id}: {e}")
 
             total_elapsed = time.time() - overall_start
             if verbose:
                 avg_icf_rate = icfs_this_type / total_elapsed if total_elapsed > 0 else 0
-                print(f"\n  ✅ Completed {reason_type} in {total_elapsed:.1f}s")
+                print(f"\n   Completed {reason_type} in {total_elapsed:.1f}s")
                 print(f"     Average: {avg_icf_rate:.1f} ICF/sec ({icfs_this_type} ICFs total)")
             if progress_monitor:
                 progress_monitor.complete_reason(reason_type)
 
     if verbose:
         print(f"\n{'='*80}")
-        print(f"🎉 ALL PROCESSING COMPLETE")
+        print(f" ALL PROCESSING COMPLETE")
         print(f"{'='*80}")
         print(f"Total costs calculated: {total_costs}")
 

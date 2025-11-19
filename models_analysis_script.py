@@ -41,7 +41,7 @@ def model_analysis(db, verbose=True, save_plots=False):
 
     if cached_data is not None:
         if verbose:
-            print(f"\n✓ Loaded costs from cache for {dataset_name}")
+            print(f"\n Loaded costs from cache for {dataset_name}")
             print("=" * 80)
         cost_df = cached_data['cost_df']
         # Update tests_sample with cached data
@@ -82,7 +82,7 @@ def model_analysis(db, verbose=True, save_plots=False):
             )
 
         if verbose:
-            print(f"\n✓ Parallel computation complete: {total_costs} costs calculated")
+            print(f"\n Parallel computation complete: {total_costs} costs calculated")
 
         # Load cost_df from cache (already saved incrementally)
         cached_costs = cache.load_costs(selected_zip_path, reason_types)
@@ -101,15 +101,15 @@ def model_analysis(db, verbose=True, save_plots=False):
         print(f"\n\n{'='*80}")
         print(f"  ROBUSTNESS CALCULATION (Anti-Reasons Only)")
         print(f"{'='*80}\n")
-        print(f"📐 Configuration:")
+        print(f" Configuration:")
         print(f"   • Number of features: {num_features}")
-        print(f"\n📝 Formula:")
+        print(f"\n Formula:")
         print(f"   r(C,x) = 1 - max{{ICF ∈ AR{{C,y}}}} cost_x(ICF) / |features|")
         print(f"\n   where AR{{C,y}} = set of Anti-Reasons for class y")
 
     # Check if anti_reasons exist in cost_df
     if len(cost_df) == 0 or 'reason_type' not in cost_df.columns:
-        print("\n⚠ ERROR: Cannot calculate robustness - no cost data available.")
+        print("\n ERROR: Cannot calculate robustness - no cost data available.")
         print("  Please ensure the database contains anti_reasons data.")
         print("  Skipping robustness calculation section.")
     else:
@@ -117,7 +117,7 @@ def model_analysis(db, verbose=True, save_plots=False):
         anti_reasons_df = cost_df[cost_df['reason_type'] == 'anti_reasons'].copy()
 
         if len(anti_reasons_df) == 0:
-            print("\n⚠ WARNING: No anti_reasons found in cost data.")
+            print("\n WARNING: No anti_reasons found in cost data.")
         else:
             # Calculate robustness for each anti-reason ICF
             # This finds the maximum cost across all samples for each anti-reason
@@ -126,13 +126,13 @@ def model_analysis(db, verbose=True, save_plots=False):
                 print(f"\n\n{'='*80}")
                 print(f"  ICF-LEVEL ROBUSTNESS ANALYSIS (Anti-Reasons)")
                 print(f"{'='*80}\n")
-                print(f"📋 ICF Summary:")
+                print(f" ICF Summary:")
                 print(f"   • Total anti-reason ICFs: {len(bitmap_robustness)}")
-                print(f"\n📊 Cost Statistics:")
+                print(f"\n Cost Statistics:")
                 print(f"   • Max cost:      {bitmap_robustness['max_cost'].max():.6f}")
                 print(f"   • Mean max cost: {bitmap_robustness['max_cost'].mean():.6f}")
                 print(f"   • Min max cost:  {bitmap_robustness['max_cost'].min():.6f}")
-                print(f"\n🎯 Robustness Statistics:")
+                print(f"\n Robustness Statistics:")
                 print(f"   • Max:  {bitmap_robustness['robustness'].max():.6f}")
                 print(f"   • Mean: {bitmap_robustness['robustness'].mean():.6f}")
                 print(f"   • Min:  {bitmap_robustness['robustness'].min():.6f}")

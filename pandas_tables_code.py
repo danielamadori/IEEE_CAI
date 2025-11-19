@@ -15,9 +15,10 @@ print("SAMPLE ROBUSTNESS ANALYSIS - PANDAS DATAFRAMES")
 print("="*100)
 
 # 1. TABELLA TUTTI I SAMPLES (ordinata per robustness)
-print("\n📊 TABELLA COMPLETA - TUTTI I SAMPLES")
+print("\n TABELLA COMPLETA - TUTTI I SAMPLES")
 all_samples_table = sample_robustness_df.copy()
-all_samples_table['status'] = all_samples_table['prediction_correct'].map({True: '✓', False: '✗', None: '?'})
+status_map = {True: 'Correct', False: 'Incorrect', None: '?'}
+all_samples_table['status'] = all_samples_table['prediction_correct'].map(status_map)
 all_samples_table = all_samples_table[['status', 'sample_id', 'robustness', 'predicted_label', 'actual_label']]
 all_samples_table = all_samples_table.sort_values('robustness', ascending=False).reset_index(drop=True)
 all_samples_table.index += 1  # Start index from 1
@@ -37,7 +38,7 @@ display(styled_all)
 
 # 2. TABELLA SOLO PREDIZIONI CORRETTE
 if len(correct_samples_df) > 0:
-    print(f"\n✓ PREDIZIONI CORRETTE (n={len(correct_samples_df)})")
+    print(f"\n PREDIZIONI CORRETTE (n={len(correct_samples_df)})")
     correct_table = correct_samples_df[['sample_id', 'robustness', 'predicted_label', 'actual_label']].copy()
     correct_table = correct_table.sort_values('robustness', ascending=False).reset_index(drop=True)
     correct_table.index += 1
@@ -53,11 +54,11 @@ if len(correct_samples_df) > 0:
 
     display(styled_correct)
 else:
-    print(f"\n✓ PREDIZIONI CORRETTE (n=0) - Nessun sample trovato")
+    print(f"\n PREDIZIONI CORRETTE (n=0) - Nessun sample trovato")
 
 # 3. TABELLA SOLO PREDIZIONI SBAGLIATE
 if len(incorrect_samples_df) > 0:
-    print(f"\n✗ PREDIZIONI SBAGLIATE (n={len(incorrect_samples_df)})")
+    print(f"\n PREDIZIONI SBAGLIATE (n={len(incorrect_samples_df)})")
     incorrect_table = incorrect_samples_df[['sample_id', 'robustness', 'predicted_label', 'actual_label']].copy()
     incorrect_table = incorrect_table.sort_values('robustness', ascending=False).reset_index(drop=True)
     incorrect_table.index += 1
@@ -73,14 +74,14 @@ if len(incorrect_samples_df) > 0:
 
     display(styled_incorrect)
 else:
-    print(f"\n✗ PREDIZIONI SBAGLIATE (n=0) - Nessun sample trovato")
+    print(f"\n PREDIZIONI SBAGLIATE (n=0) - Nessun sample trovato")
 
 # 4. TABELLA STATISTICHE RIASSUNTIVE
-print("\n📈 STATISTICHE RIASSUNTIVE")
+print("\n STATISTICHE RIASSUNTIVE")
 stats_data = []
 for label, df_subset in [("All Samples", sample_robustness_df),
-                          ("✓ Correct", correct_samples_df),
-                          ("✗ Incorrect", incorrect_samples_df)]:
+                          (" Correct", correct_samples_df),
+                          (" Incorrect", incorrect_samples_df)]:
     if len(df_subset) > 0 and df_subset['robustness'].notna().any():
         stats_data.append({
             'Category': label,
@@ -132,31 +133,31 @@ axes[0].set_ylim([0, 1])
 if len(correct_samples_df) > 0:
     bp2 = axes[1].boxplot(correct_samples_df['robustness'].dropna(), widths=0.6,
                            patch_artist=True, boxprops=dict(facecolor='lightgreen'))
-    axes[1].set_title(f'✓ Correctly Predicted\n(n={len(correct_samples_df)})', fontsize=12, fontweight='bold', color='green')
+    axes[1].set_title(f' Correctly Predicted\n(n={len(correct_samples_df)})', fontsize=12, fontweight='bold', color='green')
     axes[1].set_ylabel('Robustness r(C,x)', fontsize=11)
     axes[1].axhline(y=0.5, color='orange', linestyle='--', alpha=0.5)
     axes[1].grid(True, alpha=0.3)
     axes[1].set_ylim([0, 1])
 else:
     axes[1].text(0.5, 0.5, 'No data', ha='center', va='center')
-    axes[1].set_title('✓ Correctly Predicted\n(n=0)', fontsize=12, fontweight='bold')
+    axes[1].set_title(' Correctly Predicted\n(n=0)', fontsize=12, fontweight='bold')
 
 # Box plot 3: Incorrectly predicted
 if len(incorrect_samples_df) > 0:
     bp3 = axes[2].boxplot(incorrect_samples_df['robustness'].dropna(), widths=0.6,
                            patch_artist=True, boxprops=dict(facecolor='lightcoral'))
-    axes[2].set_title(f'✗ Incorrectly Predicted\n(n={len(incorrect_samples_df)})', fontsize=12, fontweight='bold', color='red')
+    axes[2].set_title(f' Incorrectly Predicted\n(n={len(incorrect_samples_df)})', fontsize=12, fontweight='bold', color='red')
     axes[2].set_ylabel('Robustness r(C,x)', fontsize=11)
     axes[2].axhline(y=0.5, color='orange', linestyle='--', alpha=0.5)
     axes[2].grid(True, alpha=0.3)
     axes[2].set_ylim([0, 1])
 else:
     axes[2].text(0.5, 0.5, 'No data', ha='center', va='center')
-    axes[2].set_title('✗ Incorrectly Predicted\n(n=0)', fontsize=12, fontweight='bold')
+    axes[2].set_title(' Incorrectly Predicted\n(n=0)', fontsize=12, fontweight='bold')
 
 plt.tight_layout()
 plt.savefig('fig/sample_robustness_boxplots.png', dpi=300, bbox_inches='tight')
-print("\n💾 Box plots saved to: fig/sample_robustness_boxplots.png")
+print("\n Box plots saved to: fig/sample_robustness_boxplots.png")
 plt.show()
 
 # 6. HISTOGRAM comparison
@@ -165,14 +166,14 @@ if len(correct_samples_df) > 0 or len(incorrect_samples_df) > 0:
 
     if len(correct_samples_df) > 0:
         ax.hist(correct_samples_df['robustness'], bins=20, alpha=0.7, color='green',
-                label=f'✓ Correct (n={len(correct_samples_df)})', edgecolor='black')
+                label=f' Correct (n={len(correct_samples_df)})', edgecolor='black')
         correct_mean = correct_samples_df['robustness'].mean()
         ax.axvline(correct_mean, color='darkgreen', linestyle='--', linewidth=2,
                    label=f'Mean Correct: {correct_mean:.4f}')
 
     if len(incorrect_samples_df) > 0:
         ax.hist(incorrect_samples_df['robustness'], bins=20, alpha=0.7, color='red',
-                label=f'✗ Incorrect (n={len(incorrect_samples_df)})', edgecolor='black')
+                label=f' Incorrect (n={len(incorrect_samples_df)})', edgecolor='black')
         incorrect_mean = incorrect_samples_df['robustness'].mean()
         ax.axvline(incorrect_mean, color='darkred', linestyle='--', linewidth=2,
                    label=f'Mean Incorrect: {incorrect_mean:.4f}')
@@ -185,6 +186,6 @@ if len(correct_samples_df) > 0 or len(incorrect_samples_df) > 0:
 
     plt.tight_layout()
     plt.savefig('fig/sample_robustness_histogram.png', dpi=300, bbox_inches='tight')
-    print("💾 Histogram saved to: fig/sample_robustness_histogram.png")
+    print(" Histogram saved to: fig/sample_robustness_histogram.png")
     plt.show()
 

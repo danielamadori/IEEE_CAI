@@ -672,7 +672,7 @@ def process_all_classified_samples(connections, dataset_name, class_label, our_f
                 correct_predictions += 1
                 
         except Exception as e:
-            print(f"⚠️  Failed to process sample {idx}: {e}")
+            print(f"  Failed to process sample {idx}: {e}")
             continue
     
     # Store summary information

@@ -414,7 +414,7 @@ def plot_extreme_costs_per_category(cost_df, db, tests_sample, sigmas_all, top_n
 	print(f"{'='*80}\n")
 	for reason_type in reason_types:
 		print(f"\n{'─'*80}")
-		print(f"📊 Category: {reason_type.upper()}")
+		print(f" Category: {reason_type.upper()}")
 		print(f"{'─'*80}")
 		# Filtra per categoria
 		subset = cost_df[cost_df['reason_type'] == reason_type].copy()
@@ -429,7 +429,7 @@ def plot_extreme_costs_per_category(cost_df, db, tests_sample, sigmas_all, top_n
 		n_max = min(top_n, n_available)
 		min_costs = subset_sorted.head(n_min)
 		max_costs = subset_sorted.tail(n_max)
-		print(f"\n🔽 TOP {n_min} MINIMUM COST:")
+		print(f"\n TOP {n_min} MINIMUM COST:")
 		for idx, (_, row) in enumerate(min_costs.iterrows(), 1):
 			sample_id = row['sample_id']
 			bitmap_idx = row['bitmap_index']
@@ -460,7 +460,7 @@ def plot_extreme_costs_per_category(cost_df, db, tests_sample, sigmas_all, top_n
 						)
 					except Exception as e:
 						print(f"        Warning: could not plot {feature_key}: {e}")
-		print(f"\n🔼 TOP {n_max} MAXIMUM COST:")
+		print(f"\n TOP {n_max} MAXIMUM COST:")
 		for idx, (_, row) in enumerate(max_costs.iterrows(), 1):
 			sample_id = row['sample_id']
 			bitmap_idx = row['bitmap_index']
@@ -492,5 +492,5 @@ def plot_extreme_costs_per_category(cost_df, db, tests_sample, sigmas_all, top_n
 					except Exception as e:
 						print(f"        Warning: could not plot {feature_key}: {e}")
 	print(f"\n{'='*80}")
-	print(f"✓ Completed plotting for all categories")
+	print(f" Completed plotting for all categories")
 	print(f"{'='*80}\n")

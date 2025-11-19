@@ -181,12 +181,12 @@ class RawDataCache:
             if num_dbs > 5:
                 db_names += f', ... ({num_dbs} total)'
 
-            print(f"📂 Loaded raw data from cache: {dataset_name}")
+            print(f" Loaded raw data from cache: {dataset_name}")
             print(f"   Databases: {db_names}")
             return data
         except (EOFError, pickle.UnpicklingError) as e:
             # Corrupted cache file - remove it
-            print(f"✗ Corrupted raw cache detected for {dataset_name}: {e}")
+            print(f" Corrupted raw cache detected for {dataset_name}: {e}")
             print(f"   Removing corrupted cache file...")
             try:
                 cache_path.unlink()
@@ -198,7 +198,7 @@ class RawDataCache:
                 pass
             return None
         except Exception as e:
-            print(f"✗ Error loading raw cache for {dataset_name}: {e}")
+            print(f" Error loading raw cache for {dataset_name}: {e}")
             return None
 
     def clear(self, dataset_name: Optional[str] = None):
@@ -224,7 +224,7 @@ class RawDataCache:
             _delete_all("raw_*.pkl.gz")
             self.metadata = {}
             self._save_metadata()
-            print("✓ Cleared all raw data cache")
+            print(" Cleared all raw data cache")
         else:
             # Clear specific cache
             cache_key = self._get_cache_key(dataset_name)
@@ -236,7 +236,7 @@ class RawDataCache:
                 del self.metadata[cache_key]
                 self._save_metadata()
 
-            print(f"✓ Cleared raw data cache for {dataset_name}")
+            print(f" Cleared raw data cache for {dataset_name}")
 
     def list_cached(self) -> Dict[str, Dict[str, Any]]:
         """

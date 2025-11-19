@@ -266,7 +266,7 @@ class ETLCache:
             }
             self._save_metadata()
 
-            print(f"✓ Cached data for {zip_path.name}")
+            print(f" Cached data for {zip_path.name}")
         except Exception as e:
             print(f"Error saving cache for {zip_path.name}: {e}")
         finally:
@@ -341,7 +341,7 @@ class ETLCache:
             _delete_files("*.pkl.gz")
             self.metadata = {}
             self._save_metadata()
-            print("✓ Cleared all cache")
+            print(" Cleared all cache")
         else:
             # Clear specific cache
             cache_key = self._get_cache_key(zip_name)
@@ -353,7 +353,7 @@ class ETLCache:
                 del self.metadata[cache_key]
                 self._save_metadata()
 
-            print(f"✓ Cleared cache for {zip_name}")
+            print(f" Cleared cache for {zip_name}")
 
     def list_cached(self) -> Dict[str, Dict[str, Any]]:
         """
@@ -421,7 +421,7 @@ class ETLCache:
                     legacy_path.unlink()
                 except OSError:
                     pass
-            print(f"✓ Saved costs to cache for {zip_path.name} ({len(cost_df)} entries)")
+            print(f" Saved costs to cache for {zip_path.name} ({len(cost_df)} entries)")
         except Exception as e:
             print(f"Warning: Could not save costs to cache: {e}")
         finally:

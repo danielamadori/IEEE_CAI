@@ -255,7 +255,7 @@ def build_accuracy_vs_robustness_report(
 			)
 	else:
 		report_lines.append("")
-		report_lines.append("⚠️ Robustness data not available; run the robustness computation first.")
+		report_lines.append(" Robustness data not available; run the robustness computation first.")
 
 	rf_metrics = extract_rf_optimization_metrics(db)
 	available_metrics = sorted(rf_metrics.keys())

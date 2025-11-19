@@ -136,7 +136,7 @@ def extract_all_models_accuracy_parallel(zip_paths: list, n_workers=None, verbos
             success_count += 1
 
     if verbose:
-        print(f"\n✓ Extraction complete:")
+        print(f"\n Extraction complete:")
         print(f"  - Success: {success_count}/{len(zip_paths)}")
         print(f"  - Errors: {error_count}/{len(zip_paths)}, datasets errors {error_datasets}")
         print(f"{'='*80}\n")
