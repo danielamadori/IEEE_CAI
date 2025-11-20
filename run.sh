@@ -46,6 +46,7 @@ case "$CMD" in
         docker run -d \
             --name "$CONTAINER_NAME" \
             -p 6379:6379 \
+            -p 8888:8888 \
             -v "$(pwd)/logs:/app/logs" \
             -v "$(pwd)/workers:/app/workers" \
             -v "$(pwd)/results:/app/results" \
@@ -59,6 +60,7 @@ case "$CMD" in
         echo ""
         echo "Container: $CONTAINER_NAME"
         echo "Redis:     localhost:6379"
+        echo "Jupyter:   http://localhost:8888"
         echo ""
         echo "Commands:"
         echo "  ./run.sh stop      Stop container"

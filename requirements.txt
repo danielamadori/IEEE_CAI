@@ -5,6 +5,11 @@ scipy>=1.7.0
 matplotlib>=3.3.0
 plotly>=5.0.0
 nbformat>=4.2.0
+
+# Jupyter
+jupyter>=1.0.0
+jupyterlab>=3.0.0
+
 # Machine learning
 scikit-learn>=1.0.0
 aeon>=0.5.0

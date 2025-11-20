@@ -69,6 +69,7 @@ echo [4/4] Starting container %CONTAINER_NAME%...
 docker run -d ^
     --name %CONTAINER_NAME% ^
     -p 6379:6379 ^
+    -p 8888:8888 ^
     -v "%cd%\logs:/app/logs" ^
     -v "%cd%\workers:/app/workers" ^
     -v "%cd%\results:/app/results" ^
@@ -88,6 +89,7 @@ echo ==========================================
 echo.
 echo Container: %CONTAINER_NAME%
 echo Redis:     localhost:6379
+echo Jupyter:   http://localhost:8888
 echo.
 echo Commands:
 echo   run.bat stop      Stop container
