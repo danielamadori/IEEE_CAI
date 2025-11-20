@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     redis-server \
     supervisor \
+    plotly_get_chrome \
     && rm -rf /var/lib/apt/lists/*
 
 # Copia e installa dipendenze Python
@@ -24,8 +25,9 @@ COPY . .
 # Crea le directory necessarie
 RUN mkdir -p logs workers fig results /var/log/supervisor
 
-# Copia configurazione supervisor
+# Copia configurazione supervisor e redis
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY docker/redis.conf /app/docker/redis.conf
 
 # Espone porte
 EXPOSE 6379
