@@ -88,7 +88,7 @@ echo   Container started successfully!
 echo ==========================================
 echo.
 echo Container: %CONTAINER_NAME%
-echo Redis:     localhost:6379
+echo Redis:     http://localhost:6379
 echo Jupyter:   http://localhost:8888
 echo.
 echo Commands:

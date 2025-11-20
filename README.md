@@ -53,7 +53,7 @@ chmod +x run.sh  # First time only
 ./run.sh
 ```
 
-This will build the Docker image and start a container with Redis on `localhost:6379`.
+This will build the Docker image and start a container with Redis on `localhost:6379` and run the code within jupyter on `localhost:8888`.
 
 **Available Commands:**
 
