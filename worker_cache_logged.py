@@ -196,7 +196,7 @@ def main():
         """Check PR and select a candidate if available"""
         pr_result = get_pr_candidate(connections['PR'])
         if pr_result is None:
-            return None
+            return None, None, None
         
         # Handle both old and new format
         if len(pr_result) == 3:
@@ -483,22 +483,27 @@ def main():
                     for ext_bitmap in extension_bitmaps:
                         # Calculate ICF for extension
                         icf = bitmap_to_icf(ext_bitmap, eu_data)
-                        sample_data = json.loads(connections['DATA'].get(pr_metadata["sample_key"]))
-                        print(">>>>>>>>>>>>>>>>> Sample Data:", sample_data)
-                        cost = cost_function(
-                            sample=sample_data['sample_dict'],
-                            icf=icf, sigmas=sample_data["sigmas"]
-                        )
-                        # Store ICF bitmap in R with metadata
-                        icf_metadata = {
-                            'sample_key': pr_metadata["sample_key"],
-                            'dataset_name': sample_data['dataset_name'],
-                            'class_label': sample_data['actual_label'],
-                            'test_index': sample_data['test_index'],
-                            'prediction_correct': sample_data['prediction_correct'],
-                            'timestamp': current_time,
-                            'cost': cost
-                        }
+                        if pr_metadata:
+                            sample_data = json.loads(connections['DATA'].get(pr_metadata["sample_key"]))
+                            print(">>>>>>>>>>>>>>>>> Sample Data:", sample_data)
+                            cost = cost_function(
+                                sample=sample_data['sample_dict'],
+                                icf=icf, sigmas=sample_data["sigmas"]
+                            )
+                            # Store ICF bitmap in R with metadata
+                            icf_metadata = {
+                                'sample_key': pr_metadata["sample_key"],
+                                'dataset_name': sample_data['dataset_name'],
+                                'class_label': sample_data['actual_label'],
+                                'test_index': sample_data['test_index'],
+                                'prediction_correct': sample_data['prediction_correct'],
+                                'timestamp': current_time,
+                                'cost': cost
+                            }
+                        else:
+                            icf_metadata = {
+                                'timestamp': current_time
+                            }
                         connections['CAN'].set(ext_bitmap, json.dumps(icf_metadata))
                     random.shuffle(extension_bitmaps)
                     queue.extend(extension_bitmaps)
