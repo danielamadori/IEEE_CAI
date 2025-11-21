@@ -13,9 +13,11 @@ Key features:
 - Integration of rcheck and ar_check systems
 """
 
+import json
 import redis
 import time
 import datetime
+from cost_function import cost_function
 from redis_helpers.forest import retrieve_forest
 from redis_helpers.endpoints import retrieve_monotonic_dict
 from redis_helpers.icf import random_key_from_can, bitmap_to_icf, delete_from_can, cache_dominated_icf, cache_dominated_bitmap
@@ -203,7 +205,19 @@ def main():
                 print("PR: No candidates in PR database")
             return None
         
-        pr_key, pr_timestamps = pr_result
+        # Handle both old and new format
+        if len(pr_result) == 3:
+            # New format with metadata
+            pr_key, pr_timestamps, pr_metadata = pr_result
+            if VERBOSE_ITERATION:
+                print(f"PR: Selected key with metadata: {pr_metadata.get('dataset_name', 'unknown')}")
+                print(f"PR: Sample key: {pr_metadata.get('sample_key', 'unknown')}")
+                print(f"PR: Cost: {pr_metadata.get('cost', 'unknown')}")
+        else:
+            # Old format (backward compatibility)
+            pr_key, pr_timestamps = pr_result
+            pr_metadata = {}
+            
         total_info['pr_selected'] += 1
         
         if VERBOSE_ITERATION:
@@ -579,9 +593,26 @@ def main():
                         queue.append(pr_candidate)
                 else:
                     # Add extensions to CAN and queue
-                    current_time = datetime.datetime.now().isoformat()
+                    current_time = datetime.datetime.now().isoformat()                    
                     for ext_bitmap in extension_bitmaps:
-                        connections['CAN'].set(ext_bitmap, current_time)
+                        icf = bitmap_to_icf(ext_bitmap, eu_data)
+                        sample_data = json.loads(connections['DATA'].get(icf['sample_key'] + "_meta"))
+                        print(">>>>>>>>>>>>>>>>> Sample Data:", sample_data)
+                        cost = cost_function(
+                            sample=sample_data['sample_dict'],
+                            icf=icf, sigmas=sample_data["sigmas"]
+                        )
+                        # Store ICF bitmap in R with metadata
+                        icf_metadata = {
+                            'sample_key': icf['sample_key'],
+                            'dataset_name': sample_data['dataset_name'],
+                            'class_label': sample_data['actual_label'],
+                            'test_index': sample_data['test_index'],
+                            'prediction_correct': sample_data['prediction_correct'],
+                            'timestamp': current_time,
+                            'cost': cost
+                        }
+                        connections['CAN'].set(ext_bitmap, json.dumps(icf_metadata))
 
                     if VERBOSE_ITERATION:
                         print(f"CAN: Added {len(extension_bitmaps)} extensions to CAN and queue")

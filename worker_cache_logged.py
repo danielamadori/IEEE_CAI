@@ -197,8 +197,17 @@ def main():
         pr_result = get_pr_candidate(connections['PR'])
         if pr_result is None:
             return None
-        pr_key, pr_timestamps = pr_result
-        return pr_key
+        
+        # Handle both old and new format
+        if len(pr_result) == 3:
+            # New format with metadata
+            pr_key, pr_timestamps, pr_metadata = pr_result
+        else:
+            # Old format (backward compatibility)
+            pr_key, pr_timestamps = pr_result
+            pr_metadata = {}
+            
+        return pr_key, pr_timestamps, pr_metadata
     
     def check_and_select_car():
         """Check CAR and select a candidate AR if available"""
@@ -207,7 +216,7 @@ def main():
 
     try:
         # Initialize queue
-        pr_candidate = check_and_select_pr()
+        pr_candidate, _, pr_metadata = check_and_select_pr()
         if pr_candidate:
             queue = [pr_candidate]
         else:
@@ -231,7 +240,7 @@ def main():
             # Refill CAN queue if empty
             if len(queue) == 0:
                 # Try PR first
-                pr_candidate = check_and_select_pr()
+                pr_candidate, _, pr_metadata = check_and_select_pr()
                 if pr_candidate:
                     queue = [pr_candidate]
                 else:
@@ -466,7 +475,7 @@ def main():
                     if pr_check:
                         remove_from_pr(connections['PR'], current_bitmap)
                         iteration_log['outcomes']['pr_removed_all_filtered'] = True
-                    pr_candidate = check_and_select_pr()
+                    pr_candidate, _, pr_metadata = check_and_select_pr()
                     if pr_candidate:
                         queue.append(pr_candidate)
                 else:
@@ -474,7 +483,7 @@ def main():
                     for ext_bitmap in extension_bitmaps:
                         # Calculate ICF for extension
                         icf = bitmap_to_icf(ext_bitmap, eu_data)
-                        sample_data = json.loads(connections['DATA'].get(icf['sample_key'] + "_meta"))
+                        sample_data = json.loads(connections['DATA'].get(pr_metadata["sample_key"]))
                         print(">>>>>>>>>>>>>>>>> Sample Data:", sample_data)
                         cost = cost_function(
                             sample=sample_data['sample_dict'],
@@ -482,11 +491,11 @@ def main():
                         )
                         # Store ICF bitmap in R with metadata
                         icf_metadata = {
-                            # 'sample_key': icf['sample_key'],
-                            # 'dataset_name': sample_data['dataset_name'],
-                            # 'class_label': sample_data['actual_label'],
-                            # 'test_index': sample_data['test_index'],
-                            # 'prediction_correct': sample_data['prediction_correct'],
+                            'sample_key': pr_metadata["sample_key"],
+                            'dataset_name': sample_data['dataset_name'],
+                            'class_label': sample_data['actual_label'],
+                            'test_index': sample_data['test_index'],
+                            'prediction_correct': sample_data['prediction_correct'],
                             'timestamp': current_time,
                             'cost': cost
                         }
@@ -512,7 +521,7 @@ def main():
                     add_timestamp_to_pr(connections['PR'], current_bitmap, current_timestamp)
                     iteration_log['outcomes']['pr_timestamp_added'] = True
                 
-                pr_candidate = check_and_select_pr()
+                pr_candidate, _, pr_metadata = check_and_select_pr()
                 if pr_candidate:
                     queue.append(pr_candidate)
                 

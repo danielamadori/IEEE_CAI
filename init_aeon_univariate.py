@@ -701,7 +701,7 @@ def process_all_classified_samples(connections, dataset_name, class_label, our_f
     return stored_samples, summary
 
 
-def initialize_seed_candidate(connections, sample_dict, our_forest, eu_data):
+def initialize_seed_candidate(connections, sample_dict, our_forest, eu_data, dataset_name, class_label):
     """Generate initial ICF bitmap and store in CAN and PR"""
     print("Generating initial ICF and storing in CAN and PR...")
 
@@ -722,10 +722,11 @@ def initialize_seed_candidate(connections, sample_dict, our_forest, eu_data):
         icf=forest_icf, sigmas=sample_dict["sigmas"]
     )
     # Store ICF bitmap in R with metadata
+    sample_key = f'sample_{dataset_name}_{class_label}_{sample_dict["test_index"]}_meta'
     icf_metadata = {
-        # 'sample_key': sample_key,
-        # 'dataset_name': dataset_name,
-        # 'class_label': class_label,
+        'sample_key': sample_key,
+        'dataset_name': dataset_name,
+        'class_label': class_label,
         'test_index': sample_dict['test_index'],
         'prediction_correct': sample_dict['prediction_correct'],        
         'timestamp': current_timestamp,
@@ -988,7 +989,7 @@ Examples:
             sample_key = sample['sample_key']
             sample_dict = json.loads(connections['DATA'].get(sample_key + "_meta"))
             seed_bitmap, seed_icf = initialize_seed_candidate(
-                connections, sample_dict, our_forest, eu_data
+                connections, sample_dict, our_forest, eu_data, args.dataset_name, args.class_label
             )
         
         # Store the target label for worker compatibility

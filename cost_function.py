@@ -80,7 +80,7 @@ def cal_sigmas(X_train, X_test, feature_names, test_ids=None):
 
 	return sigmas_all
 
-def cost_function(sample: Dict[str, float] = None,  icf: Dict[str, Tuple[float, float]] = None, sigmas: Dict[str, Dict[str, dict]] = None, calculate_missing_features_in_icf: bool = False, verbose: bool = False) -> float:
+def cost_function(sample: Dict[str, float] = None,  icf: Dict[str, Tuple[float, float]] = None, sigmas: Dict[str, Dict[str, dict]] = None, calculate_missing_features_in_icf: bool = False, verbose: bool = False, plot: bool = False) -> float:
 	"""
 	Calculate cost function based on split Gaussian distributions.
 
@@ -201,7 +201,7 @@ def cost_function(sample: Dict[str, float] = None,  icf: Dict[str, Tuple[float, 
 		cost += area
 		if calculate_missing_features_in_icf:
 			cost += (len(list(sample.keys()))-len(list(icf.keys())) )
-		if verbose:
+		if plot:
 			print(f"  Area under curve in interval: {area:.4f}, Cost total: {cost:.4f}")
 
 			# Plot the curve and highlight the interval (now one plot per feature when verbose)

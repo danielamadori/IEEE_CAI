@@ -7,7 +7,7 @@ import datetime
 from typing import Optional, Set, List, Tuple
 
 
-def get_pr_candidate(pr_connection: redis.Redis, scan_count: int = 100) -> Optional[Tuple[str, Set[str]]]:
+def get_pr_candidate(pr_connection: redis.Redis, scan_count: int = 100) -> Optional[Tuple[str, Set[str], dict]]:
     """
     Get the best candidate from PR database based on selection criteria:
     1. Minimum number of timestamps in set
@@ -20,7 +20,8 @@ def get_pr_candidate(pr_connection: redis.Redis, scan_count: int = 100) -> Optio
         scan_count: Number of keys to fetch per SCAN iteration
         
     Returns:
-        Tuple of (key, set of timestamps) or None if PR is empty
+        Tuple of (key, set of timestamps, metadata dict) or None if PR is empty
+        metadata contains: sample_key, dataset_name, class_label, test_index, prediction_correct, cost, timestamp
     """
     try:
         # Build list of (key, timestamps_set, max_timestamp) using SCAN
@@ -33,15 +34,25 @@ def get_pr_candidate(pr_connection: redis.Redis, scan_count: int = 100) -> Optio
             for key in keys:
                 value = pr_connection.get(key)
                 if value:
-                    timestamps = json.loads(value)
-                    if isinstance(timestamps, list):
-                        timestamps_set = set(timestamps)
+                    metadata = json.loads(value)
+                    print("Metadata for PR key", key, ":", metadata)
+                    print('-------------------------------------------------------')
+                    if isinstance(metadata, dict) and 'timestamp' in metadata:
+                        timestamps = metadata['timestamp']
+                        if isinstance(timestamps, list):
+                            timestamps_set = set(timestamps)
+                        else:
+                            timestamps_set = set([timestamps]) if timestamps else set()
                     else:
-                        timestamps_set = set([timestamps]) if timestamps else set()
+                        # Fallback for old format
+                        print("Fallback for old format detected in PR key:", key)
+                        print('-------------------------------------------------------')
+                        timestamps = metadata if isinstance(metadata, (list, str)) else []
+                        timestamps_set = set(timestamps) if isinstance(timestamps, list) else set([timestamps]) if timestamps else set()
                     
                     if len(timestamps_set) > 0:
                         max_timestamp = max(timestamps_set)
-                        candidates.append((key, timestamps_set, len(timestamps_set), max_timestamp))
+                        candidates.append((key, timestamps_set, len(timestamps_set), max_timestamp, metadata))
             
             if cursor == 0:
                 # Completed full scan
@@ -54,8 +65,8 @@ def get_pr_candidate(pr_connection: redis.Redis, scan_count: int = 100) -> Optio
         candidates.sort(key=lambda x: (x[2], x[3]))
         
         # Return the best candidate
-        best_key, best_timestamps, _, _ = candidates[0]
-        return (best_key, best_timestamps)
+        best_key, best_timestamps, best_metadata = candidates[0]
+        return (best_key, best_timestamps, best_metadata)
         
     except Exception as e:
         print(f"Error getting PR candidate: {e}")
@@ -64,12 +75,13 @@ def get_pr_candidate(pr_connection: redis.Redis, scan_count: int = 100) -> Optio
 
 def add_timestamp_to_pr(pr_connection: redis.Redis, key: str, timestamp: str, icf_metadata: dict = {}) -> bool:
     """
-    Add a timestamp to a PR key's set of timestamps.
+    Add a timestamp to a PR key's set of timestamps and update metadata.
     
     Args:
         pr_connection: Redis connection to PR database
         key: The bitmap key
         timestamp: ISO format timestamp string
+        icf_metadata: Dict containing sample_key, dataset_name, class_label, test_index, prediction_correct, cost
         
     Returns:
         bool: True if successful
@@ -77,16 +89,30 @@ def add_timestamp_to_pr(pr_connection: redis.Redis, key: str, timestamp: str, ic
     try:
         value = pr_connection.get(key)
         if value:
-            timestamps = json.loads(value)
-            if isinstance(timestamps, list):
-                timestamps_set = set(timestamps)
+            metadata = json.loads(value)
+            if isinstance(metadata, dict) and 'timestamp' in metadata:
+                timestamps = metadata['timestamp']
+                print('add_timestamp_to_pr')
+                print("Metadata for PR key", key, ":", metadata)
+                print('-------------------------------------------------------')
+                if isinstance(timestamps, list):
+                    timestamps_set = set(timestamps)
+                else:
+                    timestamps_set = set([timestamps]) if timestamps else set()
+                # Preserve existing metadata
+                icf_metadata = {**metadata, **icf_metadata}
             else:
-                timestamps_set = set([timestamps]) if timestamps else set()
+                # Fallback for old format
+                print('add_timestamp_to_pr')
+                print("Fallback for old format for PR key", key)
+                print('-------------------------------------------------------')
+                timestamps = metadata if isinstance(metadata, (list, str)) else []
+                timestamps_set = set(timestamps) if isinstance(timestamps, list) else set([timestamps]) if timestamps else set()
         else:
             timestamps_set = set()
         
         timestamps_set.add(timestamp)
-        icf_metadata['timestamp'] = (list(timestamps_set))
+        icf_metadata['timestamp'] = list(timestamps_set)
         pr_connection.set(key, json.dumps(icf_metadata))
         return True
         
@@ -116,20 +142,25 @@ def remove_from_pr(pr_connection: redis.Redis, key: str) -> bool:
 
 def insert_to_pr(pr_connection: redis.Redis, key: str, timestamp: Optional[str] = None, icf_metadata: dict = None) -> bool:
     """
-    Insert a new key into PR database with initial timestamp.
+    Insert a new key into PR database with initial timestamp and metadata.
     
     Args:
         pr_connection: Redis connection to PR database
         key: The bitmap key
         timestamp: ISO format timestamp (default: current time)
+        icf_metadata: Dict containing sample_key, dataset_name, class_label, test_index, prediction_correct, cost
         
     Returns:
         bool: True if successful
     """
     try:
+        if icf_metadata is None:
+            icf_metadata = {}
+            
         if timestamp is None:
             timestamp = datetime.datetime.now().isoformat()
-            icf_metadata['timestamp'] = timestamp 
+            
+        icf_metadata['timestamp'] = timestamp if isinstance(timestamp, list) else [timestamp]
         
         pr_connection.set(key, json.dumps(icf_metadata))
         return True
