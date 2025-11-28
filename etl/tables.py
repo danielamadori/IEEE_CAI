@@ -44,7 +44,7 @@ except Exception as exc:
 	DISPLAY_CATEGORIES = []
 	DISPLAY_NAMES = {}
 	DISPLAY_LABELS = {}
-	print(f"Impossibile importare etl.drifts_results: {exc}")
+	print(f"Unable to import etl.drifts_results: {exc}")
 
 CACHE_REFRESH_ENV = 'FORCE_RESULTS_REFRESH'
 SUMMARY_FILENAME = 'redis_reason_counts.csv'
@@ -64,7 +64,6 @@ RESULT_COUNT_COLUMNS = [
 	'Early Stop from Good',
 	'Early Stop from Bad',
 	'Filtrered rate',
-	'selected_sample',
 ]
 WORKER_CAN_COLUMN_MAP = {
 	'total_time_max': 'Total time (s) max',
@@ -80,8 +79,6 @@ WORKER_CAN_COLUMN_MAP = {
 }
 SUMMARY_INT_COLUMNS = ['train_size', 'test_size', 'series_length', 'n_estimators']
 COUNTS_INT_COLUMNS = ['ICF checks', 'Reason check iteration total', 'Early Stop Good total', 'Early Stop from Good', 'Early Stop from Bad']
-COUNTS_FLOAT_COLUMNS = ['Total time (s) max', 'Total time (s) mean', 'IterGoodRatio', 'IterBadRatio', 'Filtrered rate']
-COUNTS_INT_COLUMNS = ['ICF checks', 'Reason check iteration total', 'Early Stop Good total', 'Early Stop from Good', 'Early Stop from Bad', 'selected_sample']
 COUNTS_FLOAT_COLUMNS = ['Total time (s) max', 'Total time (s) mean', 'IterGoodRatio', 'IterBadRatio', 'Filtrered rate']
 COMBINED_INT_ROWS = [
 	'Train Size',

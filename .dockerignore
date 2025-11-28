@@ -42,13 +42,6 @@ logs/*.log
 # Workers runtime data
 workers/*.json
 
-# Results (keep structure but not data)
-results/*.zip
-results/*.csv
-results/_cache/*
-
-# Jupyter notebooks
-.ipynb_checkpoints/
 
 # Redis dumps
 dump.rdb

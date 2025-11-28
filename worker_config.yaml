@@ -1,112 +1,43 @@
-# worker_config.yaml - Configuration for multi-device worker deployment
-# Top-level Redis config (default for all profiles unless overridden)
+# worker_config.yaml - Simple Configuration (No Profiles)
+#
+# This is a profile-free configuration with only default settings.
+# No dev/prod profiles - just one simple configuration that works.
+#
+# To use: python launch_workers.py start
+
+# Redis configuration (applies to all workers)
 redis:
   host: localhost
   port: 6379
 
-# Empty workers dict (profiles will define their workers)
-workers: {}
+# Worker configuration - single default setup
+workers:
+  default_worker:
+    count: 4                        # Number of worker instances to start
+    script: worker_cache_logged.py  # Worker script to run
+    args: []                        # Additional arguments (empty by default)
 
 # Logging configuration
 logging:
-  cleanup_days: 7
-  directory: logs
+  cleanup_days: 7   # Auto-cleanup logs older than 7 days
+  directory: logs   # Directory for log files
 
-# Profiles for different deployment scenarios
-profiles:
-  # Local development profile
-  development:
-    redis:                    # Inherits from top-level if not specified
-      host: localhost
-      port: 6379
-    workers:
-      default_worker:
-        count: 4
-        script: worker_cache_logged.py
-        args: []
-
-  # Local production profile
-  production:
-    redis:
-      host: localhost
-      port: 6379
-    workers:
-      default_worker:
-        count: 4
-        script: worker_cache_logged.py
-        args: []
-
-  # Default single worker profile
-  default:
-    redis:
-      host: localhost
-      port: 6379
-    workers:
-      default_worker:
-        count: 1
-        script: worker_cache.py
-        args: []
-
-  # # Example: First remote host
-  # host1:
-  #   redis:
-  #     host: 10.0.0.10        # Remote Redis server IP
-  #     port: 6379
-  #   workers:
-  #     workers_host1:
-  #       count: 16              # Check with: nproc (Linux) / sysctl -n hw.ncpu (macOS)
-  #       script: worker_cache_logged.py
-  #       args: []
-
-  # # Example: Second remote host
-  # host2:
-  #   redis:
-  #     host: 10.0.0.10        # Remote Redis server IP
-  #     port: 6379
-  #   workers:
-  #     workers_host2:
-  #       count: 12
-  #       script: worker_cache_logged.py
-  #       args: []
-
-  # # Example: Third remote host
-  # host3:
-  #   redis:
-  #     host: 10.0.0.10        # Remote Redis server IP
-  #     port: 6379
-  #   workers:
-  #     workers_host3:
-  #       count: 8
-  #       script: worker_cache_logged.py
-  #       args: []
-
-  # # Example: Fourth remote host
-  # host4:
-  #   redis:
-  #     host: 10.0.0.10        # Remote Redis server IP
-  #     port: 6379
-  #   workers:
-  #     workers_host4:
-  #       count: 4
-  #       script: worker_cache_logged.py
-  #       args: []
-
-# Usage examples:
+# ============================================================================
+# Usage Examples
+# ============================================================================
 #
-# Start with default profile:
-#   python enhanced_launch_workers.py start
-#
-# Start with specific profile:
-#   python enhanced_launch_workers.py start --profile development
-#   python enhanced_launch_workers.py start --profile production
-#
-# Start on remote hosts (uncomment profile first):
-#   python enhanced_launch_workers.py start --profile host1
-#   python enhanced_launch_workers.py start --profile host2
-#   python enhanced_launch_workers.py start --profile host3
+# Start workers with this config:
+#   python launch_workers.py start
 #
 # Check worker status:
-#   python enhanced_launch_workers.py status
+#   python launch_workers.py status
 #
 # Stop all workers:
-#   python enhanced_launch_workers.py stop
+#   python launch_workers.py stop
+#
+# View logs:
+#   python launch_workers.py logs
+#
+# Clean restart (stop, clean, start):
+#   python launch_workers.py clean-restart
+

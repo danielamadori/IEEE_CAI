@@ -31,7 +31,6 @@ into Redis-backed caches.
 
 ## Installation
 
-
 ### Option 1: Docker (Recommended)
 
 Docker provides an isolated environment with Redis pre-configured.
@@ -45,15 +44,14 @@ Docker provides an isolated environment with Redis pre-configured.
 **Quick Start:**
 
 ```bash
-# Windows
-run.bat
+run.bat # Windows
 
 # Linux/macOS
 chmod +x run.sh  # First time only
 ./run.sh
 ```
 
-This will build the Docker image and start a container with Redis on `localhost:6379` and run the code within jupyter on `localhost:8888`.
+This will build the Docker image and start a container with Redis on `localhost:6379` and run the code within Jupyter on `localhost:8888`
 
 **Available Commands:**
 
@@ -70,12 +68,12 @@ This will build the Docker image and start a container with Redis on `localhost:
 
 ```bash
 # Open shell in container
-run.bat shell  # Windows
+./run.bat shell  # Windows
 ./run.sh shell # Linux/macOS
 
 # Inside the container, run any script:
 python init_aeon_univariate.py Coffee --class-label 0 --optimize
-python enhanced_launch_workers.py start --profile development
+python launch_workers.py start
 ```
 
 The following directories are automatically mounted and accessible from your host:
@@ -88,6 +86,7 @@ The following directories are automatically mounted and accessible from your hos
 ### Option 2: Local Installation
 
 **Prerequisites**
+
 - Python 3.12+
 - Redis Server
 - Virtual environment (recommended)
@@ -154,14 +153,8 @@ python3 init_aeon_univariate.py Coffee --class-label "0" --optimize
 ### Step 2: Start the Worker Algorithm
 
 ```bash
-# Launch workers to process the initialized dataset (default: 1 worker)
-python3 enhanced_launch_workers.py start
-
-# Or use development profile (4 workers with logging)
-python3 enhanced_launch_workers.py start --profile development
-
-# Or use production profile (4 workers with logging)
-python3 enhanced_launch_workers.py start --profile production
+# Launch workers to process the initialized dataset (default: 4 workers via worker_cache_logged.py)
+python3 launch_workers.py start
 ```
 
 Edit the file `worker_config.yaml` to customize worker settings, e.g., increase the number of workers.
@@ -169,26 +162,22 @@ Edit the file `worker_config.yaml` to customize worker settings, e.g., increase 
 **Key parameters:**
 
 - `start` — Start workers using configuration
-- `--profile {default|development|production}` — Use predefined worker profiles
-  - `default`: 1 worker with `worker_cache.py`
-  - `development`: 4 workers with `worker_cache_logged.py`
-  - `production`: 4 workers with `worker_cache_logged.py`
 - `--config FILE` — Use custom YAML configuration file
 
 **Worker Management:**
 
 ```bash
 # Check worker status
-python3 enhanced_launch_workers.py status
+python3 launch_workers.py status
 
 # View logs for a specific worker
-python3 enhanced_launch_workers.py logs 1
+python3 launch_workers.py logs 1
 
 # Stop all workers
-python3 enhanced_launch_workers.py stop
+python3 launch_workers.py stop
 
 # Clean restart (stop + clean + start fresh)
-python3 enhanced_launch_workers.py clean-restart
+python3 launch_workers.py clean-restart
 ```
 
 **Expected output:**
@@ -207,7 +196,7 @@ redis-cli -n 1 DBSIZE  # CAN database (candidates)
 redis-cli -n 5 DBSIZE  # Anti-reasons
 
 # Or use the status command
-python3 enhanced_launch_workers.py status
+python3 launch_workers.py status
 ```
 
 ### Step 3: Analyze Results in Jupyter Notebook
@@ -217,43 +206,46 @@ python3 enhanced_launch_workers.py status
 jupyter notebook models_analysis.ipynb
 jupyter notebook reasons_analysis.ipynb
 ```
+
 1. **`reasons_analysis.ipynb`**: Main analysis notebook
+
    - Robustness calculations
    - Statistical summaries
-
 2. **`models_analysis.ipynb`**: Model  analysis
+
    - Dataset complexity ranking
 
-
 ### Experimental Results
-Experimental results of the distributed algorithm  DRIFTS for computing continuous anti-reasons across 25 time series datasets from the UCR Archive (2019).  
+
+Experimental results of the distributed algorithm  DRIFTS for computing continuous anti-reasons across 25 time series datasets from the UCR Archive (2019).
 It reports dataset characteristics, endpoint universe stats (mean/std of features in EU_RF), computational metrics, early stopping effectiveness, and pruning efficiency.
 
-| **Dataset** | Train<br>Size | Test<br>Size | Series<br>Length | N<br>Estimators | Test<br>Accuracy | CV<br>Score | ICF<br>Checks | Anti-Reason<br>Check<br>Iter. | N<br>Features | EU<br>Complexity | EU<br>Min | EU<br>Max | Mean EU<br>(± Std) | Robustness<br>(± Std) | Robust.<br>Min | Robust.<br>Max | Cand.<br>Anti-Reason | Anti<br>Reason | Total<br>Time (ms) |
-|--------------|---------------|--------------|------------------|-----------------|------------------|--------------|----------------|-------------------------------|----------------|------------------|------------|------------|----------------------|----------------------|----------------|----------------|----------------------|----------------|--------------------|
-| Wine | 57 | 54 | 234 | 10 | 0.759 | 0.705 | 2164 | 235916 | 86 | 297 | 3 | 6 | 3.453 (±0.710) | 0.707 (±0.015) | 0.671 | 0.725 | 49057 | 55 | 580118 |
-| MiddlePhalanx<br>OutlineCorrect | 600 | 291 | 80 | 10 | 0.821 | 0.777 | 976 | 228277 | 80 | 1440 | 7 | 39 | 18.000 (±5.725) | 0.792 (±0.039) | 0.652 | 0.881 | 71352 | 39 | 1469590 |
-| SonyAIBO<br>RobotSurface1 | 20 | 601 | 70 | 17 | 0.577 | 0.800 | 32738 | 37299 | 32 | 106 | 3 | 5 | 3.312 (±0.583) | 0.705 (±0.006) | 0.687 | 0.719 | 303484 | 12237 | 93066 |
-| Beetle<br>Fly | 20 | 20 | 512 | 26 | 0.850 | 0.700 | 24975 | 124132 | 42 | 129 | 3 | 4 | 3.071 (±0.258) | 0.820 (±0.012) | 0.796 | 0.850 | 460178 | 2066 | 4947272 |
-| TwoLead<br>ECG | 23 | 1139 | 82 | 54 | 0.775 | 0.820 | 56944 | 20677 | 33 | 116 | 3 | 6 | 3.515 (±0.925) | 0.709 (±0.002) | 0.702 | 0.717 | 484385 | 22215 | 33251 |
-| Lightning<br>2 | 60 | 61 | 637 | 65 | 0.738 | 0.883 | 2042 | 144482 | 88 | 273 | 3 | 5 | 3.102 (±0.370) | 0.709 (±0.002) | 0.447 | 0.555 | 315023 | 49 | 1482647 |
-| Face<br>Four | 24 | 88 | 350 | 84 | 0.739 | 0.880 | 1700 | 2901 | 63 | 197 | 3 | 5 | 3.127 (±0.418) | 0.622 (±0.027) | 0.539 | 0.646 | 144617 | 36 | 15835 |
-| ToeSegmentation<br>2 | 36 | 130 | 343 | 98 | 0.731 | 0.804 | 4013 | 1002539 | 80 | 251 | 3 | 5 | 3.138 (±0.379) | 0.717 (±0.006) | 0.702 | 0.730 | 96095 | 412 | 2710865 |
-| ECG<br>200 | 100 | 100 | 96 | 101 | 0.810 | 0.880 | 3507 | 13825002 | 72 | 291 | 3 | 7 | 4.042 (±1.148) | 0.509 (±0.033) | 0.393 | 0.551 | 105182 | 36 | 45937485 |
-| ItalyPower<br>Demand | 67 | 1029 | 24 | 169 | 0.959 | 0.986 | 98010 | 12849 | 24 | 132 | 3 | 11 | 5.500 (±2.082) | 0.432 (±0.006) | 0.413 | 0.444 | 0 | 4942 | 4850 |
-| Meat | 60 | 60 | 448 | 193 | 0.933 | 1.000 | 3142 | 7017067 | 39 | 120 | 3 | 4 | 3.077 (±0.266) | 0.760 (±0.004) | 0.753 | 0.768 | 118759 | 36 | 30077438 |
-| SonyAIBO<br>RobotSurface2 | 27 | 953 | 65 | 217 | 0.794 | 0.893 | 2051 | 2054688 | 33 | 110 | 3 | 5 | 3.333 (±0.532) | 0.528 (±0.036) | 0.384 | 0.600 | 78248 | 33 | 4952624 |
-| Coffee | 28 | 28 | 286 | 233 | 1.000 | 1.000 | 5382 | 6255421 | 27 | 84 | 3 | 4 | 3.111 (±0.314) | 0.758 (±0.030) | 0.688 | 0.794 | 124507 | 98 | 26156013 |
-| Bird<br>Chicken | 20 | 20 | 512 | 233 | 0.500 | 0.850 | 8494 | 249253 | 42 | 127 | 3 | 4 | 3.024 (±0.152) | 0.836 (±0.014) | 0.800 | 0.844 | 370182 | 1353 | 4285450 |
-| Gun<br>Point | 50 | 150 | 150 | 233 | 0.880 | 0.960 | 15932 | 9676 | 58 | 190 | 3 | 5 | 3.276 (±0.484) | 0.854 (±0.002) | 0.850 | 0.859 | 147517 | 6083 | 6119 |
-| CinC<br>ECGTorso | 40 | 1380 | 1639 | 245 | 0.714 | 0.725 | 1128 | 2032222 | 118 | 366 | 3 | 5 | 3.102 (±0.354) | 0.823 (±0.002) | 0.817 | 0.829 | 86683 | 73 | 8650001 |
-| Mote<br>Strain | 20 | 1252 | 84 | 300 | 0.884 | 0.850 | 3218 | 657010 | 38 | 124 | 3 | 6 | 3.263 (±0.714) | 0.609 (±0.030) | 0.462 | 0.690 | 114422 | 39 | 2205104 |
+| **Dataset**                    | Train `<br>`Size | Test `<br>`Size | Series `<br>`Length | N `<br>`Estimators | Test `<br>`Accuracy | CV `<br>`Score | ICF `<br>`Checks | Anti-Reason `<br>`Check `<br>`Iter. | N `<br>`Features | EU `<br>`Complexity | EU `<br>`Min | EU `<br>`Max | Mean EU `<br>`(± Std) | Robustness `<br>`(± Std) | Robust.`<br>`Min | Robust.`<br>`Max | Cand.`<br>`Anti-Reason | Anti `<br>`Reason | Total `<br>`Time (ms) |
+| ------------------------------------ | ------------------ | ----------------- | --------------------- | -------------------- | --------------------- | ---------------- | ------------------ | --------------------------------------- | ------------------ | --------------------- | -------------- | -------------- | ------------------------ | --------------------------- | ------------------ | ------------------ | ------------------------ | ------------------- | ----------------------- |
+| Wine                                 | 57                 | 54                | 234                   | 10                   | 0.759                 | 0.705            | 2164               | 235916                                  | 86                 | 297                   | 3              | 6              | 3.453 (±0.710)          | 0.707 (±0.015)             | 0.671              | 0.725              | 49057                    | 55                  | 580118                  |
+| MiddlePhalanx `<br>`OutlineCorrect | 600                | 291               | 80                    | 10                   | 0.821                 | 0.777            | 976                | 228277                                  | 80                 | 1440                  | 7              | 39             | 18.000 (±5.725)         | 0.792 (±0.039)             | 0.652              | 0.881              | 71352                    | 39                  | 1469590                 |
+| SonyAIBO `<br>`RobotSurface1       | 20                 | 601               | 70                    | 17                   | 0.577                 | 0.800            | 32738              | 37299                                   | 32                 | 106                   | 3              | 5              | 3.312 (±0.583)          | 0.705 (±0.006)             | 0.687              | 0.719              | 303484                   | 12237               | 93066                   |
+| Beetle `<br>`Fly                   | 20                 | 20                | 512                   | 26                   | 0.850                 | 0.700            | 24975              | 124132                                  | 42                 | 129                   | 3              | 4              | 3.071 (±0.258)          | 0.820 (±0.012)             | 0.796              | 0.850              | 460178                   | 2066                | 4947272                 |
+| TwoLead `<br>`ECG                  | 23                 | 1139              | 82                    | 54                   | 0.775                 | 0.820            | 56944              | 20677                                   | 33                 | 116                   | 3              | 6              | 3.515 (±0.925)          | 0.709 (±0.002)             | 0.702              | 0.717              | 484385                   | 22215               | 33251                   |
+| Lightning `<br>`2                  | 60                 | 61                | 637                   | 65                   | 0.738                 | 0.883            | 2042               | 144482                                  | 88                 | 273                   | 3              | 5              | 3.102 (±0.370)          | 0.709 (±0.002)             | 0.447              | 0.555              | 315023                   | 49                  | 1482647                 |
+| Face `<br>`Four                    | 24                 | 88                | 350                   | 84                   | 0.739                 | 0.880            | 1700               | 2901                                    | 63                 | 197                   | 3              | 5              | 3.127 (±0.418)          | 0.622 (±0.027)             | 0.539              | 0.646              | 144617                   | 36                  | 15835                   |
+| ToeSegmentation `<br>`2            | 36                 | 130               | 343                   | 98                   | 0.731                 | 0.804            | 4013               | 1002539                                 | 80                 | 251                   | 3              | 5              | 3.138 (±0.379)          | 0.717 (±0.006)             | 0.702              | 0.730              | 96095                    | 412                 | 2710865                 |
+| ECG `<br>`200                      | 100                | 100               | 96                    | 101                  | 0.810                 | 0.880            | 3507               | 13825002                                | 72                 | 291                   | 3              | 7              | 4.042 (±1.148)          | 0.509 (±0.033)             | 0.393              | 0.551              | 105182                   | 36                  | 45937485                |
+| ItalyPower `<br>`Demand            | 67                 | 1029              | 24                    | 169                  | 0.959                 | 0.986            | 98010              | 12849                                   | 24                 | 132                   | 3              | 11             | 5.500 (±2.082)          | 0.432 (±0.006)             | 0.413              | 0.444              | 0                        | 4942                | 4850                    |
+| Meat                                 | 60                 | 60                | 448                   | 193                  | 0.933                 | 1.000            | 3142               | 7017067                                 | 39                 | 120                   | 3              | 4              | 3.077 (±0.266)          | 0.760 (±0.004)             | 0.753              | 0.768              | 118759                   | 36                  | 30077438                |
+| SonyAIBO `<br>`RobotSurface2       | 27                 | 953               | 65                    | 217                  | 0.794                 | 0.893            | 2051               | 2054688                                 | 33                 | 110                   | 3              | 5              | 3.333 (±0.532)          | 0.528 (±0.036)             | 0.384              | 0.600              | 78248                    | 33                  | 4952624                 |
+| Coffee                               | 28                 | 28                | 286                   | 233                  | 1.000                 | 1.000            | 5382               | 6255421                                 | 27                 | 84                    | 3              | 4              | 3.111 (±0.314)          | 0.758 (±0.030)             | 0.688              | 0.794              | 124507                   | 98                  | 26156013                |
+| Bird `<br>`Chicken                 | 20                 | 20                | 512                   | 233                  | 0.500                 | 0.850            | 8494               | 249253                                  | 42                 | 127                   | 3              | 4              | 3.024 (±0.152)          | 0.836 (±0.014)             | 0.800              | 0.844              | 370182                   | 1353                | 4285450                 |
+| Gun `<br>`Point                    | 50                 | 150               | 150                   | 233                  | 0.880                 | 0.960            | 15932              | 9676                                    | 58                 | 190                   | 3              | 5              | 3.276 (±0.484)          | 0.854 (±0.002)             | 0.850              | 0.859              | 147517                   | 6083                | 6119                    |
+| CinC `<br>`ECGTorso                | 40                 | 1380              | 1639                  | 245                  | 0.714                 | 0.725            | 1128               | 2032222                                 | 118                | 366                   | 3              | 5              | 3.102 (±0.354)          | 0.823 (±0.002)             | 0.817              | 0.829              | 86683                    | 73                  | 8650001                 |
+| Mote `<br>`Strain                  | 20                 | 1252              | 84                    | 300                  | 0.884                 | 0.850            | 3218               | 657010                                  | 38                 | 124                   | 3              | 6              | 3.263 (±0.714)          | 0.609 (±0.030)             | 0.462              | 0.690              | 114422                   | 39                  | 2205104                 |
 
 ## Troubleshooting
 
 ### Common Issues
 
 **Redis Connection Issues:**
+
 ```bash
 # Check Redis is running
 redis-cli ping
@@ -263,19 +255,20 @@ netstat -an | grep 6379
 ```
 
 **Worker Process Issues:**
+
 ```bash
 # Check worker logs
-python enhanced_launch_workers.py logs <worker_id>
+python launch_workers.py logs <worker_id>
 
 # Clean restart
-python enhanced_launch_workers.py clean-restart
+python launch_workers.py clean-restart
 ```
 
 **Memory Issues:**
+
 - Reduce worker count in configuration
 - Use `--batch-size` parameter to limit memory usage
 - Monitor Redis memory usage: `redis-cli info memory`
-
 
 ### Performance Optimization
 
@@ -283,10 +276,9 @@ python enhanced_launch_workers.py clean-restart
 2. **Optimize Redis**: Configure appropriate memory limits
 3. **Batch Processing**: Use smaller batch sizes for large datasets
 
-
 ## License
 
-This project is developed for research purposes as part of the IEEE Conference on Artificial Intelligence (CAI) 2026. 
+This project is developed for research purposes as part of the IEEE Conference on Artificial Intelligence (CAI) 2026.
 
 ### Academic Use License
 
@@ -298,10 +290,10 @@ This project is developed for research purposes as part of the IEEE Conference o
 4. **Share Improvements**: Derivative works should be made available to the research community
 5. **No Warranty**: This software is provided "as is" without any warranty
 
-
 ## Support
 
 For questions or issues:
+
 1. Check existing issues in the repository
 2. Review the troubleshooting section
 3. Examine worker logs for error details

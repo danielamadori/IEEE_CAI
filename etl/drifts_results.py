@@ -548,7 +548,7 @@ def print_counts_summary(
         df = compute_counts_from_results(results_dir, verbose=verbose)
     summary = summarize_counts_from_df(df)
     if not summary:
-        print(f"Nessun redis manifest valido trovato in {results_dir}")
+        print(f"No valid redis manifests found in {results_dir}")
         return
     for dataset, total, counts, extras in summary:
         labeled = {DISPLAY_LABELS.get(cat, cat): count for cat, count in counts.items()}

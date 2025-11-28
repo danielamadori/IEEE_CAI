@@ -1,43 +1,15 @@
-# Guida Docker per Drifts
 
-## Panoramica
+# Docker Guide for Drifts
 
-Questa guida descrive come usare Docker per eseguire i test dei dataset in un ambiente isolato e riproducibile.
+## Quick Commands
 
-## Componenti Docker
-
-### Immagine
-- **Nome**: `drifts:latest`
-- **Base**: Python con dipendenze scientifiche
-- **Include**: Redis, Python, librerie ML, worker
-
-### Container
-- **Nome**: `drifts-container`
-- **Porte esposte**:
-  - `6379` - Redis
-  - `8888` - Jupyter (se abilitato)
-- **Volumi montati**:
-  - `logs/` - Log dei worker
-  - `workers/` - Script worker
-  - `results/` - Risultati dei test
-  - `fig/` - Figure e grafici
-
-## File Docker
-
-- **`Dockerfile`** - Definizione dell'immagine
-- **`docker_tests.bat`** - Script per eseguire test in Docker
-- **`docker_maintenance.bat`** - Manutenzione container/immagine
-- **`docker/supervisord.conf`** - Configurazione supervisor (se usato)
-
-## Comandi Rapidi
-
-### Build e Avvio
+### Build and Start
 
 ```bat
-# Build iniziale
+# Initial build
 docker build -t drifts:latest .
 
-# Crea e avvia container
+# Create and start container
 docker run -d --name drifts-container -p 6379:6379 -p 8888:8888 ^
   -v "%cd%\logs:/app/logs" ^
   -v "%cd%\workers:/app/workers" ^
@@ -46,373 +18,339 @@ docker run -d --name drifts-container -p 6379:6379 -p 8888:8888 ^
   drifts:latest
 ```
 
-### Gestione Container
+### Container Management
 
 ```bash
-# Avvia container esistente
+# Start existing container
 docker start drifts-container
 
-# Ferma container
+# Stop container
 docker stop drifts-container
 
-# Riavvia container
+# Restart container
 docker restart drifts-container
 
-# Rimuovi container
+# Remove container
 docker rm drifts-container
 
-# Mostra container attivi
+# Show running containers
 docker ps
 
-# Mostra tutti i container (anche fermi)
+# Show all containers (including stopped)
 docker ps -a
 ```
 
-### Gestione Immagine
+### Image Management
 
 ```bash
-# Rimuovi immagine
+# Remove image
 docker rmi drifts:latest
 
-# Rebuild completo (senza cache)
+# Full rebuild (no cache)
 docker build --no-cache -t drifts:latest .
 
-# Mostra immagini
+# List images
 docker images
 ```
 
-### Accesso al Container
+### Container Access
 
 ```bash
-# Shell interattiva
+# Interactive shell
 docker exec -it drifts-container /bin/bash
 
-# Esegui comando singolo
+# Run single command
 docker exec drifts-container python --version
 
-# Esegui comando interattivo
+# Interactive command
 docker exec -it drifts-container python
 ```
 
-### Log e Debug
+### Logs and Debugging
 
 ```bash
-# Mostra log del container
+# Show container logs
 docker logs drifts-container
 
-# Segui log in tempo reale
+# Follow logs in real time
 docker logs -f drifts-container
 
-# Ultime 100 righe
+# Last 100 lines
 docker logs --tail 100 drifts-container
 
-# Ispeziona container
+# Inspect container
 docker inspect drifts-container
 ```
 
+## Volumes and Persistence
 
-## Volumi e Persistenza
+### Shared Directories
 
-### Directory Condivise
+Volumes let you share data between the host and the container:
 
-I volumi permettono di condividere dati tra host e container:
+| Host Directory | Container Directory | Purpose               |
+| -------------- | ------------------- | --------------------- |
+| `./logs`     | `/app/logs`       | Worker logs           |
+| `./workers`  | `/app/workers`    | Custom worker scripts |
+| `./results`  | `/app/results`    | Processed results     |
+| `./fig`      | `/app/fig`        | Figures and plots     |
 
-| Directory Host | Directory Container | Scopo |
-|----------------|---------------------|-------|
-| `.\logs` | `/app/logs` | Log dei worker |
-| `.\workers` | `/app/workers` | Script worker personalizzati |
-| `.\results` | `/app/results` | Risultati elaborati |
-| `.\fig` | `/app/fig` | Figure e grafici |
+### File Access
 
-### Accesso ai File
+Files are available from both host and container:
 
-I file sono accessibili sia dall'host che dal container:
+**From the host (Windows):**
 
-**Dall'host (Windows):**
 ```bat
 type results\test_results.json
 notepad logs\worker.log
 ```
 
-**Dal container:**
+**From the container:**
+
 ```bash
 docker exec drifts-container cat /app/results/test_results.json
 docker exec drifts-container tail /app/logs/worker.log
 ```
 
-### Backup dei Dati
+### Data Backup
 
-Per fare backup dei dati:
+To back up data:
+
 ```bat
-# Copia da container a host
+# Copy from container to host
 docker cp drifts-container:/app/data ./backup_data
 
-# Copia da host a container
+# Copy from host to container
 docker cp ./backup_data drifts-container:/app/data
 ```
 
-## Porte e Servizi
+## Ports and Services
 
-### Redis (porta 6379)
+### Redis (port 6379)
 
-Redis viene eseguito nel container ed è accessibile dall'host:
+Redis runs inside the container and is reachable from the host:
 
 ```bash
-# Da host Windows (se redis-cli installato)
+# From Windows host (if redis-cli installed)
 redis-cli -h localhost -p 6379 ping
 
-# Dal container
+# From the container
 docker exec drifts-container redis-cli ping
 ```
 
-### Jupyter (porta 8888)
+### Jupyter (port 8888)
 
-Se Jupyter è configurato:
+If Jupyter is configured:
 
 ```bash
-# Avvia Jupyter nel container
+# Start Jupyter inside the container
 docker exec -d drifts-container jupyter notebook --ip=0.0.0.0 --port=8888 --no-browser
 
-# Accedi da browser su host
+# Open in host browser
 http://localhost:8888
 ```
 
 ## Troubleshooting
 
-### Container Non Si Avvia
+### Container Fails to Start
 
-**Problema**: `docker start drifts-container` fallisce
+**Issue**: `docker start drifts-container` fails
 
-**Soluzioni**:
-1. Verifica se esiste:
+**Fixes**:
+
+1. Check whether it exists:
+
    ```bash
    docker ps -a | findstr drifts-container
    ```
+2. Remove and recreate:
 
-2. Rimuovi e ricrea:
    ```bat
-   docker_maintenance.bat clean-rebuild
+   run.bat clean-rebuild
    ```
+3. Inspect logs:
 
-3. Controlla i log:
    ```bash
    docker logs drifts-container
    ```
 
-### Porta Già in Uso
+### Port Already in Use
 
-**Problema**: Errore "port is already allocated"
+**Issue**: "port is already allocated" error
 
-**Soluzioni**:
-1. Trova processo che usa la porta:
+**Fixes**:
+
+1. Find the process using the port:
+
    ```bat
    netstat -ano | findstr :6379
    ```
+2. Stop the conflicting service/process
+3. Or use different host ports:
 
-2. Ferma il servizio/processo in conflitto
-
-3. O usa porte diverse:
    ```bash
    docker run -p 6380:6379 -p 8889:8888 ...
    ```
 
-### Immagine Obsoleta
+### Outdated Image
 
-**Problema**: Modifiche al codice non hanno effetto
+**Issue**: Code changes do not take effect
 
-**Soluzione**: Rebuild dell'immagine
+**Fix**: Rebuild the image
+
 ```bat
-docker_maintenance.bat rebuild
+run.bat rebuild
 ```
 
-### Spazio Disco Insufficiente
+### Low Disk Space
 
-**Problema**: Docker occupa troppo spazio
+**Issue**: Docker consumes too much space
 
-**Soluzioni**:
-1. Rimuovi container non usati:
+**Fixes**:
+
+1. Remove unused containers:
+
    ```bash
    docker container prune
    ```
+2. Remove unused images:
 
-2. Rimuovi immagini non usate:
    ```bash
    docker image prune
    ```
+3. Full cleanup (WARNING: removes everything):
 
-3. Pulizia completa (ATTENZIONE: rimuove tutto):
    ```bash
    docker system prune -a
    ```
 
-### Volumi Non Sincronizzati
+### Volumes Not Syncing
 
-**Problema**: File modificati su host non visibili nel container
+**Issue**: Changes on the host are not visible in the container
 
-**Soluzioni**:
-1. Verifica mount volumi:
+**Fixes**:
+
+1. Check volume mounts:
+
    ```bash
    docker inspect drifts-container | findstr Mounts -A 20
    ```
+2. Restart the container:
 
-2. Riavvia container:
    ```bat
-   docker_maintenance.bat restart
+   run.bat restart
    ```
+3. Recreate the container with correct volumes:
 
-3. Ricrea container con volumi corretti:
    ```bat
-   docker_maintenance.bat clean-rebuild
+   run.bat clean-rebuild
    ```
 
 ### Permission Denied
 
-**Problema**: Errori di permessi nel container
+**Issue**: Permission errors inside the container
 
-**Soluzione**: Assicurati che i volumi abbiano i permessi corretti su Windows
+**Fix**: Ensure the mounted directories have the right permissions on Windows
 
-## Best Practices
+## Advanced Configuration
 
-### Sviluppo
+### Custom Dockerfile
 
-1. **Usa volumi per codice in sviluppo**
-   - Monta directory del progetto per modifiche in tempo reale
+To modify the image:
 
-2. **Rebuild solo quando necessario**
-   - Rebuild dopo modifiche a `Dockerfile` o `requirements.txt`
-   - Usa `docker_maintenance.bat rebuild`
-
-3. **Mantieni container leggeri**
-   - Non installare pacchetti non necessari
-   - Pulisci cache dopo install
-
-### Testing
-
-1. **Isola i test**
-   - Usa Docker per test riproducibili
-   - Evita dipendenze dall'ambiente locale
-
-2. **Monitora le risorse**
-   ```bash
-   docker stats drifts-container
-   ```
-
-3. **Salva sempre i risultati**
-   - Usa volumi per persistere risultati
-   - Backup regolari di `results/`
-
-### Produzione
-
-1. **Usa tag versionate**
-   ```bash
-   docker build -t drifts:v1.0.0 .
-   docker tag drifts:v1.0.0 drifts:latest
-   ```
-
-2. **Configura restart policy**
-   ```bash
-   docker run --restart=unless-stopped ...
-   ```
-
-3. **Monitora log**
-   - Configura log rotation
-   - Usa strumenti di monitoring esterni
-
-## Configurazione Avanzata
-
-### Dockerfile Personalizzato
-
-Per modificare l'immagine:
-
-1. Edita `Dockerfile`
+1. Edit `Dockerfile`
 2. Rebuild:
    ```bat
-   docker_maintenance.bat rebuild
+   run.bat rebuild
    ```
 
-### Variabili d'Ambiente
+### Environment Variables
 
-Passa variabili al container:
+Pass variables to the container:
+
 ```bash
 docker run -e REDIS_HOST=localhost -e WORKERS=4 drifts:latest
 ```
 
-O usa file `.env`:
+Or load them from an `.env` file:
+
 ```bash
 docker run --env-file .env drifts:latest
 ```
 
 ### Networking
 
-Per connettere più container:
+Connect multiple containers:
+
 ```bash
-# Crea network
+# Create network
 docker network create drifts-network
 
-# Avvia container nella network
+# Start containers on that network
 docker run --network drifts-network --name drifts-container drifts:latest
 docker run --network drifts-network --name redis redis:latest
 ```
 
 ### Resource Limits
 
-Limita risorse del container:
+Limit container resources:
+
 ```bash
 docker run --memory="2g" --cpus="2.0" drifts:latest
 ```
 
-## Comandi Utili
+## Useful Commands
 
-### Pulizia
+### Cleanup
 
 ```bash
-# Rimuovi container fermi
+# Remove stopped containers
 docker container prune
 
-# Rimuovi immagini non usate
+# Remove unused images
 docker image prune
 
-# Rimuovi volumi non usati
+# Remove unused volumes
 docker volume prune
 
-# Pulizia totale
+# Full cleanup
 docker system prune -a --volumes
 ```
 
 ### Monitoring
 
 ```bash
-# Statistiche in tempo reale
+# Real-time stats
 docker stats drifts-container
 
-# Spazio occupato
+# Disk usage summary
 docker system df
 
-# Processi nel container
+# Processes inside the container
 docker top drifts-container
 ```
 
-### Copia File
+### File Copy
 
 ```bash
-# Da container a host
+# Container to host
 docker cp drifts-container:/app/results/data.json ./data.json
 
-# Da host a container
+# Host to container
 docker cp ./config.yaml drifts-container:/app/config.yaml
 ```
 
-## Riferimenti
+## References
 
-- [Documentazione Docker](https://docs.docker.com/)
-- [Docker Best Practices](https://docs.docker.com/develop/dev-best-practices/)
-- [Dockerfile Reference](https://docs.docker.com/engine/reference/builder/)
+- [Docker documentation](https://docs.docker.com/)
+- [Docker best practices](https://docs.docker.com/develop/dev-best-practices/)
+- [Dockerfile reference](https://docs.docker.com/engine/reference/builder/)
 
-## Supporto
+## Support
 
-Per problemi con Docker:
-1. Controlla i log: `docker logs drifts-container`
-2. Ispeziona il container: `docker inspect drifts-container`
-3. Verifica risorse: `docker stats drifts-container`
-4. Rebuild da zero: `docker_maintenance.bat clean-rebuild`
+For Docker-related issues:
 
+1. Check logs: `docker logs drifts-container`
+2. Inspect the container: `docker inspect drifts-container`
+3. Check resource usage: `docker stats drifts-container`

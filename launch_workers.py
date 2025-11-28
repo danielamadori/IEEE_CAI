@@ -2,16 +2,16 @@
 """
 Multi-Worker Launcher Script with Pure YAML Configuration
 
-Launch multiple instances of worker scripts using YAML configuration files.
-Pure mode: either use your complete config file AS-IS, or use built-in defaults (no merging).
+Launch multiple instances of worker scripts using a single top-level workers block
+in YAML. Profiles remain supported if you add them yourself, but the default flow
+is profile-free
 
 Usage:
-    python enhanced_launch_workers.py start                      # Use default config
-    python enhanced_launch_workers.py start --config my_config.yaml
-    python enhanced_launch_workers.py start --profile production  # Use specific profile
-    python enhanced_launch_workers.py stop                       # Stop all workers
-    python enhanced_launch_workers.py status                     # Check worker status
-    python enhanced_launch_workers.py logs 1                     # View logs for worker 1
+    python launch_workers.py start                      # Use default config
+    python launch_workers.py start --config my_config.yaml
+    python launch_workers.py stop                       # Stop all workers
+    python launch_workers.py status                     # Check worker status
+    python launch_workers.py logs 1                     # View logs for worker 1
 """
 
 import argparse
@@ -33,40 +33,15 @@ DEFAULT_CONFIG = {
         'port': 6379
     },
     'workers': {
-        'default': {
-            'script': 'worker_cache.py',
-            'count': 1,
+        'default_worker': {
+            'script': 'worker_cache_logged.py',
+            'count': 4,
             'args': []
         }
     },
     'logging': {
         'directory': 'logs',
         'cleanup_days': 7
-    },
-    'profiles': {
-        'development': {
-            'workers': {
-                'cache_workers': {
-                    'script': 'worker_cache.py',
-                    'count': 2,
-                    'args': ['--verbose']
-                }
-            }
-        },
-        'production': {
-            'workers': {
-                'cache_workers': {
-                    'script': 'worker_cache.py',
-                    'count': 8,
-                    'args': []
-                },
-                'rcheck_workers': {
-                    'script': 'rcheck_cache.py',
-                    'count': 4,
-                    'args': []
-                }
-            }
-        }
     }
 }
 
@@ -430,7 +405,7 @@ class WorkerManager:
         print(f"[START] Worker PIDs saved to: {self.pids_file}")
         
         # Note: show_status() removed here to speed up start command completion
-        # Use 'python enhanced_launch_workers.py status' to see worker status
+        # Use 'python launch_workers.py status' to see worker status
         
         return len(started_workers) > 0
     
@@ -791,18 +766,12 @@ Examples:
   
   # Start workers using specific config file (pure mode)
   python launch_workers.py --config myconfig.yaml start
-  
-  # Start workers using a specific profile
-  python launch_workers.py start --profile production
-  python launch_workers.py --config myconfig.yaml start --profile production
-  
+
   # Start specific worker groups
   python launch_workers.py start --groups cache_workers rcheck_workers
   
   # Clean restart: stop all workers, clean directories, and start fresh
   python launch_workers.py clean-restart
-  python launch_workers.py clean-restart --profile production
-  python launch_workers.py --config myconfig.yaml clean-restart --profile production
   
   # Legacy mode: start 4 instances manually
   python launch_workers.py start-legacy 4 --worker worker_cache.py

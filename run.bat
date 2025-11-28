@@ -12,6 +12,8 @@ if /I "%1"=="stop" goto stop
 if /I "%1"=="restart" goto restart
 if /I "%1"=="shell" goto shell
 if /I "%1"=="logs" goto logs
+if /I "%1"=="rebuild" goto rebuild
+if /I "%1"=="clean-rebuild" goto clean_rebuild
 if /I "%1"=="help" goto help
 
 :help
@@ -25,6 +27,8 @@ echo   restart   Restart container
 echo   shell     Open bash shell in container
 echo   logs      Show container logs
 echo   help      Show this help
+echo   rebuild   Rebuild image (no cache)
+echo   clean-rebuild Remove container and rebuild (no cache)
 echo.
 exit /b 0
 
@@ -125,3 +129,28 @@ exit /b 0
 docker logs -f %CONTAINER_NAME%
 exit /b 0
 
+:rebuild
+echo.
+echo ==========================================
+echo   DRIFTS - Rebuilding Image
+echo ==========================================
+echo.
+docker build --no-cache -t %IMAGE_NAME% .
+if errorlevel 1 (
+    echo [ERROR] Build failed!
+    pause
+    exit /b 1
+)
+echo Build completed!
+goto start
+
+:clean_rebuild
+echo.
+echo ==========================================
+echo   DRIFTS - Clean Rebuild
+echo ==========================================
+echo.
+echo Removing container...
+docker stop %CONTAINER_NAME% >nul 2>&1
+docker rm %CONTAINER_NAME% >nul 2>&1
+goto rebuild

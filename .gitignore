@@ -11,3 +11,4 @@ results/_cache/
 
 .DS_Store
 *.svg
+workers/worker_pids.json

@@ -95,6 +95,33 @@ case "$CMD" in
         docker logs -f "$CONTAINER_NAME"
         ;;
 
+    rebuild)
+        echo ""
+        echo "=========================================="
+        echo "  DRIFTS - Rebuilding Image"
+        echo "=========================================="
+        echo ""
+        docker build --no-cache -t "$IMAGE_NAME" .
+        echo "Build completed!"
+        echo ""
+        # After rebuild, we usually want to start? Or just build?
+        # The bat file goes to start. Let's do the same or just exit?
+        # run.bat goes to start.
+        "$0" start
+        ;;
+
+    clean-rebuild)
+        echo ""
+        echo "=========================================="
+        echo "  DRIFTS - Clean Rebuild"
+        echo "=========================================="
+        echo ""
+        echo "Removing container..."
+        docker stop "$CONTAINER_NAME" 2>/dev/null || true
+        docker rm "$CONTAINER_NAME" 2>/dev/null || true
+        "$0" rebuild
+        ;;
+
     help|--help|-h)
         echo ""
         echo "Usage: ./run.sh [command]"
@@ -105,6 +132,8 @@ case "$CMD" in
         echo "  restart   Restart container"
         echo "  shell     Open bash shell in container"
         echo "  logs      Show container logs"
+        echo "  rebuild   Rebuild image (no cache)"
+        echo "  clean-rebuild Remove container and rebuild (no cache)"
         echo "  help      Show this help"
         echo ""
         ;;
