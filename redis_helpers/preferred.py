@@ -4,10 +4,40 @@ Redis helper functions for Preferred Reasons (PR) database.
 import redis
 import json
 import datetime
-from typing import Optional, Set, List, Tuple
+from typing import Optional, Set, List, Tuple, Iterable, Union
 
 
-def get_pr_candidate(pr_connection: redis.Redis, scan_count: int = 100) -> Optional[Tuple[str, Set[str], dict]]:
+def _normalize_timestamp(value: Union[str, int, float]) -> Optional[float]:
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str):
+        try:
+            return float(value)
+        except ValueError:
+            pass
+        try:
+            return datetime.datetime.fromisoformat(value).timestamp()
+        except ValueError:
+            return None
+    return None
+
+
+def _normalize_timestamps(values: Union[Iterable, str, int, float, None]) -> Set[float]:
+    normalized: Set[float] = set()
+    if values is None:
+        return normalized
+    if isinstance(values, (list, tuple, set)):
+        iterable = values
+    else:
+        iterable = [values]
+    for item in iterable:
+        normalized_value = _normalize_timestamp(item)
+        if normalized_value is not None:
+            normalized.add(normalized_value)
+    return normalized
+
+
+def get_pr_candidate(pr_connection: redis.Redis, scan_count: int = 100) -> Optional[Tuple[str, Set[float], dict]]:
     """
     Get the best candidate from PR database based on selection criteria:
     1. Minimum number of timestamps in set
@@ -20,7 +50,7 @@ def get_pr_candidate(pr_connection: redis.Redis, scan_count: int = 100) -> Optio
         scan_count: Number of keys to fetch per SCAN iteration
         
     Returns:
-        Tuple of (key, set of timestamps, metadata dict) or None if PR is empty
+        Tuple of (key, set of timestamps (epoch seconds), metadata dict) or None if PR is empty
         metadata contains: sample_key, dataset_name, class_label, test_index, prediction_correct, cost, timestamp
     """
     try:
@@ -38,17 +68,13 @@ def get_pr_candidate(pr_connection: redis.Redis, scan_count: int = 100) -> Optio
                     print("Metadata for PR key", key, ":", metadata)
                     print('-------------------------------------------------------')
                     if isinstance(metadata, dict) and 'timestamp' in metadata:
-                        timestamps = metadata['timestamp']
-                        if isinstance(timestamps, list):
-                            timestamps_set = set(timestamps)
-                        else:
-                            timestamps_set = set([timestamps]) if timestamps else set()
+                        timestamps_set = _normalize_timestamps(metadata['timestamp'])
                     else:
                         # Fallback for old format
                         print("Fallback for old format detected in PR key:", key)
                         print('-------------------------------------------------------')
-                        timestamps = metadata if isinstance(metadata, (list, str)) else []
-                        timestamps_set = set(timestamps) if isinstance(timestamps, list) else set([timestamps]) if timestamps else set()
+                        timestamps = metadata if isinstance(metadata, (list, str, int, float)) else []
+                        timestamps_set = _normalize_timestamps(timestamps)
                     
                     if len(timestamps_set) > 0:
                         max_timestamp = max(timestamps_set)
@@ -64,8 +90,8 @@ def get_pr_candidate(pr_connection: redis.Redis, scan_count: int = 100) -> Optio
         # Sort by: 1) number of timestamps (ascending), 2) max timestamp (ascending)
         candidates.sort(key=lambda x: (x[2], x[3]))
         
-        # Return the best candidate
-        best_key, best_timestamps, best_metadata = candidates[0]
+        # Return the best candidate (unpack all 5 values, ignore the middle 2)
+        best_key, best_timestamps, _, _, best_metadata = candidates[0]
         return (best_key, best_timestamps, best_metadata)
         
     except Exception as e:
@@ -95,10 +121,7 @@ def add_timestamp_to_pr(pr_connection: redis.Redis, key: str, timestamp: str, ic
                 print('add_timestamp_to_pr')
                 print("Metadata for PR key", key, ":", metadata)
                 print('-------------------------------------------------------')
-                if isinstance(timestamps, list):
-                    timestamps_set = set(timestamps)
-                else:
-                    timestamps_set = set([timestamps]) if timestamps else set()
+                timestamps_set = _normalize_timestamps(timestamps)
                 # Preserve existing metadata
                 icf_metadata = {**metadata, **icf_metadata}
             else:
@@ -106,12 +129,14 @@ def add_timestamp_to_pr(pr_connection: redis.Redis, key: str, timestamp: str, ic
                 print('add_timestamp_to_pr')
                 print("Fallback for old format for PR key", key)
                 print('-------------------------------------------------------')
-                timestamps = metadata if isinstance(metadata, (list, str)) else []
-                timestamps_set = set(timestamps) if isinstance(timestamps, list) else set([timestamps]) if timestamps else set()
+                timestamps = metadata if isinstance(metadata, (list, str, int, float)) else []
+                timestamps_set = _normalize_timestamps(timestamps)
         else:
             timestamps_set = set()
-        
-        timestamps_set.add(timestamp)
+
+        normalized_timestamp = _normalize_timestamp(timestamp)
+        if normalized_timestamp is not None:
+            timestamps_set.add(normalized_timestamp)
         icf_metadata['timestamp'] = list(timestamps_set)
         pr_connection.set(key, json.dumps(icf_metadata))
         return True
@@ -159,8 +184,11 @@ def insert_to_pr(pr_connection: redis.Redis, key: str, timestamp: Optional[str] 
             
         if timestamp is None:
             timestamp = datetime.datetime.now().isoformat()
-            
-        icf_metadata['timestamp'] = timestamp if isinstance(timestamp, list) else [timestamp]
+
+        normalized = _normalize_timestamps(timestamp)
+        if not normalized:
+            normalized = _normalize_timestamps(datetime.datetime.now().isoformat())
+        icf_metadata['timestamp'] = list(normalized)
         
         pr_connection.set(key, json.dumps(icf_metadata))
         return True

@@ -37,6 +37,9 @@ import numpy as np
 import random
 import argparse
 
+# Configuration
+TIMEOUT_SECONDS = 30  # 30 seconds
+
 
 def get_worker_id():
     """Get unique worker identifier based on hostname and PID"""
@@ -259,6 +262,48 @@ def main():
             if len(queue) == 0 and len(car_queue) == 0:
                 print("Both CAN and CAR queues and databases are empty - stopping worker")
                 break
+            
+            # Check timeout
+            elapsed_time = time.time() - start_time
+            if elapsed_time >= TIMEOUT_SECONDS:
+                print(f"\nTimeout reached ({TIMEOUT_SECONDS}s / {TIMEOUT_SECONDS/60:.1f} minutes) - stopping worker")
+                
+                # Return items from queues back to databases
+                print(f"Returning {len(queue)} items from CAN queue back to CAN database")
+                for bitmap in queue:
+                    connections['CAN'].set(bitmap, json.dumps({'timestamp': datetime.datetime.now().isoformat()}))
+                
+                print(f"Returning {len(car_queue)} items from CAR queue back to CAR database")
+                for bitmap in car_queue:
+                    connections['CAR'].set(bitmap, json.dumps({'timestamp': datetime.datetime.now().isoformat()}))
+                
+                # Create final timeout log entry
+                timeout_log = {
+                    'worker_id': worker_id,
+                    'iteration': iteration,
+                    'event': 'TIMEOUT',
+                    'timestamp': datetime.datetime.now().isoformat(),
+                    'timeout_seconds': TIMEOUT_SECONDS,
+                    'elapsed_seconds': elapsed_time,
+                    'queue_size': len(queue),
+                    'car_queue_size': len(car_queue),
+                    'total_processed': good + bad,
+                    'good': good,
+                    'bad': bad
+                }
+                
+                # Add cache sizes if requested
+                if args.log_cache_sizes:
+                    timeout_log['cache_sizes'] = get_cache_sizes(caches)
+                
+                # Add database sizes if requested
+                if args.log_db_sizes:
+                    timeout_log['db_sizes'] = get_db_sizes(connections)
+                
+                # Log timeout event to Redis
+                log_iteration_to_redis(connections['LOGS'], worker_id, f"timeout_{iteration}", timeout_log)
+                
+                break
 
             iteration += 1
             
@@ -266,6 +311,7 @@ def main():
             iteration_log = {
                 'worker_id': worker_id,
                 'iteration': iteration,
+                'event': 'ITERATION',
                 'timestamp_start': datetime.datetime.now().isoformat(),
                 'queue_size': len(queue),
                 'car_queue_size': len(car_queue),
