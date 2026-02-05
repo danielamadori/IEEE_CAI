@@ -580,29 +580,26 @@ def process_all_classified_samples(connections, dataset_name, class_label, our_f
     target_samples_data = []
     current_time = datetime.datetime.now().isoformat()
     
-    # Apply sample percentage filtering if specified
+    # Apply sample percentage filtering if specified (preserve original indices)
     total_test_samples = len(X_test)
     if sample_percentage is not None and sample_percentage < 100.0:
         print(f"Applying sample percentage filter: {sample_percentage}% of {total_test_samples} test samples")
-        # Randomly select indices
         n_keep = int(total_test_samples * sample_percentage / 100.0)
         indices = np.random.choice(total_test_samples, size=n_keep, replace=False)
-        # Filter X_test and y_test
-        X_test_filtered = X_test[indices]
-        y_test_filtered = y_test[indices]
-        print(f"Reduced test samples from {total_test_samples} to {len(X_test_filtered)} ({sample_percentage}%)")
+        print(f"Reduced test samples from {total_test_samples} to {len(indices)} ({sample_percentage}%)")
     else:
-        X_test_filtered = X_test
-        y_test_filtered = y_test
+        indices = np.arange(total_test_samples)
     
-    for i, (sample, actual_label) in enumerate(zip(X_test_filtered, y_test_filtered)):
+    for test_index in indices:
+        sample = X_test[test_index]
+        actual_label = y_test[test_index]
         sample_dict = sklearn_sample_to_dict(sample, feature_names)
         predicted_label = our_forest.predict(sample_dict)
         
         # Store ALL samples classified with the target label (regardless of correctness)
         if predicted_label == class_label:
             target_samples_data.append({
-                'test_index': i,
+                'test_index': int(test_index),
                 'sample_dict': sample_dict,
                 'predicted_label': predicted_label,
                 'actual_label': actual_label,
@@ -620,7 +617,7 @@ def process_all_classified_samples(connections, dataset_name, class_label, our_f
     correct_predictions = 0
     
     for idx, sample_data in enumerate(target_samples_data):
-        sample_key = f"sample_{dataset_name}_{class_label}_{idx}"
+        sample_key = f"sample_{dataset_name}_{class_label}_{sample_data['test_index']}"
         
         # Store sample in DATA with full metadata
         data_entry = {
@@ -680,7 +677,7 @@ def process_all_classified_samples(connections, dataset_name, class_label, our_f
         'dataset_name': dataset_name,
         'target_class_label': class_label,
         'total_samples_processed': len(stored_samples),
-        'total_test_samples': len(X_test_filtered),
+        'total_test_samples': len(indices),
         'samples_with_target_label': len(target_samples_data),
         'correct_predictions': correct_predictions,
         'incorrect_predictions': len(stored_samples) - correct_predictions,
@@ -703,17 +700,17 @@ def process_all_classified_samples(connections, dataset_name, class_label, our_f
 
 def initialize_seed_candidate(connections, sample_dict, our_forest, eu_data, dataset_name, class_label):
     """Generate initial ICF bitmap and store in CAN and PR"""
-    print("Generating initial ICF and storing in CAN and PR...")
+    # print("Generating initial ICF and storing in CAN and PR...")
 
     # Extract ICF for the sample
     forest_icf = our_forest.extract_icf(sample_dict['sample_dict'])
-    print(f"ICF calculated for {len(forest_icf)} features")
+    # print(f"ICF calculated for {len(forest_icf)} features")
 
     # Generate bitmap
     bitmap_mask = icf_to_bitmap_mask(forest_icf, eu_data)
     bitmap_string = bitmap_mask_to_string(bitmap_mask)
 
-    print(f"Generated bitmap with {len(bitmap_mask)} bits")
+    # print(f"Generated bitmap with {len(bitmap_mask)} bits")
 
     # Store in CAN with timestamp
     current_timestamp = time.time()
@@ -733,7 +730,7 @@ def initialize_seed_candidate(connections, sample_dict, our_forest, eu_data, dat
         'cost': cost
     }
     connections['CAN'].set(bitmap_string, json.dumps(icf_metadata))
-    print(f"Stored initial candidate in CAN")
+    # print(f"Stored initial candidate in CAN")
 
     # Also store in PR (Preferred Reasons) database - timestamp auto-generated
     if insert_to_pr(connections['PR'], bitmap_string, current_timestamp, icf_metadata):
