@@ -10,8 +10,8 @@ amount of time or until you press Enter.
 from __future__ import annotations
 
 import csv
-import json
 import os
+import re
 import shlex
 import subprocess
 import sys
@@ -87,88 +87,6 @@ def _auto_class_label(dataset: str) -> str:
     return np.unique(labels)
 
 
-def _load_dataset_info(csv_file: Path) -> dict[str, dict]:
-    """Load dataset information from CSV file"""
-    dataset_info = {}
-    try:
-        with open(csv_file, 'r', encoding='utf-8') as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                dataset_name = row['Dataset']
-                dataset_info[dataset_name] = {
-                    'train_size': int(row['Train Size']),
-                    'test_size': int(row['Test Size']),
-                    'length': int(row['Length']),
-                    'num_classes': int(row['No. of Classes']),
-                    'type': row['Type']
-                }
-    except FileNotFoundError:
-        print(f"[WARNING] Dataset info file not found: {csv_file}")
-    except Exception as e:
-        print(f"[WARNING] Error reading dataset info: {e}")
-    return dataset_info
-def is_pid_running(pid):
-    """Check if process with PID exists."""
-    try:
-        pid_int = int(pid)
-    except (TypeError, ValueError):
-        return False
-
-    if os.name == 'nt':
-        try:
-            result = subprocess.run(
-                ["tasklist", "/FI", f"PID eq {pid_int}", "/NH"],
-                capture_output=True,
-                text=True,
-                check=False
-            )
-            output = (result.stdout or "").strip()
-            if not output or output.lower().startswith("info:"):
-                return False
-            return str(pid_int) in output
-        except Exception:
-            return False
-def wait_for_workers():
-    """
-    Monitor worker_pids.json and wait for all workers to exit.
-    Returns True if all workers finished.
-    """
-    pids_file = Path('workers/worker_pids.json')
-    # Wait for pids file to appear (give launch_workers a moment)
-    time.sleep(1) 
-    
-    if not pids_file.exists():
-        print("[EXPERIMENT] Warning: workers/worker_pids.json not found after launch.")
-        return True # Assume finished or failed to start
-        
-    print("[EXPERIMENT] Waiting for workers to finish...")
-    
-    while True:
-        if not pids_file.exists():
-            print("[EXPERIMENT] Workers file gone. Finished.")
-            return True
-            
-        try:
-            with open(pids_file, 'r') as f:
-                try:
-                    pids_data = json.load(f)
-                except json.JSONDecodeError:
-                    # File might be empty or partial write                    
-                    continue
-            
-            running_count = 0
-            for worker_id, info in pids_data.items():
-                pid = info.get('pid')
-                if pid and is_pid_running(pid):
-                    running_count += 1
-            
-            if running_count == 0:
-                print(f"[EXPERIMENT] All workers exited.")
-                return True
-                
-        except Exception as e:
-            print(f"[EXPERIMENT] Error monitoring workers: {e}")
-
 def clean_up(dataset, worker_count: int, repo_root: Path, redis_config, class_label) -> None:
     
         # Save Redis backup after experiment
@@ -203,12 +121,66 @@ def clean_up(dataset, worker_count: int, repo_root: Path, redis_config, class_la
             print(f"[CLEANUP] Flushed {len(DEFAULT_REDIS_DATABASES)} databases")
         except Exception as e:
             print(f"[WARNING] Cleanup failed: {e}")
+def _parse_status_summary(output: str) -> tuple[int, int] | None:
+    status_summary_re = re.compile(r"Summary:\s*(\d+)\s+active,\s*(\d+)\s+inactive", re.IGNORECASE)
+    match = status_summary_re.search(output)
+    if match:
+        return int(match.group(1)), int(match.group(2))
+    if "[EMPTY]" in output and "No workers" in output:
+        return 0, 0
+    return None
+
+def _get_workers_status(cmd, repo_root) -> tuple[int, int] | None:
+    
+    result = subprocess.run(cmd, cwd=str(repo_root), capture_output=True, text=True)
+    print(f"[DEBUG] Status command exited with code {result.returncode}, result: {result}")
+    output = (result.stdout or "") + (result.stderr or "")
+    print(f"[DEBUG] Status command output:\n{output}")
+    if result.returncode != 0:
+        print(f"[EXPERIMENT] Warning: status command failed (exit {result.returncode}).")
+        return None
+    summary = _parse_status_summary(output)
+    if summary is None:
+        print("[EXPERIMENT] Warning: unable to parse worker status output.")
+    return summary
+
+def wait_for_workers(
+    cmd,
+    repo_root,
+    poll_seconds: float = 12.0,
+    initial_delay_seconds: float = 30.0,
+) -> bool | int:
+    """
+    Poll `launch_workers.py status` and wait for all workers to exit.
+    Returns True if all workers finished, or the active worker count if requested.
+    """
+    # Give launch_workers a moment to register workers
+    time.sleep(initial_delay_seconds)
+
+    print("[EXPERIMENT] Waiting for workers to finish...")
+
+    while True:
+        status = _get_workers_status(cmd, repo_root)
+        if status is None:
+            print("[EXPERIMENT] Worker status: unknown")
+            time.sleep(poll_seconds)
+            continue
+
+        active_count, inactive_count = status
+        print(f"[EXPERIMENT] Worker status: {active_count} active, {inactive_count} inactive")
+        print(f"[EXPERIMENT] {active_count} active workers remaining...")
+
+        if active_count == 0:
+            print("[EXPERIMENT] All workers exited.")
+            return True
+
+        time.sleep(poll_seconds)
+
 def main() -> int:
 
     repo_root = Path(__file__).resolve().parent
     init_script = repo_root / "init_aeon_univariate.py"
     launch_script = repo_root / "launch_workers.py"
-    dataset_info_path = repo_root / dataset_info_file
 
     if not init_script.exists():
         print(f"[ERROR] Missing init script: {init_script}")
@@ -217,21 +189,17 @@ def main() -> int:
         print(f"[ERROR] Missing worker launcher: {launch_script}")
         return 1
 
-    # Load dataset information
-    dataset_info = _load_dataset_info(dataset_info_path)
-
     init_tokens = shlex.split(init_args, posix=os.name != "nt") if init_args else []
     init_has_class_label = _flag_present(init_tokens, "--class-label")
 
-    python_exe = sys.executable
+    python_exe = sys.executable 
 
     try:
+        for worker_count in workers:
+            for dataset in datasets:
+                class_labels = _auto_class_label(dataset)                
+                for class_label in class_labels:
 
-        for dataset in datasets:
-           
-            class_labels = _auto_class_label(dataset)   
-            for class_label in class_labels:        
-                for worker_count in workers:
                     print("\n" + "=" * 80)
                     print(f"[RUN] Dataset={dataset} | Workers={worker_count}")
                     if class_label and not init_has_class_label:
@@ -260,22 +228,39 @@ def main() -> int:
                     start_cmd = [
                         python_exe,
                         str(launch_script),
-                        "start-legacy",
-                        str(worker_count),
-                        "--worker",
-                        worker_script,
+                        "start",
                     ]
-                    if worker_args:
-                        start_cmd += ["--args", worker_args]
-                    # launch workers
+                    # start_cmd = [
+                    #     python_exe,
+                    #     str(launch_script),
+                    #     "start-legacy",
+                    #     str(worker_count),
+                    #     "--worker",
+                    #     worker_script,
+                    # ]
+                    # if worker_args:
+                    #     start_cmd += ["--args", worker_args]
+                    # # launch workers
                     _run_cmd(start_cmd, cwd=repo_root, check=True)
 
                     # 6. Wait for Completion
                     print(f"[EXPERIMENT] Waiting for solution...")
                     start_wait = time.time()
-                    wait_for_workers()
+                    cmd = [
+                        python_exe,
+                        str(launch_script),
+                        "status",
+                    ]
+                    wait_for_workers(cmd, repo_root, poll_seconds=12.0)
                     duration = time.time() - start_wait
                     print(f"[EXPERIMENT] Iteration {worker_count} for dataset {dataset} class {class_label} completed in {duration:.2f} seconds.")
+                    start_cmd = [
+                        python_exe,
+                        str(launch_script),
+                        "stop",
+                    ]
+                    _run_cmd(start_cmd, cwd=repo_root, check=True)
+                    # remove file work
                     with open(file_log, 'w') as f:
                         f.write('Experiment completed in {:.2f} seconds.\n Ended at {}\n'.format(duration, time.strftime("%Y-%m-%d %H:%M:%S")))
                         f.write(50*'=' + '\n')
