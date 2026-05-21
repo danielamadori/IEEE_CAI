@@ -815,8 +815,11 @@ def visualize_sample_with_icf(sample_id: str, tests_sample: Dict,
             prediction_status = f"Predicted={predicted_label}, Actual={actual_label}"
             prediction_symbol = " INCORRECT"
 
-    # Get first ICF
-    first_bitmap = list(tests_sample[sample_id][reason_type].keys())[0]
+    # Get ICF with highest cost
+    first_bitmap = max(
+        tests_sample[sample_id][reason_type].keys(),
+        key=lambda b: tests_sample[sample_id][reason_type][b]["cost"]
+    )
     icf = tests_sample[sample_id][reason_type][first_bitmap]["icf"]
     cost = tests_sample[sample_id][reason_type][first_bitmap]["cost"]
 
