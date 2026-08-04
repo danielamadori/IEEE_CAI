@@ -29,6 +29,19 @@ from the [Aeon](https://www.aeon-toolkit.org/) collection. The tooling spans
 from dataset initialisation scripts to helpers that persist forests and samples
 into Redis-backed caches.
 
+Please cite this work as: 
+>>> @INPROCEEDINGS{11536523,
+  author={Amadori, Daniel and Chini, Emanuele and Sala, Pietro},
+  booktitle={2026 IEEE Conference on Artificial Intelligence (CAI)}, 
+  title={DRIFTS: Distributed Robustness for Time Series is Feasible, Distributed, and Fun}, 
+  year={2026},
+  volume={},
+  number={},
+  pages={114-121},
+  keywords={Cognition;Cognitive systems;Robustness;Costing;Costs;Modeling;Printing;Machine learning;Timing;Equations},
+  doi={10.1109/CAI68641.2026.11536523}}
+
+
 ## Installation
 
 ### Option 1: Docker (Recommended)
